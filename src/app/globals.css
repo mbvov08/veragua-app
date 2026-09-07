@@ -1,0 +1,90 @@
+@import "tailwindcss";
+
+:root {
+  --background: #faf7f0;
+  --foreground: #2b2a1f;
+
+  --color-verde-50: #f2f7ed;
+  --color-verde-100: #e0ecd2;
+  --color-verde-200: #c3daa9;
+  --color-verde-300: #a0c67c;
+  --color-verde-400: #7fb056;
+  --color-verde-500: #5e8f3a;
+  --color-verde-600: #47702c;
+  --color-verde-700: #395824;
+  --color-verde-800: #2f4720;
+  --color-verde-900: #263a1c;
+
+  --color-tierra-50: #faf6f0;
+  --color-tierra-100: #f0e6d6;
+  --color-tierra-200: #e0c9a8;
+  --color-tierra-300: #cca878;
+  --color-tierra-400: #b8874f;
+  --color-tierra-500: #9c6b38;
+  --color-tierra-600: #7e552d;
+  --color-tierra-700: #654427;
+  --color-tierra-800: #533823;
+  --color-tierra-900: #46301f;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+
+  --color-verde-50: var(--color-verde-50);
+  --color-verde-100: var(--color-verde-100);
+  --color-verde-200: var(--color-verde-200);
+  --color-verde-300: var(--color-verde-300);
+  --color-verde-400: var(--color-verde-400);
+  --color-verde-500: var(--color-verde-500);
+  --color-verde-600: var(--color-verde-600);
+  --color-verde-700: var(--color-verde-700);
+  --color-verde-800: var(--color-verde-800);
+  --color-verde-900: var(--color-verde-900);
+
+  --color-tierra-50: var(--color-tierra-50);
+  --color-tierra-100: var(--color-tierra-100);
+  --color-tierra-200: var(--color-tierra-200);
+  --color-tierra-300: var(--color-tierra-300);
+  --color-tierra-400: var(--color-tierra-400);
+  --color-tierra-500: var(--color-tierra-500);
+  --color-tierra-600: var(--color-tierra-600);
+  --color-tierra-700: var(--color-tierra-700);
+  --color-tierra-800: var(--color-tierra-800);
+  --color-tierra-900: var(--color-tierra-900);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, Helvetica, sans-serif;
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none bg-verde-600 text-white hover:bg-verde-700;
+  }
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none bg-tierra-100 text-tierra-800 hover:bg-tierra-200;
+  }
+  .btn-outline {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none border border-verde-300 text-verde-700 hover:bg-verde-50;
+  }
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none bg-red-600 text-white hover:bg-red-700;
+  }
+  .card {
+    @apply rounded-xl border border-verde-100 bg-white p-4 shadow-sm;
+  }
+  .input {
+    @apply w-full rounded-lg border border-tierra-200 bg-white px-3 py-2 text-sm outline-none focus:border-verde-400 focus:ring-2 focus:ring-verde-100;
+  }
+  .label {
+    @apply mb-1 block text-xs font-medium text-tierra-700;
+  }
+  .badge {
+    @apply inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium;
+  }
+}

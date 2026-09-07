@@ -1,0 +1,200 @@
+// Prisma schema — Veragua App
+// Dev: SQLite (file:./dev.db). Prod: switch provider to "postgresql" + DATABASE_URL.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  username     String   @unique
+  name         String
+  passwordHash String
+  role         String // "ADMIN" | "EMPLEADA"
+  activo       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  timeEntries        TimeEntry[]
+  ordersCreated      Order[]              @relation("OrderCreatedBy")
+  recurringRules     RecurringOrderRule[] @relation("RecurringRuleCreatedBy")
+  tasksAssigned      Task[]               @relation("TaskAssignee")
+  tasksCreated       Task[]               @relation("TaskCreatedBy")
+  reminderRules      ReminderRule[]       @relation("ReminderRuleCreatedBy")
+  reminderDismissals ReminderDismissal[]
+  payrollSlips       PayrollSlip[]
+  liquidaciones      Liquidacion[]
+  employeeProfile    EmployeeProfile?
+}
+
+// Datos laborales del empleado usados para nómina y liquidación
+model EmployeeProfile {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id])
+  salarioBase     Float    @default(0)
+  fechaIngreso    DateTime
+  auxTransporte   Boolean  @default(true)
+  updatedAt       DateTime @updatedAt
+}
+
+// Ajustes generales de nómina (SMLMV, auxilio de transporte, porcentajes de ley)
+model PayrollSettings {
+  id                    String   @id @default("singleton")
+  smlmv                 Float
+  auxilioTransporte     Float
+  porcentajeSalud       Float    @default(0.04)
+  porcentajePension     Float    @default(0.04)
+  horasSemanaLegal      Float    @default(42)
+  topeAuxTransporteSmlmv Float   @default(2)
+  updatedAt             DateTime @updatedAt
+}
+
+model TimeEntry {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id])
+  workDate  DateTime // día lógico (UTC-noon normalizado)
+  clockIn   DateTime
+  clockOut  DateTime?
+  notas     String?
+  createdAt DateTime  @default(now())
+
+  @@unique([userId, workDate])
+  @@index([userId, workDate])
+}
+
+model Order {
+  id              String    @id @default(cuid())
+  cliente         String
+  direccion       String
+  telefono        String
+  zona            String // "LOCAL" | "PEREIRA" | "MANIZALES"
+  fechaEntrega    DateTime // UTC-noon normalizado
+  entregado       Boolean   @default(false)
+  entregadoAt     DateTime?
+  notas           String?
+  recurringRuleId String?
+  recurringRule   RecurringOrderRule? @relation(fields: [recurringRuleId], references: [id])
+  creadoPorId     String
+  creadoPor       User      @relation("OrderCreatedBy", fields: [creadoPorId], references: [id])
+  createdAt       DateTime  @default(now())
+
+  @@unique([recurringRuleId, fechaEntrega])
+  @@index([zona, fechaEntrega])
+}
+
+model RecurringOrderRule {
+  id          String   @id @default(cuid())
+  cliente     String
+  direccion   String
+  telefono    String
+  zona        String
+  diaSemana   Int // 0=domingo .. 6=sábado
+  notas       String?
+  activo      Boolean  @default(true)
+  creadoPorId String
+  creadoPor   User     @relation("RecurringRuleCreatedBy", fields: [creadoPorId], references: [id])
+  createdAt   DateTime @default(now())
+
+  orders Order[]
+}
+
+model Task {
+  id           String    @id @default(cuid())
+  titulo       String
+  descripcion  String?
+  asignadoAId  String
+  asignadoA    User      @relation("TaskAssignee", fields: [asignadoAId], references: [id])
+  creadoPorId  String
+  creadoPor    User      @relation("TaskCreatedBy", fields: [creadoPorId], references: [id])
+  fechaLimite  DateTime?
+  estado       String    @default("PENDIENTE") // PENDIENTE | EN_PROCESO | COMPLETADO
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+model ReminderRule {
+  id          String   @id @default(cuid())
+  titulo      String
+  mensaje     String?
+  diaSemana   Int // 0=domingo .. 6=sábado
+  activo      Boolean  @default(true)
+  creadoPorId String
+  creadoPor   User     @relation("ReminderRuleCreatedBy", fields: [creadoPorId], references: [id])
+  createdAt   DateTime @default(now())
+
+  instances ReminderInstance[]
+}
+
+model ReminderInstance {
+  id             String   @id @default(cuid())
+  reminderRuleId String
+  reminderRule   ReminderRule @relation(fields: [reminderRuleId], references: [id])
+  fecha          DateTime // UTC-noon normalizado
+  createdAt      DateTime @default(now())
+
+  dismissals ReminderDismissal[]
+
+  @@unique([reminderRuleId, fecha])
+  @@index([fecha])
+}
+
+model ReminderDismissal {
+  id                 String           @id @default(cuid())
+  reminderInstanceId String
+  reminderInstance   ReminderInstance @relation(fields: [reminderInstanceId], references: [id])
+  userId             String
+  user               User             @relation(fields: [userId], references: [id])
+  dismissedAt        DateTime         @default(now())
+
+  @@unique([reminderInstanceId, userId])
+}
+
+model PayrollSlip {
+  id               String   @id @default(cuid())
+  userId           String
+  user             User     @relation(fields: [userId], references: [id])
+  periodStart      DateTime
+  periodEnd        DateTime
+  salarioBase      Float
+  diasTrabajados   Float
+  horasOrdinarias  Float
+  horasExtraDiu    Float
+  horasExtraNoc    Float
+  valorExtraDiu    Float
+  valorExtraNoc    Float
+  auxTransporte    Float
+  totalDevengado   Float
+  saludDeduccion   Float
+  pensionDeduccion Float
+  totalDeducciones Float
+  netoPagar        Float
+  detalleJson      String
+  generadoPorId    String
+  generatedAt      DateTime @default(now())
+
+  @@index([userId, periodStart])
+}
+
+model Liquidacion {
+  id                  String   @id @default(cuid())
+  userId              String
+  user                User     @relation(fields: [userId], references: [id])
+  fechaIngreso        DateTime
+  fechaRetiro         DateTime
+  salarioBase         Float
+  diasLaborados       Int
+  cesantias           Float
+  interesesCesantias  Float
+  prima               Float
+  vacaciones          Float
+  totalLiquidacion    Float
+  detalleJson         String
+  generadoPorId       String
+  generatedAt         DateTime @default(now())
+}
