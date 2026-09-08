@@ -54,6 +54,13 @@ model Producto {
   createdAt   DateTime @default(now())
 }
 
+// Día fijo de la semana en que sale cada ruta (Pereira, Manizales), ya que solo se hacen una vez por semana.
+model RutaSettings {
+  id        String @id @default(cuid())
+  zona      String @unique // "PEREIRA" | "MANIZALES"
+  diaSemana Int // 0=domingo .. 6=sábado
+}
+
 // Datos laborales del empleado usados para nómina y liquidación
 model EmployeeProfile {
   id                   String   @id @default(cuid())

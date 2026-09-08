@@ -67,6 +67,60 @@ export async function createOrder(formData: FormData) {
   revalidatePath("/");
 }
 
+export async function updateOrder(orderId: string, formData: FormData) {
+  const session = await auth();
+  if (!session?.user) throw new Error("No autenticado");
+
+  const cliente = String(formData.get("cliente") ?? "").trim();
+  const direccion = String(formData.get("direccion") ?? "").trim();
+  const telefono = String(formData.get("telefono") ?? "").trim() || null;
+  const zona = String(formData.get("zona") ?? "LOCAL");
+  const fechaStr = String(formData.get("fechaEntrega") ?? "");
+  const notas = String(formData.get("notas") ?? "").trim();
+
+  if (!cliente || !direccion || !fechaStr) {
+    throw new Error("Completa cliente, dirección y fecha de entrega.");
+  }
+
+  await prisma.order.update({
+    where: { id: orderId },
+    data: {
+      cliente,
+      direccion,
+      telefono,
+      zona,
+      fechaEntrega: dateOnlyToUTC(fechaStr),
+      notas: notas || null,
+    },
+  });
+
+  revalidatePath("/pedidos");
+  revalidatePath("/pedidos/pereira");
+  revalidatePath("/calendario");
+  revalidatePath("/");
+}
+
+export async function guardarRutaDia(formData: FormData) {
+  const session = await auth();
+  if (!session?.user || session.user.role !== "ADMIN") {
+    throw new Error("Solo la administradora puede configurar los días de ruta.");
+  }
+
+  const zona = String(formData.get("zona") ?? "");
+  const diaSemana = Number(formData.get("diaSemana"));
+  if (!["PEREIRA", "MANIZALES"].includes(zona) || Number.isNaN(diaSemana)) {
+    throw new Error("Elige la zona y el día correctos.");
+  }
+
+  await prisma.rutaSettings.upsert({
+    where: { zona },
+    update: { diaSemana },
+    create: { zona, diaSemana },
+  });
+
+  revalidatePath("/pedidos");
+}
+
 export async function toggleDelivered(orderId: string, entregado: boolean) {
   const session = await auth();
   if (!session?.user) throw new Error("No autenticado");
