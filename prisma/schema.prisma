@@ -15,7 +15,7 @@ model User {
   username     String   @unique
   name         String
   passwordHash String
-  role         String // "ADMIN" | "EMPLEADA"
+  role         String // "ADMIN" | "EMPLEADA" | "GALPON"
   activo       Boolean  @default(true)
   createdAt    DateTime @default(now())
 
@@ -28,18 +28,34 @@ model User {
   reminderDismissals ReminderDismissal[]
   payrollSlips       PayrollSlip[]
   liquidaciones      Liquidacion[]
+  primaPagos         PrimaPago[]
+  cesantiasConsignaciones CesantiasConsignacion[]
   employeeProfile    EmployeeProfile?
+  registrosGalpon    RegistroGalpon[]
+  recepcionesLocal   RecepcionLocal[]     @relation("RecepcionRegistradaPor")
+  pagosGalpon        PagoGalpon[]
+  listasCompras      ListaCompras[]
+  cajaMovimientosCreados  CajaMovimiento[] @relation("CajaCreadoPor")
+  cajaMovimientosAprobados CajaMovimiento[] @relation("CajaAprobadoPor")
+  melcochProduccionesCreadas MelcochProduccionDiaria[] @relation("MelcochProduccionCreadaPor")
+  melcochComprasCreadas      MelcochCompraIngrediente[] @relation("MelcochCompraCreadaPor")
+  melcochAjustesCreados      MelcochAjusteInventario[]  @relation("MelcochAjusteCreadoPor")
 }
 
 // Datos laborales del empleado usados para nómina y liquidación
 model EmployeeProfile {
-  id              String   @id @default(cuid())
-  userId          String   @unique
-  user            User     @relation(fields: [userId], references: [id])
-  salarioBase     Float    @default(0)
-  fechaIngreso    DateTime
-  auxTransporte   Boolean  @default(true)
-  updatedAt       DateTime @updatedAt
+  id                   String   @id @default(cuid())
+  userId               String   @unique
+  user                 User     @relation(fields: [userId], references: [id])
+  cedula               String?
+  salarioBase          Float    @default(0)
+  fechaIngreso         DateTime
+  auxTransporte        Boolean  @default(true)
+  // Extra fijo que se paga cada quincena por fuera del salario (ej. domicilios),
+  // no constitutivo de salario: no se le calcula salud/pensión.
+  extraQuincenal       Float    @default(0)
+  extraQuincenalLabel  String   @default("Domicilios")
+  updatedAt            DateTime @updatedAt
 }
 
 // Ajustes generales de nómina (SMLMV, auxilio de transporte, porcentajes de ley)
@@ -50,8 +66,64 @@ model PayrollSettings {
   porcentajeSalud       Float    @default(0.04)
   porcentajePension     Float    @default(0.04)
   horasSemanaLegal      Float    @default(42)
+  // Divisor de horas mensuales para el valor de la hora ordinaria (referencia oficial vigente: 220).
+  divisorHorasMensual   Float    @default(220)
   topeAuxTransporteSmlmv Float   @default(2)
+  // Pago por cubeta (30 huevos) en buen estado, para el encargado del galpón.
+  valorCubetaGalpon     Float    @default(1000)
+  huevosPorCubeta       Int      @default(30)
   updatedAt             DateTime @updatedAt
+}
+
+// Registro diario del encargado del galpón: cuántos huevos produjo y cuántos salieron rotos.
+model RegistroGalpon {
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id])
+  fecha          DateTime // UTC-noon normalizado
+  huevosProducidos Int
+  huevosRotos    Int      @default(0)
+  observaciones  String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([userId, fecha])
+  @@index([fecha])
+}
+
+// Registro diario de cuántos huevos ingresaron efectivamente al local (lo entrega Daniela/admin).
+model RecepcionLocal {
+  id             String   @id @default(cuid())
+  fecha          DateTime @unique // UTC-noon normalizado
+  cantidadRecibida Int
+  observaciones  String?
+  registradoPorId String
+  registradoPor  User     @relation("RecepcionRegistradaPor", fields: [registradoPorId], references: [id])
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([fecha])
+}
+
+// Pago al encargado del galpón por producción, cruzando su registro con lo recibido en el local.
+model PagoGalpon {
+  id                 String   @id @default(cuid())
+  userId             String
+  user               User     @relation(fields: [userId], references: [id])
+  periodStart        DateTime
+  periodEnd          DateTime
+  huevosProducidos   Int
+  huevosRotos        Int
+  huevosRecibidosLocal Int
+  huevosVerificados  Int
+  cubetas            Float
+  valorCubeta        Float
+  totalPagar         Float
+  detalleJson        String
+  generadoPorId      String
+  generatedAt        DateTime @default(now())
+
+  @@index([userId, periodStart])
 }
 
 model TimeEntry {
@@ -62,6 +134,10 @@ model TimeEntry {
   clockIn   DateTime
   clockOut  DateTime?
   notas     String?
+  // Si la salida fue después de la jornada ordinaria, motivo y justificación obligatorios.
+  motivoSalidaTardia  String? // "CARGA_TRABAJO" | "INGRESO_TARDE_COMPENSO" | "ALMUERZO_EXTENDIDO" | "COMPROMISO_PERSONAL" | "OTRO"
+  esJustificable      Boolean? // autoevaluación de quien marca la salida
+  justificacionSalida String?
   createdAt DateTime  @default(now())
 
   @@unique([userId, workDate])
@@ -72,7 +148,7 @@ model Order {
   id              String    @id @default(cuid())
   cliente         String
   direccion       String
-  telefono        String
+  telefono        String?
   zona            String // "LOCAL" | "PEREIRA" | "MANIZALES"
   fechaEntrega    DateTime // UTC-noon normalizado
   entregado       Boolean   @default(false)
@@ -92,7 +168,7 @@ model RecurringOrderRule {
   id          String   @id @default(cuid())
   cliente     String
   direccion   String
-  telefono    String
+  telefono    String?
   zona        String
   diaSemana   Int // 0=domingo .. 6=sábado
   notas       String?
@@ -168,11 +244,19 @@ model PayrollSlip {
   horasExtraNoc    Float
   valorExtraDiu    Float
   valorExtraNoc    Float
+  // Horas extra según la autoevaluación al marcar salida tardía.
+  horasJustificadas   Float @default(0)
+  horasNoJustificadas Float @default(0)
+  extraFijo        Float    @default(0)
+  extraFijoLabel   String?
   auxTransporte    Float
   totalDevengado   Float
   saludDeduccion   Float
   pensionDeduccion Float
   totalDeducciones Float
+  // Descuento por faltante/pérdida asumida por la empleada (pactado en su contrato). Manual, con concepto.
+  descuentoFaltante        Float @default(0)
+  descuentoFaltanteConcepto String?
   netoPagar        Float
   detalleJson      String
   generadoPorId    String
@@ -197,4 +281,136 @@ model Liquidacion {
   detalleJson         String
   generadoPorId       String
   generatedAt         DateTime @default(now())
+}
+
+// Prima de servicios: por ley se paga dos veces al año (30 de junio y 20 de diciembre)
+// a todo empleado activo, independiente de la liquidación.
+model PrimaPago {
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id])
+  semestre       Int // 1 o 2
+  anio           Int
+  semestreInicio DateTime
+  semestreFin    DateTime
+  salarioBase    Float
+  diasBase       Int
+  valorPrima     Float
+  detalleJson    String
+  generadoPorId  String
+  generatedAt    DateTime @default(now())
+
+  @@unique([userId, anio, semestre])
+}
+
+// Cálculo informativo de cuánto consignar al fondo de cesantías antes del 14 de febrero.
+model CesantiasConsignacion {
+  id                 String   @id @default(cuid())
+  userId             String
+  user               User     @relation(fields: [userId], references: [id])
+  anio               Int
+  salarioBase        Float
+  diasBase           Int
+  valorCesantias     Float
+  valorIntereses     Float
+  detalleJson        String
+  generadoPorId      String
+  generatedAt        DateTime @default(now())
+
+  @@unique([userId, anio])
+}
+
+// Lista de compras/insumos pendientes, separada por área (galpón o local).
+// Cada área solo ve y crea lo suyo; la administradora ve ambas.
+model ListaCompras {
+  id           String    @id @default(cuid())
+  item         String
+  cantidad     String?
+  categoria    String // "GALPON" | "LOCAL"
+  comprado     Boolean   @default(false)
+  compradoAt   DateTime?
+  creadoPorId  String
+  creadoPor    User      @relation(fields: [creadoPorId], references: [id])
+  createdAt    DateTime  @default(now())
+
+  @@index([categoria, comprado])
+}
+
+// Ajustes de caja: base inicial de efectivo. Solo administradora y empleada del local acceden.
+model CajaSettings {
+  id          String   @id @default("singleton")
+  baseInicial Float    @default(0)
+  updatedAt   DateTime @updatedAt
+}
+
+// Movimientos de caja (efectivo). Los egresos deben ser aprobados por la administradora
+// antes de contar contra el saldo; los ingresos (base/reposición) los registra ella directamente.
+model CajaMovimiento {
+  id             String    @id @default(cuid())
+  tipo           String // "INGRESO" | "EGRESO"
+  monto          Float
+  categoria      String? // solo para egresos
+  estado         String    @default("APROBADO") // "PENDIENTE" | "APROBADO" | "RECHAZADO"
+  observaciones  String?
+  fecha          DateTime // UTC-noon normalizado
+  creadoPorId    String
+  creadoPor      User      @relation("CajaCreadoPor", fields: [creadoPorId], references: [id])
+  aprobadoPorId  String?
+  aprobadoPor    User?     @relation("CajaAprobadoPor", fields: [aprobadoPorId], references: [id])
+  createdAt      DateTime  @default(now())
+
+  @@index([tipo, estado])
+}
+
+// Línea Melcoch — Brownie de Milo. Ingredientes fijos con su cantidad por mezcla (receta).
+model MelcochIngrediente {
+  id                String   @id @default(cuid())
+  nombre            String   @unique
+  unidad            String // "g" | "unidad"
+  cantidadPorMezcla Float
+
+  compras  MelcochCompraIngrediente[]
+  ajustes  MelcochAjusteInventario[]
+}
+
+// Producción diaria: cuántas mezclas se hicieron (consume ingredientes automáticamente)
+// y cómo se empacó (informativo). Daniela no ve el saldo resultante, solo registra.
+model MelcochProduccionDiaria {
+  id              String   @id @default(cuid())
+  fecha           DateTime @unique // UTC-noon normalizado
+  mezclas         Float
+  cajasNormales   Int      @default(0)
+  cajasFamiliares Int      @default(0)
+  observaciones   String?
+  creadoPorId     String
+  creadoPor       User     @relation("MelcochProduccionCreadaPor", fields: [creadoPorId], references: [id])
+  createdAt       DateTime @default(now())
+}
+
+// Compras/reposición de un ingrediente (incluye el inventario inicial, como primera compra).
+model MelcochCompraIngrediente {
+  id             String             @id @default(cuid())
+  ingredienteId  String
+  ingrediente    MelcochIngrediente @relation(fields: [ingredienteId], references: [id])
+  cantidad       Float
+  fecha          DateTime
+  observaciones  String?
+  creadoPorId    String
+  creadoPor      User               @relation("MelcochCompraCreadaPor", fields: [creadoPorId], references: [id])
+  createdAt      DateTime           @default(now())
+}
+
+// Conteo físico sorpresa (solo administradora): ajusta el saldo teórico al real y deja
+// registrada la diferencia (merma o sobrante) para ese ingrediente.
+model MelcochAjusteInventario {
+  id             String             @id @default(cuid())
+  ingredienteId  String
+  ingrediente    MelcochIngrediente @relation(fields: [ingredienteId], references: [id])
+  teoricoAntes   Float
+  contado        Float
+  diferencia     Float
+  fecha          DateTime
+  creadoPorId    String
+  creadoPor      User               @relation("MelcochAjusteCreadoPor", fields: [creadoPorId], references: [id])
+  createdAt      DateTime           @default(now())
 }

@@ -9,6 +9,16 @@ import {
   formatTimeCo,
   todayColombia,
 } from "@/lib/date";
+import { adminSetTimeEntry, adminDeleteTimeEntry } from "@/lib/actions/personal";
+import ConfirmButton from "@/components/ConfirmButton";
+
+const MOTIVO_LABEL: Record<string, string> = {
+  CARGA_TRABAJO: "Cantidad de trabajo",
+  INGRESO_TARDE_COMPENSO: "Ingresó más tarde y compensó",
+  ALMUERZO_EXTENDIDO: "Almuerzo extendido",
+  COMPROMISO_PERSONAL: "Compromiso personal",
+  OTRO: "Otro motivo",
+};
 
 export default async function HistorialPage({
   searchParams,
@@ -98,6 +108,40 @@ export default async function HistorialPage({
         </div>
       </form>
 
+      <details className="card">
+        <summary className="cursor-pointer text-sm font-semibold text-verde-800">
+          Corregir o agregar un registro (si a alguien se le olvidó marcar)
+        </summary>
+        <form action={adminSetTimeEntry} className="mt-4 grid gap-3 sm:grid-cols-4">
+          <div>
+            <label className="label">Empleado(a)</label>
+            <select name="userId" required className="input">
+              {users.map((u) => (
+                <option key={u.id} value={u.id}>{u.name}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="label">Fecha</label>
+            <input type="date" name="fecha" required className="input" defaultValue={formatDateOnly(today)} />
+          </div>
+          <div>
+            <label className="label">Hora entrada</label>
+            <input type="time" name="horaEntrada" required className="input" />
+          </div>
+          <div>
+            <label className="label">Hora salida (opcional)</label>
+            <input type="time" name="horaSalida" className="input" />
+          </div>
+          <div className="sm:col-span-4">
+            <button type="submit" className="btn-primary">Guardar</button>
+          </div>
+        </form>
+        <p className="mt-2 text-xs text-tierra-400">
+          Si ya existe un registro para esa persona y fecha, se reemplaza con estos valores.
+        </p>
+      </details>
+
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="card">
           <p className="text-xs text-tierra-500">Horas totales en el rango</p>
@@ -119,6 +163,8 @@ export default async function HistorialPage({
               <th className="py-2 pr-2">Salida</th>
               <th className="py-2 pr-2">Horas</th>
               <th className="py-2 pr-2">Extra semana</th>
+              <th className="py-2 pr-2">Salida tardía</th>
+              <th className="py-2 pr-2"></th>
             </tr>
           </thead>
           <tbody>
@@ -130,10 +176,32 @@ export default async function HistorialPage({
                 <td className="py-2 pr-2">{e.clockOut ? formatTimeCo(e.clockOut) : "—"}</td>
                 <td className="py-2 pr-2">{e.clockOut ? worked.toFixed(2) : "—"}</td>
                 <td className="py-2 pr-2">{isExtraWeek ? "Sí" : ""}</td>
+                <td className="py-2 pr-2 max-w-xs">
+                  {e.justificacionSalida && (
+                    <>
+                      <span className="badge bg-tierra-100 text-tierra-700">
+                        {MOTIVO_LABEL[e.motivoSalidaTardia ?? ""] ?? e.motivoSalidaTardia}
+                      </span>{" "}
+                      <span className={`badge ${e.esJustificable ? "bg-verde-100 text-verde-700" : "bg-red-50 text-red-600"}`}>
+                        {e.esJustificable ? "Justificable" : "No justificable"}
+                      </span>
+                      <p className="mt-0.5 text-xs text-tierra-500">{e.justificacionSalida}</p>
+                    </>
+                  )}
+                </td>
+                <td className="py-2 pr-2">
+                  <ConfirmButton
+                    action={adminDeleteTimeEntry.bind(null, e.id)}
+                    confirmMessage="¿Eliminar este registro de horario?"
+                    className="text-xs text-red-600 hover:underline"
+                  >
+                    Eliminar
+                  </ConfirmButton>
+                </td>
               </tr>
             ))}
             {rows.length === 0 && (
-              <tr><td colSpan={6} className="py-6 text-center text-tierra-500">Sin registros en este rango.</td></tr>
+              <tr><td colSpan={8} className="py-6 text-center text-tierra-500">Sin registros en este rango.</td></tr>
             )}
           </tbody>
         </table>

@@ -1,19 +1,19 @@
 @import "tailwindcss";
 
 :root {
-  --background: #faf7f0;
-  --foreground: #2b2a1f;
+  --background: #f5f1e6;
+  --foreground: #23291d;
 
-  --color-verde-50: #f2f7ed;
-  --color-verde-100: #e0ecd2;
-  --color-verde-200: #c3daa9;
-  --color-verde-300: #a0c67c;
-  --color-verde-400: #7fb056;
-  --color-verde-500: #5e8f3a;
-  --color-verde-600: #47702c;
-  --color-verde-700: #395824;
-  --color-verde-800: #2f4720;
-  --color-verde-900: #263a1c;
+  --color-verde-50: #f0f2ea;
+  --color-verde-100: #dde2d0;
+  --color-verde-200: #b9c3a3;
+  --color-verde-300: #8fa072;
+  --color-verde-400: #647a4c;
+  --color-verde-500: #465c34;
+  --color-verde-600: #33472a;
+  --color-verde-700: #263521;
+  --color-verde-800: #1c281a;
+  --color-verde-900: #141d13;
 
   --color-tierra-50: #faf6f0;
   --color-tierra-100: #f0e6d6;
@@ -25,6 +25,14 @@
   --color-tierra-700: #654427;
   --color-tierra-800: #533823;
   --color-tierra-900: #46301f;
+
+  --color-dorado-50: #faf5e6;
+  --color-dorado-100: #f3e6bd;
+  --color-dorado-200: #e8cd80;
+  --color-dorado-300: #dcb752;
+  --color-dorado-400: #c9a23e;
+  --color-dorado-500: #b08a2f;
+  --color-dorado-600: #8f6f26;
 }
 
 @theme inline {
@@ -54,6 +62,14 @@
   --color-tierra-700: var(--color-tierra-700);
   --color-tierra-800: var(--color-tierra-800);
   --color-tierra-900: var(--color-tierra-900);
+
+  --color-dorado-50: var(--color-dorado-50);
+  --color-dorado-100: var(--color-dorado-100);
+  --color-dorado-200: var(--color-dorado-200);
+  --color-dorado-300: var(--color-dorado-300);
+  --color-dorado-400: var(--color-dorado-400);
+  --color-dorado-500: var(--color-dorado-500);
+  --color-dorado-600: var(--color-dorado-600);
 }
 
 body {

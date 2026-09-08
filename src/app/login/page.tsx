@@ -31,13 +31,13 @@ export default async function LoginPage({
   const callbackUrl = params.callbackUrl ?? "/";
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-verde-50 px-4">
+    <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="w-full max-w-sm">
-        <div className="mb-6 text-center">
-          <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-verde-600 text-2xl text-white">
-            🥚
-          </div>
-          <h1 className="text-2xl font-semibold text-verde-800">Veragua</h1>
+        <div className="mb-8 text-center">
+          <h1 className="font-serif text-4xl tracking-wide text-verde-900" style={{ letterSpacing: "0.05em" }}>
+            veragua
+          </h1>
+          <div className="mx-auto mt-2 mb-3 h-px w-10 bg-dorado-400" />
           <p className="text-sm text-tierra-600">Operaciones internas</p>
         </div>
 

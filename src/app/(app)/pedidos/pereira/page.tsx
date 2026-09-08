@@ -48,7 +48,7 @@ export default async function PereiraPage() {
                     <p className={`text-sm font-medium ${o.entregado ? "text-tierra-400 line-through" : "text-tierra-800"}`}>
                       {o.cliente}
                     </p>
-                    <p className="text-xs text-tierra-500">{o.direccion} · {o.telefono}</p>
+                    <p className="text-xs text-tierra-500">{o.direccion}{o.telefono && ` · ${o.telefono}`}</p>
                     {o.notas && <p className="text-xs text-tierra-400">{o.notas}</p>}
                   </div>
                   <DeliveredToggle orderId={o.id} entregado={o.entregado} />

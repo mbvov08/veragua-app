@@ -15,10 +15,13 @@ export default async function TareasPage({
   const params = await searchParams;
   const isAdmin = session.user.role === "ADMIN";
 
-  const users = await prisma.user.findMany({ orderBy: { name: "asc" } });
+  const allUsers = await prisma.user.findMany({ orderBy: { name: "asc" } });
+  // Cada quien ve solo sus propias tareas; la administradora ve todas.
+  const usersForFilter = isAdmin ? allUsers : allUsers.filter((u) => u.id === session.user.id);
 
   const tasks = await prisma.task.findMany({
     where: {
+      ...(isAdmin ? {} : { asignadoAId: session.user.id }),
       ...(params.asignadoAId ? { asignadoAId: params.asignadoAId } : {}),
       ...(params.estado ? { estado: params.estado } : {}),
     },
@@ -45,7 +48,7 @@ export default async function TareasPage({
             <div>
               <label className="label">Asignar a</label>
               <select name="asignadoAId" required className="input">
-                {users.map((u) => (
+                {allUsers.map((u) => (
                   <option key={u.id} value={u.id}>{u.name}</option>
                 ))}
               </select>
@@ -66,7 +69,7 @@ export default async function TareasPage({
           <label className="label">Asignada a</label>
           <select name="asignadoAId" defaultValue={params.asignadoAId ?? ""} className="input">
             <option value="">Todas</option>
-            {users.map((u) => (
+            {usersForFilter.map((u) => (
               <option key={u.id} value={u.id}>{u.name}</option>
             ))}
           </select>

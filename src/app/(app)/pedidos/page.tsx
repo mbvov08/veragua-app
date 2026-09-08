@@ -57,8 +57,8 @@ export default async function PedidosPage({
             <input name="cliente" required className="input" />
           </div>
           <div>
-            <label className="label">Teléfono</label>
-            <input name="telefono" required className="input" />
+            <label className="label">Teléfono (opcional)</label>
+            <input name="telefono" className="input" />
           </div>
           <div className="sm:col-span-2">
             <label className="label">Dirección</label>
@@ -134,7 +134,7 @@ export default async function PedidosPage({
                     <p className={`text-sm font-medium ${o.entregado ? "text-tierra-400 line-through" : "text-tierra-800"}`}>
                       {o.cliente} · <span className="badge bg-verde-50 text-verde-700">{ZONA_LABEL[o.zona]}</span>
                     </p>
-                    <p className="text-xs text-tierra-500">{o.direccion} · {o.telefono}</p>
+                    <p className="text-xs text-tierra-500">{o.direccion}{o.telefono && ` · ${o.telefono}`}</p>
                     {o.notas && <p className="text-xs text-tierra-400">{o.notas}</p>}
                   </div>
                   <div className="flex items-center gap-3">
@@ -167,7 +167,7 @@ export default async function PedidosPage({
                   <p className="font-medium text-tierra-800">
                     {r.cliente} · {DIAS_SEMANA[r.diaSemana]} · {ZONA_LABEL[r.zona]}
                   </p>
-                  <p className="text-xs text-tierra-500">{r.direccion} · {r.telefono}</p>
+                  <p className="text-xs text-tierra-500">{r.direccion}{r.telefono && ` · ${r.telefono}`}</p>
                 </div>
                 <div className="flex items-center gap-3">
                   <ConfirmButton

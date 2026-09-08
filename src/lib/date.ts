@@ -13,6 +13,13 @@ export function dateOnlyToUTC(dateStr: string): Date {
   return new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
 }
 
+/** Instante UTC de una hora:minuto de Colombia en la fecha "YYYY-MM-DD" dada. */
+export function colombiaDateTime(dateStr: string, timeStr: string): Date {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const [h, min] = timeStr.split(":").map(Number);
+  return new Date(Date.UTC(y, m - 1, d, h + 5, min));
+}
+
 /** Formatea un Date "de calendario" (mediodía UTC) como "YYYY-MM-DD". */
 export function formatDateOnly(date: Date): string {
   const y = date.getUTCFullYear();
@@ -106,6 +113,14 @@ export const DIAS_SEMANA = [
   "Viernes",
   "Sábado",
 ];
+
+/** Instante UTC que corresponde a una hora:minuto de Colombia en el día calendario dado (workDate). */
+export function colombiaClockOnDate(workDate: Date, hour: number, minute = 0): Date {
+  const y = workDate.getUTCFullYear();
+  const m = workDate.getUTCMonth();
+  const d = workDate.getUTCDate();
+  return new Date(Date.UTC(y, m, d, hour + 5, minute));
+}
 
 /** Horas trabajadas en el día (decimal), restando 1 hora de almuerzo de lunes a viernes. */
 export function computeWorkedHours(

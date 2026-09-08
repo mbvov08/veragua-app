@@ -11,14 +11,14 @@ export async function createOrder(formData: FormData) {
 
   const cliente = String(formData.get("cliente") ?? "").trim();
   const direccion = String(formData.get("direccion") ?? "").trim();
-  const telefono = String(formData.get("telefono") ?? "").trim();
+  const telefono = String(formData.get("telefono") ?? "").trim() || null;
   const zona = String(formData.get("zona") ?? "LOCAL");
   const fechaStr = String(formData.get("fechaEntrega") ?? "");
   const notas = String(formData.get("notas") ?? "").trim();
   const recurrente = formData.get("recurrente") === "on";
 
-  if (!cliente || !direccion || !telefono || !fechaStr) {
-    throw new Error("Completa cliente, dirección, teléfono y fecha de entrega.");
+  if (!cliente || !direccion || !fechaStr) {
+    throw new Error("Completa cliente, dirección y fecha de entrega.");
   }
 
   const fechaEntrega = dateOnlyToUTC(fechaStr);

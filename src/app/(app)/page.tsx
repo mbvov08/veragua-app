@@ -20,7 +20,54 @@ export default async function DashboardPage() {
   const session = await auth();
   if (!session?.user) return null;
   const isAdmin = session.user.role === "ADMIN";
+  const isGalpon = session.user.role === "GALPON";
   const today = todayColombia();
+
+  if (isGalpon) {
+    const registroHoy = await prisma.registroGalpon.findUnique({
+      where: { userId_fecha: { userId: session.user.id, fecha: today } },
+    });
+    const tasksPending = await prisma.task.findMany({
+      where: { estado: { not: "COMPLETADO" }, asignadoAId: session.user.id },
+      orderBy: { fechaLimite: "asc" },
+      take: 6,
+    });
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-xl font-semibold text-verde-800 capitalize">
+            Hola, {(session.user.name ?? session.user.username).split(" ")[0]}
+          </h1>
+          <p className="text-sm text-tierra-500 capitalize">{formatDateLongEs(today)}</p>
+        </div>
+        <div className="card">
+          <h2 className="mb-2 text-sm font-semibold text-verde-800">Producción de hoy</h2>
+          {registroHoy ? (
+            <p className="text-sm text-tierra-700">
+              Ya registraste {registroHoy.huevosProducidos} huevos ({registroHoy.huevosRotos} rotos).
+            </p>
+          ) : (
+            <p className="text-sm text-tierra-500">Aún no registras la producción de hoy.</p>
+          )}
+          <Link href="/produccion" className="mt-3 inline-block text-sm text-verde-700 underline">
+            Ir a registrar →
+          </Link>
+        </div>
+        <div className="card">
+          <h2 className="mb-2 text-sm font-semibold text-verde-800">Tareas pendientes</h2>
+          {tasksPending.length === 0 ? (
+            <p className="text-sm text-tierra-500">No hay tareas pendientes.</p>
+          ) : (
+            <ul className="divide-y divide-verde-50">
+              {tasksPending.map((t) => (
+                <li key={t.id} className="py-2 text-sm text-tierra-800">{t.titulo}</li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   const [ordersToday, tasksPending, myEntryToday] = await Promise.all([
     prisma.order.findMany({
