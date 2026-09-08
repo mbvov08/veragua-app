@@ -36,3 +36,4 @@ Ver la guía completa en el mensaje de entrega / chat. Resumen:
 
 - Los valores de SMLMV y auxilio de transporte usados en Nómina son de referencia y deben actualizarse cada año en **Nómina → Ajustes**.
 - Los pedidos y recordatorios recurrentes se generan automáticamente cada vez que alguien abre la app (no requiere tareas programadas externas).
+# Trigger redeploy
