@@ -12,6 +12,7 @@ export default async function PereiraPage() {
       zona: "PEREIRA",
       fechaEntrega: { gte: today, lte: horizon },
     },
+    include: { items: { include: { producto: true } } },
     orderBy: [{ fechaEntrega: "asc" }, { cliente: "asc" }],
   });
 
@@ -49,6 +50,11 @@ export default async function PereiraPage() {
                       {o.cliente}
                     </p>
                     <p className="text-xs text-tierra-500">{o.direccion}{o.telefono && ` · ${o.telefono}`}</p>
+                    {o.items.length > 0 && (
+                      <p className="text-xs text-tierra-400">
+                        {o.items.map((it) => `${it.producto.nombre}${it.cantidad ? ` (${it.cantidad})` : ""}`).join(", ")}
+                      </p>
+                    )}
                     {o.notas && <p className="text-xs text-tierra-400">{o.notas}</p>}
                   </div>
                   <DeliveredToggle orderId={o.id} entregado={o.entregado} />

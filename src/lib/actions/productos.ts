@@ -24,6 +24,7 @@ export async function eliminarProducto(id: string) {
   const session = await auth();
   if (!session?.user) throw new Error("No autenticado");
 
+  await prisma.orderItem.deleteMany({ where: { productoId: id } });
   await prisma.producto.delete({ where: { id } });
   revalidatePath("/pedidos");
 }

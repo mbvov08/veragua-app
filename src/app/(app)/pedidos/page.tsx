@@ -5,7 +5,7 @@ import { addDays, dateOnlyToUTC, formatDateOnly, formatDateShortEs, todayColombi
 import { createOrder, deleteOrder, deleteRecurringRule, toggleRecurringRule, updateOrder, guardarRutaDia } from "@/lib/actions/orders";
 import DeliveredToggle from "@/components/DeliveredToggle";
 import ConfirmButton from "@/components/ConfirmButton";
-import ProductPicker from "@/components/ProductPicker";
+import OrderItemsPicker from "@/components/OrderItemsPicker";
 import ZonaFechaSync from "@/components/ZonaFechaSync";
 
 const ZONA_LABEL: Record<string, string> = {
@@ -33,6 +33,7 @@ export default async function PedidosPage({
       ...(params.estado === "pendiente" ? { entregado: false } : {}),
       ...(params.estado === "entregado" ? { entregado: true } : {}),
     },
+    include: { items: { include: { producto: true } } },
     orderBy: [{ fechaEntrega: "asc" }, { zona: "asc" }],
   });
 
@@ -102,11 +103,11 @@ export default async function PedidosPage({
             )}
           </div>
           <ZonaFechaSync rutaDias={rutaDias} />
+          <OrderItemsPicker productos={productos} />
           <div className="sm:col-span-2">
-            <label className="label">Notas (opcional)</label>
-            <input id="notas" name="notas" className="input" />
+            <label className="label">Notas adicionales (opcional)</label>
+            <input id="notas" name="notas" className="input" placeholder="Cualquier detalle que no sea un producto" />
           </div>
-          <ProductPicker productos={productos} />
           <div className="sm:col-span-2 flex items-center gap-2">
             <input type="checkbox" name="recurrente" id="recurrente" className="h-4 w-4" />
             <label htmlFor="recurrente" className="text-sm text-tierra-700">
@@ -189,6 +190,11 @@ export default async function PedidosPage({
                         {o.cliente} · <span className="badge bg-verde-50 text-verde-700">{ZONA_LABEL[o.zona]}</span>
                       </p>
                       <p className="text-xs text-tierra-500">{o.direccion}{o.telefono && ` · ${o.telefono}`}</p>
+                      {o.items.length > 0 && (
+                        <p className="text-xs text-tierra-400">
+                          {o.items.map((it) => `${it.producto.nombre}${it.cantidad ? ` (${it.cantidad})` : ""}`).join(", ")}
+                        </p>
+                      )}
                       {o.notas && <p className="text-xs text-tierra-400">{o.notas}</p>}
                     </div>
                     <div className="flex items-center gap-3">
@@ -238,8 +244,16 @@ export default async function PedidosPage({
                           defaultValue={formatDateOnly(o.fechaEntrega)}
                         />
                       </div>
+                      <OrderItemsPicker
+                        productos={productos}
+                        initialItems={o.items.map((it) => ({
+                          productoId: it.productoId,
+                          nombre: it.producto.nombre,
+                          cantidad: it.cantidad ?? "",
+                        }))}
+                      />
                       <div className="sm:col-span-2">
-                        <label className="label">Notas (opcional)</label>
+                        <label className="label">Notas adicionales (opcional)</label>
                         <input name="notas" defaultValue={o.notas ?? ""} className="input" />
                       </div>
                       <div className="sm:col-span-2">

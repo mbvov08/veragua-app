@@ -47,11 +47,12 @@ model User {
 // Lista de referencia de productos que se venden, para agilizar la toma de pedidos.
 // No lleva inventario ni cantidades, solo el nombre.
 model Producto {
-  id          String   @id @default(cuid())
-  nombre      String   @unique
+  id          String      @id @default(cuid())
+  nombre      String      @unique
   creadoPorId String
-  creadoPor   User     @relation("ProductoCreadoPor", fields: [creadoPorId], references: [id])
-  createdAt   DateTime @default(now())
+  creadoPor   User        @relation("ProductoCreadoPor", fields: [creadoPorId], references: [id])
+  createdAt   DateTime    @default(now())
+  ordenados   OrderItem[]
 }
 
 // Día fijo de la semana en que sale cada ruta (Pereira, Manizales), ya que solo se hacen una vez por semana.
@@ -173,6 +174,7 @@ model Order {
   entregado       Boolean   @default(false)
   entregadoAt     DateTime?
   notas           String?
+  items           OrderItem[]
   recurringRuleId String?
   recurringRule   RecurringOrderRule? @relation(fields: [recurringRuleId], references: [id])
   creadoPorId     String
@@ -181,6 +183,17 @@ model Order {
 
   @@unique([recurringRuleId, fechaEntrega])
   @@index([zona, fechaEntrega])
+}
+
+// Producto pedido dentro de un pedido puntual. Sin inventario: solo referencia qué y cuánto se pidió.
+model OrderItem {
+  id         String   @id @default(cuid())
+  orderId    String
+  order      Order    @relation(fields: [orderId], references: [id])
+  productoId String
+  producto   Producto @relation(fields: [productoId], references: [id])
+  cantidad   String? // texto libre, ej. "1 cubeta", "2"
+  createdAt  DateTime @default(now())
 }
 
 model RecurringOrderRule {
