@@ -3,17 +3,22 @@ import { prisma } from "@/lib/prisma";
 import { addDays, formatDateOnly, formatDateLongEs, todayColombia } from "@/lib/date";
 import DeliveredToggle from "@/components/DeliveredToggle";
 
+const ZONA_LABEL: Record<string, string> = {
+  PEREIRA: "Pereira",
+  MANIZALES: "Manizales",
+};
+
 export default async function PereiraPage() {
   const today = todayColombia();
   const horizon = addDays(today, 45);
 
   const orders = await prisma.order.findMany({
     where: {
-      zona: "PEREIRA",
+      zona: { in: ["PEREIRA", "MANIZALES"] },
       fechaEntrega: { gte: today, lte: horizon },
     },
     include: { items: { include: { producto: true } } },
-    orderBy: [{ fechaEntrega: "asc" }, { cliente: "asc" }],
+    orderBy: [{ fechaEntrega: "asc" }, { zona: "asc" }, { cliente: "asc" }],
   });
 
   const grouped = new Map<string, typeof orders>();
@@ -25,11 +30,11 @@ export default async function PereiraPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-lg font-semibold text-verde-800">Ruta Pereira</h1>
+        <h1 className="text-lg font-semibold text-verde-800">Ruta Pereira / Manizales</h1>
         <Link href="/pedidos" className="text-sm text-verde-700 underline">← Todos los pedidos</Link>
       </div>
       <p className="text-sm text-tierra-500">
-        Pedidos agrupados por día de entrega para organizar la ruta antes de salir a repartir.
+        Pedidos de ambas rutas agrupados por día de entrega, ya que salen en el mismo vehículo.
       </p>
 
       {[...grouped.entries()].map(([dateKey, dayOrders]) => {
@@ -47,7 +52,7 @@ export default async function PereiraPage() {
                 <li key={o.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
                   <div>
                     <p className={`text-sm font-medium ${o.entregado ? "text-tierra-400 line-through" : "text-tierra-800"}`}>
-                      {o.cliente}
+                      {o.cliente} · <span className="badge bg-verde-50 text-verde-700">{ZONA_LABEL[o.zona]}</span>
                     </p>
                     <p className="text-xs text-tierra-500">{o.direccion}{o.telefono && ` · ${o.telefono}`}</p>
                     {o.items.length > 0 && (
@@ -66,7 +71,7 @@ export default async function PereiraPage() {
       })}
 
       {grouped.size === 0 && (
-        <p className="text-center text-sm text-tierra-500">No hay pedidos programados para la ruta Pereira.</p>
+        <p className="text-center text-sm text-tierra-500">No hay pedidos programados para las rutas Pereira/Manizales.</p>
       )}
     </div>
   );

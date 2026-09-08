@@ -60,7 +60,7 @@ export default async function PedidosPage({
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-lg font-semibold text-verde-800">Pedidos</h1>
-        <Link href="/pedidos/pereira" className="btn-secondary">🚚 Ver ruta Pereira</Link>
+        <Link href="/pedidos/pereira" className="btn-secondary">🚚 Ver ruta Pereira/Manizales</Link>
       </div>
 
       <details className="card" open>
