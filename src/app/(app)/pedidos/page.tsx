@@ -4,6 +4,7 @@ import { addDays, dateOnlyToUTC, formatDateOnly, formatDateShortEs, todayColombi
 import { createOrder, deleteOrder, deleteRecurringRule, toggleRecurringRule } from "@/lib/actions/orders";
 import DeliveredToggle from "@/components/DeliveredToggle";
 import ConfirmButton from "@/components/ConfirmButton";
+import ProductPicker from "@/components/ProductPicker";
 
 const ZONA_LABEL: Record<string, string> = {
   LOCAL: "Local",
@@ -35,6 +36,8 @@ export default async function PedidosPage({
     where: { activo: true },
     orderBy: { diaSemana: "asc" },
   });
+
+  const productos = await prisma.producto.findMany({ orderBy: { nombre: "asc" } });
 
   const grouped = new Map<string, typeof orders>();
   for (const o of orders) {
@@ -78,8 +81,9 @@ export default async function PedidosPage({
           </div>
           <div className="sm:col-span-2">
             <label className="label">Notas (opcional)</label>
-            <input name="notas" className="input" />
+            <input id="notas" name="notas" className="input" />
           </div>
+          <ProductPicker productos={productos} />
           <div className="sm:col-span-2 flex items-center gap-2">
             <input type="checkbox" name="recurrente" id="recurrente" className="h-4 w-4" />
             <label htmlFor="recurrente" className="text-sm text-tierra-700">

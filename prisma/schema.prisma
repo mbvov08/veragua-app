@@ -41,6 +41,17 @@ model User {
   melcochProduccionesCreadas MelcochProduccionDiaria[] @relation("MelcochProduccionCreadaPor")
   melcochComprasCreadas      MelcochCompraIngrediente[] @relation("MelcochCompraCreadaPor")
   melcochAjustesCreados      MelcochAjusteInventario[]  @relation("MelcochAjusteCreadoPor")
+  productosCreados           Producto[]                 @relation("ProductoCreadoPor")
+}
+
+// Lista de referencia de productos que se venden, para agilizar la toma de pedidos.
+// No lleva inventario ni cantidades, solo el nombre.
+model Producto {
+  id          String   @id @default(cuid())
+  nombre      String   @unique
+  creadoPorId String
+  creadoPor   User     @relation("ProductoCreadoPor", fields: [creadoPorId], references: [id])
+  createdAt   DateTime @default(now())
 }
 
 // Datos laborales del empleado usados para nómina y liquidación
@@ -182,17 +193,22 @@ model RecurringOrderRule {
 }
 
 model Task {
-  id           String    @id @default(cuid())
-  titulo       String
-  descripcion  String?
-  asignadoAId  String
-  asignadoA    User      @relation("TaskAssignee", fields: [asignadoAId], references: [id])
-  creadoPorId  String
-  creadoPor    User      @relation("TaskCreatedBy", fields: [creadoPorId], references: [id])
-  fechaLimite  DateTime?
-  estado       String    @default("PENDIENTE") // PENDIENTE | EN_PROCESO | COMPLETADO
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  id             String    @id @default(cuid())
+  titulo         String
+  descripcion    String?
+  asignadoAId    String
+  asignadoA      User      @relation("TaskAssignee", fields: [asignadoAId], references: [id])
+  creadoPorId    String
+  creadoPor      User      @relation("TaskCreatedBy", fields: [creadoPorId], references: [id])
+  fechaTentativa DateTime? // meta blanda: cuándo debería estar lista
+  fechaLimite    DateTime? // fecha límite dura: no se puede pasar de esta fecha
+  estado         String    @default("PENDIENTE") // PENDIENTE | EN_PROCESO | COMPLETADO
+  esProyecto     Boolean   @default(false) // true = tiene fases (subtareas) y se sigue por progreso
+  proyectoId     String?
+  proyecto       Task?     @relation("ProyectoFases", fields: [proyectoId], references: [id])
+  fases          Task[]    @relation("ProyectoFases")
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 }
 
 model ReminderRule {
