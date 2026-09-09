@@ -42,7 +42,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const tabs = isGalpon
     ? [
         { href: "/", label: "Inicio" },
-        { href: "/produccion", label: "Producción" },
+        { href: "/produccion", label: "Postura/Huevos" },
         { href: "/tareas", label: "Tareas" },
         { href: "/compras", label: "Compras" },
       ]
@@ -51,7 +51,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         { href: "/personal", label: "Personal" },
         ...(isAdmin ? [{ href: "/nomina", label: "Nómina" }] : []),
         { href: "/pedidos", label: "Pedidos" },
-        { href: "/produccion", label: "Producción" },
+        { href: "/produccion", label: "Postura/Huevos" },
         { href: "/melcoch", label: "Melcoch" },
         { href: "/tareas", label: "Tareas" },
         { href: "/compras", label: "Compras" },

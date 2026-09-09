@@ -30,7 +30,9 @@ export default async function TareasPage({
     orderBy: { titulo: "asc" },
   });
 
-  const estadoFilter = params.estado ? { estado: params.estado } : {};
+  const estadoParam = params.estado ?? "";
+  const estadoFilter =
+    estadoParam === "" ? { estado: { not: "COMPLETADO" } } : estadoParam === "TODOS" ? {} : { estado: estadoParam };
 
   const tasks = await prisma.task.findMany({
     where: {
@@ -132,10 +134,11 @@ export default async function TareasPage({
         <div>
           <label className="label">Estado</label>
           <select name="estado" defaultValue={params.estado ?? ""} className="input">
-            <option value="">Todos</option>
+            <option value="">Activas (sin completadas)</option>
             <option value="PENDIENTE">Pendiente</option>
             <option value="EN_PROCESO">En proceso</option>
-            <option value="COMPLETADO">Completado</option>
+            <option value="COMPLETADO">Completado (histórico)</option>
+            <option value="TODOS">Todas</option>
           </select>
         </div>
         <button type="submit" className="btn-primary">Filtrar</button>

@@ -52,7 +52,7 @@ export default async function ProduccionPage({
 
     return (
       <div className="space-y-6">
-        <h1 className="text-lg font-semibold text-verde-800">Producción del galpón</h1>
+        <h1 className="text-lg font-semibold text-verde-800">Postura/Huevos del galpón</h1>
 
         <details className="card" open>
           <summary className="cursor-pointer text-sm font-semibold text-verde-800">Registrar producción de hoy</summary>
@@ -165,7 +165,7 @@ export default async function ProduccionPage({
 
   return (
     <div className="space-y-6">
-      <h1 className="text-lg font-semibold text-verde-800">Producción de huevos</h1>
+      <h1 className="text-lg font-semibold text-verde-800">Postura/Huevos</h1>
 
       {isAdmin && galponUsers.length > 0 && (
         <details className="card">

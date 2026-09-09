@@ -26,12 +26,15 @@ export default async function PedidosPage({
   const from = params.from ? dateOnlyToUTC(params.from) : today;
   const to = params.to ? dateOnlyToUTC(params.to) : addDays(today, 30);
 
+  const estadoParam = params.estado ?? "";
+
   const orders = await prisma.order.findMany({
     where: {
       fechaEntrega: { gte: from, lte: to },
       ...(params.zona ? { zona: params.zona } : {}),
-      ...(params.estado === "pendiente" ? { entregado: false } : {}),
-      ...(params.estado === "entregado" ? { entregado: true } : {}),
+      ...(estadoParam === "" ? { entregado: false } : {}),
+      ...(estadoParam === "entregado" ? { entregado: true } : {}),
+      // estadoParam === "todos" => sin filtro de entregado
     },
     include: { items: { include: { producto: true } } },
     orderBy: [{ fechaEntrega: "asc" }, { zona: "asc" }],
@@ -159,9 +162,9 @@ export default async function PedidosPage({
         <div>
           <label className="label">Estado</label>
           <select name="estado" defaultValue={params.estado ?? ""} className="input">
-            <option value="">Todos</option>
-            <option value="pendiente">Pendientes</option>
-            <option value="entregado">Entregados</option>
+            <option value="">Pendientes</option>
+            <option value="entregado">Entregados (histórico)</option>
+            <option value="todos">Todos</option>
           </select>
         </div>
         <div>
