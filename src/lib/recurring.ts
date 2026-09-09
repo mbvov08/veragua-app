@@ -46,7 +46,7 @@ export async function ensureRecurringOrdersGenerated() {
 
 /** Genera (si faltan) las instancias de recordatorios recurrentes para las próximas semanas. Idempotente. */
 export async function ensureRemindersGenerated() {
-  const rules = await prisma.reminderRule.findMany({ where: { activo: true } });
+  const rules = await prisma.reminderRule.findMany({ where: { activo: true, esUnico: false } });
   if (rules.length === 0) return;
 
   const today = todayColombia();

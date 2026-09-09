@@ -237,6 +237,7 @@ model ReminderRule {
   mensaje     String?
   diaSemana   Int // 0=domingo .. 6=sábado
   activo      Boolean  @default(true)
+  esUnico     Boolean  @default(false) // true = evento/fecha especial de una sola vez, no semanal
   creadoPorId String
   creadoPor   User     @relation("ReminderRuleCreatedBy", fields: [creadoPorId], references: [id])
   createdAt   DateTime @default(now())

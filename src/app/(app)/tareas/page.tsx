@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { formatDateShortEs } from "@/lib/date";
-import { createTask, deleteTask } from "@/lib/actions/tasks";
+import { formatDateShortEs, formatDateOnly } from "@/lib/date";
+import { createTask, deleteTask, updateTask } from "@/lib/actions/tasks";
 import TaskStatusSelect from "@/components/TaskStatusSelect";
 import ConfirmButton from "@/components/ConfirmButton";
 
@@ -9,6 +9,90 @@ function progreso(fases: { estado: string }[]) {
   if (fases.length === 0) return 0;
   const done = fases.filter((f) => f.estado === "COMPLETADO").length;
   return Math.round((done / fases.length) * 100);
+}
+
+type EditableTask = {
+  id: string;
+  titulo: string;
+  descripcion: string | null;
+  asignadoAId: string;
+  fechaTentativa: Date | null;
+  fechaLimite: Date | null;
+  esProyecto: boolean;
+  proyectoId: string | null;
+};
+
+function EditTaskDetails({
+  task,
+  allUsers,
+  proyectosDisponibles,
+}: {
+  task: EditableTask;
+  allUsers: { id: string; name: string }[];
+  proyectosDisponibles: { id: string; titulo: string }[];
+}) {
+  return (
+    <details className="mt-2">
+      <summary className="cursor-pointer text-xs text-verde-700 hover:underline">Editar</summary>
+      <form
+        action={updateTask.bind(null, task.id)}
+        className="mt-2 grid gap-2 rounded-lg border border-verde-100 bg-verde-50/30 p-3 sm:grid-cols-2"
+      >
+        <div className="sm:col-span-2">
+          <label className="label">Título</label>
+          <input name="titulo" defaultValue={task.titulo} required className="input" />
+        </div>
+        <div className="sm:col-span-2">
+          <label className="label">Descripción (opcional)</label>
+          <textarea name="descripcion" defaultValue={task.descripcion ?? ""} className="input" rows={2} />
+        </div>
+        <div>
+          <label className="label">Asignar a</label>
+          <select name="asignadoAId" defaultValue={task.asignadoAId} required className="input">
+            {allUsers.map((u) => (
+              <option key={u.id} value={u.id}>{u.name}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="label">Fecha tentativa</label>
+          <input
+            type="date"
+            name="fechaTentativa"
+            defaultValue={task.fechaTentativa ? formatDateOnly(task.fechaTentativa) : ""}
+            className="input"
+          />
+        </div>
+        <div>
+          <label className="label">Fecha límite</label>
+          <input
+            type="date"
+            name="fechaLimite"
+            defaultValue={task.fechaLimite ? formatDateOnly(task.fechaLimite) : ""}
+            className="input"
+          />
+        </div>
+        <div>
+          <label className="label">Pertenece a un proyecto</label>
+          <select name="proyectoId" defaultValue={task.proyectoId ?? ""} className="input">
+            <option value="">Ninguno</option>
+            {proyectosDisponibles
+              .filter((p) => p.id !== task.id)
+              .map((p) => (
+                <option key={p.id} value={p.id}>{p.titulo}</option>
+              ))}
+          </select>
+        </div>
+        <div className="sm:col-span-2 flex items-center gap-2">
+          <input type="checkbox" name="esProyecto" defaultChecked={task.esProyecto} className="h-4 w-4" />
+          <label className="text-sm text-tierra-700">Es un proyecto con varias fases</label>
+        </div>
+        <div className="sm:col-span-2">
+          <button type="submit" className="btn-secondary text-xs">Guardar cambios</button>
+        </div>
+      </form>
+    </details>
+  );
 }
 
 export default async function TareasPage({
@@ -179,6 +263,10 @@ export default async function TareasPage({
                 </div>
               </div>
 
+              {isAdmin && (
+                <EditTaskDetails task={t} allUsers={allUsers} proyectosDisponibles={proyectosDisponibles} />
+              )}
+
               {t.esProyecto && (
                 <div className="mt-3 rounded-lg border border-verde-100 bg-verde-50/40 p-3">
                   <div className="mb-2 flex items-center justify-between">
@@ -194,15 +282,20 @@ export default async function TareasPage({
                   </div>
                   <ul className="space-y-2">
                     {t.fases.map((f) => (
-                      <li key={f.id} className="flex flex-wrap items-center justify-between gap-2 text-sm">
-                        <div>
-                          <p className="text-tierra-800">{f.titulo}</p>
-                          <p className="text-xs text-tierra-400">
-                            {f.asignadoA.name}
-                            {f.fechaLimite && <> · límite {formatDateShortEs(f.fechaLimite)}</>}
-                          </p>
+                      <li key={f.id} className="text-sm">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div>
+                            <p className="text-tierra-800">{f.titulo}</p>
+                            <p className="text-xs text-tierra-400">
+                              {f.asignadoA.name}
+                              {f.fechaLimite && <> · límite {formatDateShortEs(f.fechaLimite)}</>}
+                            </p>
+                          </div>
+                          <TaskStatusSelect taskId={f.id} estado={f.estado} />
                         </div>
-                        <TaskStatusSelect taskId={f.id} estado={f.estado} />
+                        {isAdmin && (
+                          <EditTaskDetails task={f} allUsers={allUsers} proyectosDisponibles={proyectosDisponibles} />
+                        )}
                       </li>
                     ))}
                     {t.fases.length === 0 && (

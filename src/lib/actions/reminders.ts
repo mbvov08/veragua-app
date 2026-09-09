@@ -81,7 +81,8 @@ export async function createOneOffReminderForDate(formData: FormData) {
       titulo,
       mensaje: mensaje || null,
       diaSemana: fecha.getUTCDay(),
-      activo: false, // no se repite: se desactiva tras crear la única instancia
+      activo: true,
+      esUnico: true,
       creadoPorId: session.user.id,
     },
   });
