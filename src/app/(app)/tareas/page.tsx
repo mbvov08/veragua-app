@@ -4,6 +4,7 @@ import { formatDateShortEs, formatDateOnly } from "@/lib/date";
 import { createTask, deleteTask, updateTask } from "@/lib/actions/tasks";
 import TaskStatusSelect from "@/components/TaskStatusSelect";
 import ConfirmButton from "@/components/ConfirmButton";
+import SubmitButton from "@/components/SubmitButton";
 
 function progreso(fases: { estado: string }[]) {
   if (fases.length === 0) return 0;
@@ -88,7 +89,7 @@ function EditTaskDetails({
           <label className="text-sm text-tierra-700">Es un proyecto con varias fases</label>
         </div>
         <div className="sm:col-span-2">
-          <button type="submit" className="btn-secondary text-xs">Guardar cambios</button>
+          <SubmitButton className="btn-secondary text-xs">Guardar cambios</SubmitButton>
         </div>
       </form>
     </details>
@@ -199,7 +200,7 @@ export default async function TareasPage({
               </label>
             </div>
             <div className="sm:col-span-2">
-              <button type="submit" className="btn-primary">Crear tarea</button>
+              <SubmitButton pendingText="Creando tarea...">Crear tarea</SubmitButton>
             </div>
           </form>
         </details>

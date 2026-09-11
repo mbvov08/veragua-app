@@ -15,33 +15,25 @@ export async function ensureRecurringOrdersGenerated() {
   const dates: Date[] = [];
   for (let i = 0; i <= ORDER_HORIZON_DAYS; i++) dates.push(addDays(today, i));
 
-  for (const rule of rules) {
-    const matchingDates = dates.filter((d) => dayOfWeek(d) === rule.diaSemana);
-    for (const fechaEntrega of matchingDates) {
-      const exists = await prisma.order.findUnique({
-        where: {
-          recurringRuleId_fechaEntrega: {
-            recurringRuleId: rule.id,
-            fechaEntrega,
-          },
-        },
-      });
-      if (!exists) {
-        await prisma.order.create({
-          data: {
-            cliente: rule.cliente,
-            direccion: rule.direccion,
-            telefono: rule.telefono,
-            zona: rule.zona,
-            fechaEntrega,
-            notas: rule.notas,
-            recurringRuleId: rule.id,
-            creadoPorId: rule.creadoPorId,
-          },
-        });
-      }
-    }
-  }
+  const candidates = rules.flatMap((rule) =>
+    dates
+      .filter((d) => dayOfWeek(d) === rule.diaSemana)
+      .map((fechaEntrega) => ({
+        cliente: rule.cliente,
+        direccion: rule.direccion,
+        telefono: rule.telefono,
+        zona: rule.zona,
+        fechaEntrega,
+        notas: rule.notas,
+        recurringRuleId: rule.id,
+        creadoPorId: rule.creadoPorId,
+      }))
+  );
+  if (candidates.length === 0) return;
+
+  // skipDuplicates se apoya en @@unique([recurringRuleId, fechaEntrega]): evita
+  // repetir un findUnique por cada combinación regla×fecha en cada carga de página.
+  await prisma.order.createMany({ data: candidates, skipDuplicates: true });
 }
 
 /** Genera (si faltan) las instancias de recordatorios recurrentes para las próximas semanas. Idempotente. */
@@ -53,24 +45,12 @@ export async function ensureRemindersGenerated() {
   const dates: Date[] = [];
   for (let i = 0; i <= REMINDER_HORIZON_DAYS; i++) dates.push(addDays(today, i));
 
-  for (const rule of rules) {
-    const matchingDates = dates.filter((d) => dayOfWeek(d) === rule.diaSemana);
-    for (const fecha of matchingDates) {
-      const exists = await prisma.reminderInstance.findUnique({
-        where: {
-          reminderRuleId_fecha: {
-            reminderRuleId: rule.id,
-            fecha,
-          },
-        },
-      });
-      if (!exists) {
-        await prisma.reminderInstance.create({
-          data: { reminderRuleId: rule.id, fecha },
-        });
-      }
-    }
-  }
+  const candidates = rules.flatMap((rule) =>
+    dates.filter((d) => dayOfWeek(d) === rule.diaSemana).map((fecha) => ({ reminderRuleId: rule.id, fecha }))
+  );
+  if (candidates.length === 0) return;
+
+  await prisma.reminderInstance.createMany({ data: candidates, skipDuplicates: true });
 }
 
 export async function ensureAllGenerated() {

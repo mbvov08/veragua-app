@@ -7,6 +7,7 @@ import DeliveredToggle from "@/components/DeliveredToggle";
 import ConfirmButton from "@/components/ConfirmButton";
 import OrderItemsPicker from "@/components/OrderItemsPicker";
 import ZonaFechaSync from "@/components/ZonaFechaSync";
+import SubmitButton from "@/components/SubmitButton";
 
 const ZONA_LABEL: Record<string, string> = {
   LOCAL: "Local",
@@ -45,7 +46,7 @@ export default async function PedidosPage({
     orderBy: { diaSemana: "asc" },
   });
 
-  const productos = await prisma.producto.findMany({ orderBy: { nombre: "asc" } });
+  const productos = await prisma.producto.findMany({ orderBy: [{ categoria: "asc" }, { nombre: "asc" }] });
 
   const rutaSettingsRows = await prisma.rutaSettings.findMany();
   const rutaDias: Record<string, number | null> = {
@@ -118,7 +119,7 @@ export default async function PedidosPage({
             </label>
           </div>
           <div className="sm:col-span-2">
-            <button type="submit" className="btn-primary">Crear pedido</button>
+            <SubmitButton pendingText="Creando pedido...">Crear pedido</SubmitButton>
           </div>
         </form>
       </details>
@@ -194,9 +195,14 @@ export default async function PedidosPage({
                       </p>
                       <p className="text-xs text-tierra-500">{o.direccion}{o.telefono && ` · ${o.telefono}`}</p>
                       {o.items.length > 0 && (
-                        <p className="text-xs text-tierra-400">
-                          {o.items.map((it) => `${it.producto.nombre}${it.cantidad ? ` (${it.cantidad})` : ""}`).join(", ")}
-                        </p>
+                        <ul className="mt-1 list-disc pl-4 text-xs text-tierra-500">
+                          {o.items.map((it) => (
+                            <li key={it.id}>
+                              {it.producto.nombre}
+                              {it.cantidad && <> — {it.cantidad}</>}
+                            </li>
+                          ))}
+                        </ul>
                       )}
                       {o.notas && <p className="text-xs text-tierra-400">{o.notas}</p>}
                     </div>
@@ -260,7 +266,7 @@ export default async function PedidosPage({
                         <input name="notas" defaultValue={o.notas ?? ""} className="input" />
                       </div>
                       <div className="sm:col-span-2">
-                        <button type="submit" className="btn-secondary text-xs">Guardar cambios</button>
+                        <SubmitButton className="btn-secondary text-xs">Guardar cambios</SubmitButton>
                       </div>
                     </form>
                   </details>

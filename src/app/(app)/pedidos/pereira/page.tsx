@@ -56,9 +56,14 @@ export default async function PereiraPage() {
                     </p>
                     <p className="text-xs text-tierra-500">{o.direccion}{o.telefono && ` · ${o.telefono}`}</p>
                     {o.items.length > 0 && (
-                      <p className="text-xs text-tierra-400">
-                        {o.items.map((it) => `${it.producto.nombre}${it.cantidad ? ` (${it.cantidad})` : ""}`).join(", ")}
-                      </p>
+                      <ul className="mt-1 list-disc pl-4 text-xs text-tierra-500">
+                        {o.items.map((it) => (
+                          <li key={it.id}>
+                            {it.producto.nombre}
+                            {it.cantidad && <> — {it.cantidad}</>}
+                          </li>
+                        ))}
+                      </ul>
                     )}
                     {o.notas && <p className="text-xs text-tierra-400">{o.notas}</p>}
                   </div>
