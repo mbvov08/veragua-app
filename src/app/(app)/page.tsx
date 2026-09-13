@@ -71,8 +71,10 @@ export default async function DashboardPage() {
 
   const [ordersToday, tasksPending, myEntryToday] = await Promise.all([
     prisma.order.findMany({
-      where: { fechaEntrega: today },
-      orderBy: { zona: "asc" },
+      where: {
+        OR: [{ fechaEntrega: today }, { entregado: false, fechaEntrega: { lt: today } }],
+      },
+      orderBy: [{ fechaEntrega: "asc" }, { zona: "asc" }],
     }),
     prisma.task.findMany({
       where: {
@@ -158,7 +160,7 @@ export default async function DashboardPage() {
 
         <div className="card">
           <div className="mb-2 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-verde-800">Entregas de hoy</h2>
+            <h2 className="text-sm font-semibold text-verde-800">Entregas de hoy y atrasadas</h2>
             <Link href="/pedidos" className="text-xs text-verde-700 underline">Ver todos</Link>
           </div>
           {ordersToday.length === 0 ? (
@@ -170,7 +172,13 @@ export default async function DashboardPage() {
                   <span className={o.entregado ? "line-through text-tierra-400" : "text-tierra-800"}>
                     {o.cliente} · {ZONA_LABEL[o.zona]}
                   </span>
-                  {o.entregado && <span className="badge bg-verde-100 text-verde-700">Entregado</span>}
+                  {o.entregado ? (
+                    <span className="badge bg-verde-100 text-verde-700">Entregado</span>
+                  ) : (
+                    o.fechaEntrega < today && (
+                      <span className="badge bg-red-100 text-red-700">⚠️ Atrasado</span>
+                    )
+                  )}
                 </li>
               ))}
             </ul>

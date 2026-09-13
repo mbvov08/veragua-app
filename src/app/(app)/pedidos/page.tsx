@@ -29,9 +29,12 @@ export default async function PedidosPage({
 
   const estadoParam = params.estado ?? "";
 
+  // Los pendientes nunca se ocultan por fecha vieja (aunque se les haya pasado la fecha
+  // de entrega, deben seguir apareciendo hasta que alguien los marque como entregados).
+  // Solo al buscar histórico (entregados/todos) se respeta el rango "desde" elegido.
   const orders = await prisma.order.findMany({
     where: {
-      fechaEntrega: { gte: from, lte: to },
+      fechaEntrega: estadoParam === "" ? { lte: to } : { gte: from, lte: to },
       ...(params.zona ? { zona: params.zona } : {}),
       ...(estadoParam === "" ? { entregado: false } : {}),
       ...(estadoParam === "entregado" ? { entregado: true } : {}),
@@ -182,8 +185,11 @@ export default async function PedidosPage({
       <div className="space-y-4">
         {[...grouped.entries()].map(([dateKey, dayOrders]) => (
           <div key={dateKey} className="card">
-            <h2 className="mb-2 text-sm font-semibold text-verde-800 capitalize">
+            <h2 className="mb-2 flex items-center gap-2 text-sm font-semibold text-verde-800 capitalize">
               {formatDateShortEs(dayOrders[0].fechaEntrega)}
+              {dayOrders[0].fechaEntrega < today && dayOrders.some((o) => !o.entregado) && (
+                <span className="badge bg-red-100 text-red-700">⚠️ Atrasado</span>
+              )}
             </h2>
             <ul className="divide-y divide-verde-50">
               {dayOrders.map((o) => (

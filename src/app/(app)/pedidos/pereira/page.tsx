@@ -12,10 +12,16 @@ export default async function PereiraPage() {
   const today = todayColombia();
   const horizon = addDays(today, 45);
 
+  // Los pendientes no se ocultan aunque su fecha ya haya pasado (para que no se
+  // "pierdan" pedidos que se olvidó marcar como entregados); los entregados sí
+  // se acotan al rango normal para no acumular historial aquí indefinidamente.
   const orders = await prisma.order.findMany({
     where: {
       zona: { in: ["PEREIRA", "MANIZALES"] },
-      fechaEntrega: { gte: today, lte: horizon },
+      OR: [
+        { entregado: false, fechaEntrega: { lte: horizon } },
+        { entregado: true, fechaEntrega: { gte: today, lte: horizon } },
+      ],
     },
     include: { items: { include: { producto: true } } },
     orderBy: [{ fechaEntrega: "asc" }, { zona: "asc" }, { cliente: "asc" }],
@@ -42,8 +48,11 @@ export default async function PereiraPage() {
         return (
           <div key={dateKey} className="card">
             <div className="mb-2 flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-verde-800 capitalize">
+              <h2 className="flex items-center gap-2 text-sm font-semibold text-verde-800 capitalize">
                 {formatDateLongEs(dayOrders[0].fechaEntrega)}
+                {dayOrders[0].fechaEntrega < today && pendientes > 0 && (
+                  <span className="badge bg-red-100 text-red-700">⚠️ Atrasado</span>
+                )}
               </h2>
               <span className="badge bg-tierra-100 text-tierra-700">{pendientes} pendientes</span>
             </div>
