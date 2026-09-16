@@ -8,6 +8,7 @@ import ConfirmButton from "@/components/ConfirmButton";
 import OrderItemsPicker from "@/components/OrderItemsPicker";
 import ZonaFechaSync from "@/components/ZonaFechaSync";
 import SubmitButton from "@/components/SubmitButton";
+import ClienteAutofill from "@/components/ClienteAutofill";
 
 const ZONA_LABEL: Record<string, string> = {
   LOCAL: "Local",
@@ -48,6 +49,8 @@ export default async function PedidosPage({
     orderBy: { diaSemana: "asc" },
   });
 
+  const clientes = await prisma.cliente.findMany({ orderBy: { nombre: "asc" } });
+
   const productos = await prisma.producto.findMany({ orderBy: [{ categoria: "asc" }, { nombre: "asc" }] });
 
   const rutaSettingsRows = await prisma.rutaSettings.findMany();
@@ -74,16 +77,20 @@ export default async function PedidosPage({
         <form action={createOrder} className="mt-4 grid gap-3 sm:grid-cols-2">
           <div>
             <label className="label">Cliente</label>
-            <input name="cliente" required className="input" />
+            <input id="cliente" name="cliente" list="clientes-existentes" required className="input" />
+            <p className="mt-1 text-xs text-tierra-400">
+              Si ya pediste antes con este nombre, dirección/teléfono/zona se completan solos.
+            </p>
           </div>
           <div>
             <label className="label">Teléfono (opcional)</label>
-            <input name="telefono" className="input" />
+            <input id="telefono" name="telefono" className="input" />
           </div>
           <div className="sm:col-span-2">
             <label className="label">Dirección</label>
-            <input name="direccion" required className="input" />
+            <input id="direccion" name="direccion" required className="input" />
           </div>
+          <ClienteAutofill clientes={clientes} />
           <div>
             <label className="label">Zona</label>
             <select id="zona" name="zona" className="input" defaultValue="LOCAL">

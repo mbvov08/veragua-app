@@ -165,6 +165,18 @@ model TimeEntry {
   @@index([userId, workDate])
 }
 
+// Registro de clientes: al escribir un nombre ya usado, dirección/teléfono/zona
+// se autocompletan. Se guarda/actualiza automáticamente al crear o editar un pedido.
+model Cliente {
+  id        String   @id @default(cuid())
+  nombre    String   @unique
+  direccion String
+  telefono  String?
+  zona      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 model Order {
   id              String    @id @default(cuid())
   cliente         String

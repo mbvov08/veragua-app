@@ -20,6 +20,15 @@ function parseItems(formData: FormData): OrderItemInput[] {
   }
 }
 
+/** Guarda/actualiza los datos del cliente para que la próxima vez se autocompleten con solo el nombre. */
+async function upsertCliente(nombre: string, direccion: string, telefono: string | null, zona: string) {
+  await prisma.cliente.upsert({
+    where: { nombre },
+    update: { direccion, telefono, zona },
+    create: { nombre, direccion, telefono, zona },
+  });
+}
+
 export async function createOrder(formData: FormData) {
   const session = await auth();
   if (!session?.user) throw new Error("No autenticado");
@@ -68,6 +77,8 @@ export async function createOrder(formData: FormData) {
     },
   });
 
+  await upsertCliente(cliente, direccion, telefono, zona);
+
   if (items.length > 0) {
     await prisma.orderItem.createMany({
       data: items.map((it) => ({ orderId: order.id, productoId: it.productoId, cantidad: it.cantidad })),
@@ -107,6 +118,8 @@ export async function updateOrder(orderId: string, formData: FormData) {
       notas: notas || null,
     },
   });
+
+  await upsertCliente(cliente, direccion, telefono, zona);
 
   await prisma.orderItem.deleteMany({ where: { orderId } });
   if (items.length > 0) {
