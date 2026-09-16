@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { addDays, dateOnlyToUTC, formatDateOnly, formatDateShortEs, todayColombia, DIAS_SEMANA } from "@/lib/date";
+import { dateOnlyToUTC, formatDateOnly, formatDateShortEs, todayColombia, DIAS_SEMANA } from "@/lib/date";
 import { createOrder, deleteOrder, deleteRecurringRule, toggleRecurringRule, updateOrder, guardarRutaDia } from "@/lib/actions/orders";
 import DeliveredToggle from "@/components/DeliveredToggle";
 import ConfirmButton from "@/components/ConfirmButton";
@@ -24,17 +24,16 @@ export default async function PedidosPage({
   const session = await auth();
   const isAdmin = session?.user?.role === "ADMIN";
   const today = todayColombia();
-  const from = params.from ? dateOnlyToUTC(params.from) : today;
-  const to = params.to ? dateOnlyToUTC(params.to) : addDays(today, 30);
+  // "Desde"/"Hasta" son filtros opcionales: si se dejan vacíos no acotan nada, para que
+  // el histórico (Entregados/Todos) se pueda ver completo sin tener que tocar fechas.
+  const from = params.from ? dateOnlyToUTC(params.from) : null;
+  const to = params.to ? dateOnlyToUTC(params.to) : null;
 
   const estadoParam = params.estado ?? "";
 
-  // Los pendientes nunca se ocultan por fecha vieja (aunque se les haya pasado la fecha
-  // de entrega, deben seguir apareciendo hasta que alguien los marque como entregados).
-  // Solo al buscar histórico (entregados/todos) se respeta el rango "desde" elegido.
   const orders = await prisma.order.findMany({
     where: {
-      fechaEntrega: estadoParam === "" ? { lte: to } : { gte: from, lte: to },
+      ...(from || to ? { fechaEntrega: { ...(from ? { gte: from } : {}), ...(to ? { lte: to } : {}) } } : {}),
       ...(params.zona ? { zona: params.zona } : {}),
       ...(estadoParam === "" ? { entregado: false } : {}),
       ...(estadoParam === "entregado" ? { entregado: true } : {}),
@@ -172,12 +171,12 @@ export default async function PedidosPage({
           </select>
         </div>
         <div>
-          <label className="label">Desde</label>
-          <input type="date" name="from" defaultValue={formatDateOnly(from)} className="input" />
+          <label className="label">Desde (opcional)</label>
+          <input type="date" name="from" defaultValue={params.from ?? ""} className="input" />
         </div>
         <div>
-          <label className="label">Hasta</label>
-          <input type="date" name="to" defaultValue={formatDateOnly(to)} className="input" />
+          <label className="label">Hasta (opcional)</label>
+          <input type="date" name="to" defaultValue={params.to ?? ""} className="input" />
         </div>
         <button type="submit" className="btn-primary">Filtrar</button>
       </form>
