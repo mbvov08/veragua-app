@@ -210,8 +210,8 @@ export default async function PedidosPage({
                         <ul className="mt-1 list-disc pl-4 text-xs text-tierra-500">
                           {o.items.map((it) => (
                             <li key={it.id}>
+                              {it.cantidad && <>{it.cantidad} — </>}
                               {it.producto.nombre}
-                              {it.cantidad && <> — {it.cantidad}</>}
                             </li>
                           ))}
                         </ul>

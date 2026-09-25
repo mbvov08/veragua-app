@@ -57,13 +57,13 @@ export default function OrderItemsPicker({
           <ul className="space-y-2">
             {items.map((it) => (
               <li key={it.productoId} className="flex items-center gap-2 text-sm">
-                <span className="flex-1 text-tierra-800">{it.nombre}</span>
                 <input
                   value={it.cantidad}
                   onChange={(e) => cambiarCantidad(it.productoId, e.target.value)}
                   placeholder="cantidad"
                   className="input w-24 py-1 text-xs"
                 />
+                <span className="flex-1 text-tierra-800">{it.nombre}</span>
                 <button
                   type="button"
                   onClick={() => quitar(it.productoId)}
