@@ -41,6 +41,12 @@ export async function toggleUserActive(userId: string, activo: boolean) {
   revalidatePath("/usuarios");
 }
 
+export async function toggleUserFinanzas(userId: string, puedeVerFinanzas: boolean) {
+  await requireAdmin();
+  await prisma.user.update({ where: { id: userId }, data: { puedeVerFinanzas } });
+  revalidatePath("/usuarios");
+}
+
 export async function resetUserPassword(formData: FormData) {
   await requireAdmin();
 

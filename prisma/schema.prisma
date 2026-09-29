@@ -19,6 +19,8 @@ model User {
   role         String // "ADMIN" | "EMPLEADA" | "GALPON"
   activo       Boolean  @default(true)
   createdAt    DateTime @default(now())
+  // Acceso al módulo Finanzas sin necesidad de ser ADMIN (ej. Daniela).
+  puedeVerFinanzas Boolean @default(false)
 
   timeEntries        TimeEntry[]
   ordersCreated      Order[]              @relation("OrderCreatedBy")
@@ -42,6 +44,11 @@ model User {
   melcochComprasCreadas      MelcochCompraIngrediente[] @relation("MelcochCompraCreadaPor")
   melcochAjustesCreados      MelcochAjusteInventario[]  @relation("MelcochAjusteCreadoPor")
   productosCreados           Producto[]                 @relation("ProductoCreadoPor")
+  finTransactionsCreadas     FinTransaction[]            @relation("FinTransactionCreadaPor")
+  finTransactionsAnuladas    FinTransaction[]            @relation("FinTransactionAnuladaPor")
+  finImportBatches           FinImportBatch[]            @relation("FinImportBatchImportadoPor")
+  finCategoriasCreadas       FinCategory[]                @relation("FinCategoryCreadaPor")
+  pushSubscriptions          PushSubscription[]
 }
 
 // Lista de referencia de productos que se venden, para agilizar la toma de pedidos.
@@ -464,4 +471,103 @@ model MelcochAjusteInventario {
   creadoPorId    String
   creadoPor      User               @relation("MelcochAjusteCreadoPor", fields: [creadoPorId], references: [id])
   createdAt      DateTime           @default(now())
+}
+
+// ============================================================
+// FINANZAS — migrado desde Veragua ERP (Siigo + Treinta ya importados).
+// "company" es un campo de texto fijo ("VERAGUA" | "MELCOCH"), igual que
+// ya se maneja Melcoch en el resto de este esquema: no existe un modelo
+// Company genérico porque solo hay estas dos marcas.
+// ============================================================
+
+model FinChannel {
+  id        String   @id @default(cuid())
+  company   String // "VERAGUA" | "MELCOCH"
+  nombre    String
+  activo    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  transacciones FinTransaction[]
+
+  @@unique([company, nombre])
+}
+
+// Categorías estilo NIIF/PUC colombiano, simplificadas para uso gerencial.
+// company null = compartida entre Veragua y Melcoch (el seed por defecto).
+model FinCategory {
+  id                 String   @id @default(cuid())
+  company            String?
+  parentId           String?
+  parent             FinCategory?  @relation("FinCategoryParent", fields: [parentId], references: [id])
+  children           FinCategory[] @relation("FinCategoryParent")
+  codigo             String
+  nombre             String
+  tipo               String // ingreso_operacional | ingreso_no_operacional | costo_venta | gasto_admin | gasto_ventas | gasto_no_operacional | impuesto
+  atribuibleACanal   Boolean  @default(true)
+  creadoPorId        String?
+  creadoPor          User?    @relation("FinCategoryCreadaPor", fields: [creadoPorId], references: [id])
+  createdAt          DateTime @default(now())
+
+  transacciones FinTransaction[]
+
+  @@unique([company, codigo])
+}
+
+// Trazabilidad de cada importación masiva (Siigo, Treinta, u otra futura).
+model FinImportBatch {
+  id             String   @id @default(cuid())
+  company        String
+  filename       String
+  sourceLabel    String
+  mappingJson    String?
+  rowCount       Int      @default(0)
+  importadoPorId String
+  importadoPor   User     @relation("FinImportBatchImportadoPor", fields: [importadoPorId], references: [id])
+  importedAt     DateTime @default(now())
+
+  transacciones FinTransaction[]
+}
+
+// El corazón del módulo: cada ingreso y egreso de Veragua y Melcoch.
+model FinTransaction {
+  id               String    @id @default(cuid()) // en la migración inicial se reusan los UUID del ERP
+  company          String // "VERAGUA" | "MELCOCH"
+  tipo             String // "income" | "expense"
+  fecha            DateTime // día calendario, mediodía UTC (dateOnlyToUTC)
+  monto            Float
+  categoriaId      String
+  categoria        FinCategory @relation(fields: [categoriaId], references: [id])
+  canalId          String?
+  canal            FinChannel? @relation(fields: [canalId], references: [id])
+  metodoPago       String?
+  descripcion      String?
+  contraparte      String?
+  fuente           String    @default("manual") // "manual" | "import"
+  importBatchId    String?
+  importBatch      FinImportBatch? @relation(fields: [importBatchId], references: [id])
+  esReembolso      Boolean   @default(false)
+  esIntercompania  Boolean   @default(false)
+  anulado          Boolean   @default(false)
+  anuladoAt        DateTime?
+  anuladoPorId     String?
+  anuladoPor       User?     @relation("FinTransactionAnuladaPor", fields: [anuladoPorId], references: [id])
+  creadoPorId      String
+  creadoPor        User      @relation("FinTransactionCreadaPor", fields: [creadoPorId], references: [id])
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([company, fecha])
+  @@index([company, categoriaId])
+  @@index([company, canalId])
+}
+
+// Suscripción de notificaciones push del navegador/celular de un usuario.
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
 }

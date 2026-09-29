@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { formatDateShortEs } from "@/lib/date";
-import { createUser, toggleUserActive, resetUserPassword } from "@/lib/actions/users";
+import { createUser, toggleUserActive, toggleUserFinanzas, resetUserPassword } from "@/lib/actions/users";
 import ConfirmButton from "@/components/ConfirmButton";
 
 const ROL_LABEL: Record<string, string> = {
@@ -60,6 +60,9 @@ export default async function UsuariosPage() {
                 </p>
                 <p className="text-xs text-tierra-500">
                   {ROL_LABEL[u.role] ?? u.role} · desde {formatDateShortEs(u.createdAt)}
+                  {u.puedeVerFinanzas && u.role !== "ADMIN" && (
+                    <span className="badge ml-2 bg-verde-100 text-verde-700">Acceso a Finanzas</span>
+                  )}
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-3">
@@ -76,6 +79,19 @@ export default async function UsuariosPage() {
                     Cambiar clave
                   </button>
                 </form>
+                {u.role !== "ADMIN" && (
+                  <ConfirmButton
+                    action={toggleUserFinanzas.bind(null, u.id, !u.puedeVerFinanzas)}
+                    confirmMessage={
+                      u.puedeVerFinanzas
+                        ? "¿Quitarle el acceso a Finanzas a esta persona?"
+                        : "¿Darle acceso a Finanzas (ingresos, gastos, PyG) a esta persona?"
+                    }
+                    className={`text-xs hover:underline ${u.puedeVerFinanzas ? "text-verde-700" : "text-tierra-600"}`}
+                  >
+                    {u.puedeVerFinanzas ? "Quitar acceso a Finanzas" : "Dar acceso a Finanzas"}
+                  </ConfirmButton>
+                )}
                 <ConfirmButton
                   action={toggleUserActive.bind(null, u.id, !u.activo)}
                   confirmMessage={u.activo ? "¿Desactivar este usuario? No podrá iniciar sesión." : "¿Reactivar este usuario?"}

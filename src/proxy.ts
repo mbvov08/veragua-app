@@ -31,6 +31,15 @@ export default auth((req) => {
 
   if (
     isLoggedIn &&
+    pathname.startsWith("/finanzas") &&
+    req.auth?.user.role !== "ADMIN" &&
+    !req.auth?.user.puedeVerFinanzas
+  ) {
+    return NextResponse.redirect(new URL("/", req.nextUrl.origin));
+  }
+
+  if (
+    isLoggedIn &&
     req.auth?.user.role === "GALPON" &&
     !GALPON_ALLOWED_PREFIXES.some((p) => (p === "/" ? pathname === "/" : pathname.startsWith(p)))
   ) {

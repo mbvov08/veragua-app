@@ -5,6 +5,7 @@ import { ensureAllGenerated } from "@/lib/recurring";
 import { todayColombia } from "@/lib/date";
 import NavTabs from "@/components/NavTabs";
 import NotificationBell, { ReminderItem } from "@/components/NotificationBell";
+import PushNotificationOptIn from "@/components/PushNotificationOptIn";
 
 async function logoutAction() {
   "use server";
@@ -33,6 +34,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   const isAdmin = session.user.role === "ADMIN";
   const isGalpon = session.user.role === "GALPON";
+  const puedeVerFinanzas = isAdmin || session.user.puedeVerFinanzas;
   const ROL_LABEL: Record<string, string> = {
     ADMIN: "Administradora",
     EMPLEADA: "Empleada",
@@ -57,6 +59,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         { href: "/compras", label: "Compras" },
         { href: "/calendario", label: "Calendario" },
         { href: "/recordatorios", label: "Recordatorios" },
+        ...(puedeVerFinanzas ? [{ href: "/finanzas", label: "Finanzas" }] : []),
         ...(isAdmin ? [{ href: "/usuarios", label: "Usuarios" }] : []),
       ];
 
@@ -69,6 +72,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           </span>
         </div>
         <div className="flex items-center gap-3">
+          <PushNotificationOptIn />
           <NotificationBell items={reminderItems} />
           <div className="hidden text-right sm:block">
             <p className="text-sm font-medium text-tierra-800">{session.user.name}</p>

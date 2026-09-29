@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { dateOnlyToUTC } from "@/lib/date";
+import { sendPushToUser } from "@/lib/push";
 
 export async function createTask(formData: FormData) {
   const session = await auth();
@@ -33,6 +34,14 @@ export async function createTask(formData: FormData) {
       proyectoId,
     },
   });
+
+  if (asignadoAId !== session.user.id) {
+    await sendPushToUser(asignadoAId, {
+      title: "Nueva tarea asignada",
+      body: titulo,
+      url: "/tareas",
+    });
+  }
 
   revalidatePath("/tareas");
   revalidatePath("/calendario");
