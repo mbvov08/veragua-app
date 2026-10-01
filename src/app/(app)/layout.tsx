@@ -60,6 +60,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         { href: "/calendario", label: "Calendario" },
         { href: "/recordatorios", label: "Recordatorios" },
         ...(puedeVerFinanzas ? [{ href: "/finanzas", label: "Finanzas" }] : []),
+        ...(puedeVerFinanzas ? [{ href: "/inventario", label: "Inventario" }] : []),
         ...(isAdmin ? [{ href: "/usuarios", label: "Usuarios" }] : []),
       ];
 

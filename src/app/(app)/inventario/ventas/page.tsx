@@ -1,0 +1,136 @@
+import InventarioCompanyPicker from "@/components/inventario/CompanyPicker";
+import ItemsPicker from "@/components/inventario/SaleItemsPicker";
+import SubmitButton from "@/components/SubmitButton";
+import { resolveCompanyParam, COMPANY_LABEL, getChannels } from "@/lib/finanzas/queries";
+import { formatCOP } from "@/lib/finanzas/format";
+import { formatDateOnly, formatDateShortEs, todayColombia } from "@/lib/date";
+import { prisma } from "@/lib/prisma";
+import { registrarVenta } from "@/lib/actions/inventario-ventas";
+
+export default async function VentasPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ company?: string }>;
+}) {
+  const params = await searchParams;
+  const selection = resolveCompanyParam(params.company);
+  const company = selection.company ?? "VERAGUA";
+
+  const [productos, canales, clientes, ventas] = await Promise.all([
+    prisma.finProduct.findMany({ where: { company, activo: true }, orderBy: { nombre: "asc" } }),
+    getChannels(company),
+    prisma.cliente.findMany({ orderBy: { nombre: "asc" } }),
+    prisma.finSale.findMany({
+      where: { company },
+      include: { items: { include: { producto: true } }, cliente: true, canal: true },
+      orderBy: { fecha: "desc" },
+      take: 50,
+    }),
+  ]);
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-lg font-semibold text-verde-800">Ventas — {COMPANY_LABEL[company]}</h1>
+        <InventarioCompanyPicker current={company} />
+      </div>
+
+      <details className="card" open={productos.length > 0}>
+        <summary className="cursor-pointer text-sm font-semibold text-verde-800">Nueva venta</summary>
+        {productos.length === 0 ? (
+          <p className="mt-3 text-sm text-tierra-500">Primero crea productos en la pestaña Productos.</p>
+        ) : (
+          <form action={registrarVenta} className="mt-4 grid gap-3 sm:grid-cols-2">
+            <input type="hidden" name="company" value={company} />
+            <div>
+              <label className="label">Fecha</label>
+              <input type="date" name="fecha" required defaultValue={formatDateOnly(todayColombia())} className="input" />
+            </div>
+            <div>
+              <label className="label">Canal (opcional)</label>
+              <select name="canalId" className="input">
+                <option value="">Sin canal</option>
+                {canales.map((ch) => (
+                  <option key={ch.id} value={ch.id}>{ch.nombre}</option>
+                ))}
+              </select>
+            </div>
+            <div className="sm:col-span-2">
+              <label className="label">Cliente (opcional — obligatorio si es fiada)</label>
+              <input name="clienteNombre" list="clientes-existentes" className="input" placeholder="Nombre del cliente" />
+              <datalist id="clientes-existentes">
+                {clientes.map((c) => (
+                  <option key={c.id} value={c.nombre} />
+                ))}
+              </datalist>
+            </div>
+
+            <ItemsPicker
+              productos={productos.map((p) => ({ id: p.id, nombre: p.nombre, precioDefault: p.precio }))}
+              priceFieldName="precioUnitario"
+              priceLabel="Precio unitario"
+            />
+
+            <div className="sm:col-span-2">
+              <label className="label">Estado</label>
+              <select name="estado" className="input" defaultValue="pagada">
+                <option value="pagada">Pagada de una vez</option>
+                <option value="pendiente">Fiada (queda en Cuentas por Cobrar)</option>
+              </select>
+            </div>
+            <div className="sm:col-span-2">
+              <label className="label">Notas (opcional)</label>
+              <textarea name="notas" rows={2} className="input" />
+            </div>
+            <div className="sm:col-span-2">
+              <SubmitButton>Guardar venta</SubmitButton>
+            </div>
+          </form>
+        )}
+      </details>
+
+      <div className="card overflow-x-auto">
+        <h2 className="mb-3 text-sm font-semibold text-verde-800">Ventas recientes</h2>
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-verde-100 text-left text-xs text-tierra-500">
+              <th className="py-2 pr-2">Fecha</th>
+              <th className="py-2 pr-2">Cliente</th>
+              <th className="py-2 pr-2">Canal</th>
+              <th className="py-2 pr-2">Productos</th>
+              <th className="py-2 pr-2">Total</th>
+              <th className="py-2 pr-2">Estado</th>
+              <th className="py-2 pr-2"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {ventas.map((v) => (
+              <tr key={v.id} className="border-b border-verde-50">
+                <td className="py-2 pr-2 capitalize">{formatDateShortEs(v.fecha)}</td>
+                <td className="py-2 pr-2">{v.cliente?.nombre ?? "—"}</td>
+                <td className="py-2 pr-2 text-tierra-500">{v.canal?.nombre ?? "—"}</td>
+                <td className="py-2 pr-2 text-tierra-500">
+                  {v.items.map((it) => `${it.cantidad} ${it.producto.nombre}`).join(", ")}
+                </td>
+                <td className="py-2 pr-2">{formatCOP(v.total)}</td>
+                <td className="py-2 pr-2">
+                  <span className={`badge ${v.estado === "pagada" ? "bg-verde-100 text-verde-700" : "bg-tierra-100 text-tierra-600"}`}>
+                    {v.estado === "pagada" ? "Pagada" : "Fiada"}
+                  </span>
+                </td>
+                <td className="py-2 pr-2 text-right">
+                  <a href={`/api/inventario/export/comprobante/${v.id}`} className="text-xs text-verde-700 hover:underline">
+                    Comprobante
+                  </a>
+                </td>
+              </tr>
+            ))}
+            {ventas.length === 0 && (
+              <tr><td colSpan={7} className="py-6 text-center text-tierra-500">Sin ventas registradas.</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}

@@ -1,0 +1,195 @@
+import InventarioCompanyPicker from "@/components/inventario/CompanyPicker";
+import ItemsPicker from "@/components/inventario/SaleItemsPicker";
+import SubmitButton from "@/components/SubmitButton";
+import { resolveCompanyParam, COMPANY_LABEL } from "@/lib/finanzas/queries";
+import { formatCOP } from "@/lib/finanzas/format";
+import { formatDateOnly, formatDateShortEs, todayColombia } from "@/lib/date";
+import { prisma } from "@/lib/prisma";
+import { crearProveedor, registrarCompra, registrarPagoProveedor } from "@/lib/actions/inventario-compras";
+
+export default async function ProveedoresPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ company?: string }>;
+}) {
+  const params = await searchParams;
+  const selection = resolveCompanyParam(params.company);
+  const company = selection.company ?? "VERAGUA";
+
+  const [productos, proveedores, compras, cuentas] = await Promise.all([
+    prisma.finProduct.findMany({ where: { company, activo: true }, orderBy: { nombre: "asc" } }),
+    prisma.proveedor.findMany({ orderBy: { nombre: "asc" } }),
+    prisma.finPurchase.findMany({
+      where: { company },
+      include: { items: { include: { producto: true } }, proveedor: true },
+      orderBy: { fecha: "desc" },
+      take: 30,
+    }),
+    prisma.finCuentaPorPagar.findMany({
+      where: { company, saldo: { gt: 0 } },
+      include: { proveedor: true },
+      orderBy: { fecha: "asc" },
+    }),
+  ]);
+
+  const saldoPorProveedor = new Map<string, number>();
+  for (const c of cuentas) {
+    saldoPorProveedor.set(c.proveedorId, (saldoPorProveedor.get(c.proveedorId) ?? 0) + c.saldo);
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-lg font-semibold text-verde-800">Proveedores — {COMPANY_LABEL[company]}</h1>
+        <InventarioCompanyPicker current={company} />
+      </div>
+
+      <details className="card">
+        <summary className="cursor-pointer text-sm font-semibold text-verde-800">Nuevo proveedor</summary>
+        <form action={crearProveedor} className="mt-4 grid gap-3 sm:grid-cols-3">
+          <div>
+            <label className="label">Nombre</label>
+            <input name="nombre" required className="input" />
+          </div>
+          <div>
+            <label className="label">Teléfono (opcional)</label>
+            <input name="telefono" className="input" />
+          </div>
+          <div>
+            <label className="label">Contacto (opcional)</label>
+            <input name="contacto" className="input" />
+          </div>
+          <div className="sm:col-span-3">
+            <SubmitButton>Guardar proveedor</SubmitButton>
+          </div>
+        </form>
+      </details>
+
+      <details className="card" open={productos.length > 0 && proveedores.length > 0}>
+        <summary className="cursor-pointer text-sm font-semibold text-verde-800">Registrar compra</summary>
+        {proveedores.length === 0 || productos.length === 0 ? (
+          <p className="mt-3 text-sm text-tierra-500">Necesitas al menos un proveedor y un producto creados.</p>
+        ) : (
+          <form action={registrarCompra} className="mt-4 grid gap-3 sm:grid-cols-2">
+            <input type="hidden" name="company" value={company} />
+            <div>
+              <label className="label">Proveedor</label>
+              <select name="proveedorId" required className="input">
+                {proveedores.map((p) => (
+                  <option key={p.id} value={p.id}>{p.nombre}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="label">Fecha</label>
+              <input type="date" name="fecha" required defaultValue={formatDateOnly(todayColombia())} className="input" />
+            </div>
+            <div>
+              <label className="label">Número de factura (opcional)</label>
+              <input name="numeroFactura" className="input" />
+            </div>
+            <div>
+              <label className="label">Estado</label>
+              <select name="estado" className="input" defaultValue="pendiente">
+                <option value="pagada">Pagada de una vez</option>
+                <option value="pendiente">Pendiente (queda en Cuentas por Pagar)</option>
+              </select>
+            </div>
+
+            <ItemsPicker
+              productos={productos.map((p) => ({ id: p.id, nombre: p.nombre, precioDefault: p.precio }))}
+              priceFieldName="costoUnitario"
+              priceLabel="Costo unitario"
+            />
+
+            <div className="sm:col-span-2">
+              <label className="label">Notas (opcional)</label>
+              <textarea name="notas" rows={2} className="input" />
+            </div>
+            <div className="sm:col-span-2">
+              <SubmitButton>Guardar compra</SubmitButton>
+            </div>
+          </form>
+        )}
+      </details>
+
+      <div className="card">
+        <h2 className="mb-3 text-sm font-semibold text-verde-800">Cuentas por Pagar — saldo pendiente</h2>
+        {proveedores.filter((p) => (saldoPorProveedor.get(p.id) ?? 0) > 0).length === 0 ? (
+          <p className="text-sm text-tierra-500">No le debes a ningún proveedor ahora mismo.</p>
+        ) : (
+          <div className="space-y-3">
+            {proveedores
+              .filter((p) => (saldoPorProveedor.get(p.id) ?? 0) > 0)
+              .map((p) => (
+                <div key={p.id} className="rounded-lg border border-verde-100 p-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="text-sm font-medium text-tierra-800">{p.nombre}</span>
+                    <span className="text-sm font-semibold text-red-600">{formatCOP(saldoPorProveedor.get(p.id) ?? 0)}</span>
+                  </div>
+                  <form action={registrarPagoProveedor} className="mt-2 flex flex-wrap items-end gap-2">
+                    <input type="hidden" name="proveedorId" value={p.id} />
+                    <input type="hidden" name="company" value={company} />
+                    <div>
+                      <label className="label">Monto pagado</label>
+                      <input type="number" name="monto" min="0" step="1" required className="input w-32" />
+                    </div>
+                    <div>
+                      <label className="label">Fecha</label>
+                      <input type="date" name="fecha" required defaultValue={formatDateOnly(todayColombia())} className="input" />
+                    </div>
+                    <div>
+                      <label className="label">Método (opcional)</label>
+                      <input name="metodoPago" className="input w-32" />
+                    </div>
+                    <SubmitButton className="btn-secondary">Registrar pago</SubmitButton>
+                  </form>
+                  <a
+                    href={`/api/inventario/export/historial/proveedor/${p.id}`}
+                    className="mt-2 inline-block text-xs text-verde-700 hover:underline"
+                  >
+                    Descargar historial
+                  </a>
+                </div>
+              ))}
+          </div>
+        )}
+      </div>
+
+      <div className="card overflow-x-auto">
+        <h2 className="mb-3 text-sm font-semibold text-verde-800">Compras recientes</h2>
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-verde-100 text-left text-xs text-tierra-500">
+              <th className="py-2 pr-2">Fecha</th>
+              <th className="py-2 pr-2">Proveedor</th>
+              <th className="py-2 pr-2">Productos</th>
+              <th className="py-2 pr-2">Total</th>
+              <th className="py-2 pr-2">Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            {compras.map((c) => (
+              <tr key={c.id} className="border-b border-verde-50">
+                <td className="py-2 pr-2 capitalize">{formatDateShortEs(c.fecha)}</td>
+                <td className="py-2 pr-2">{c.proveedor.nombre}</td>
+                <td className="py-2 pr-2 text-tierra-500">
+                  {c.items.map((it) => `${it.cantidad} ${it.producto.nombre}`).join(", ")}
+                </td>
+                <td className="py-2 pr-2">{formatCOP(c.total)}</td>
+                <td className="py-2 pr-2">
+                  <span className={`badge ${c.estado === "pagada" ? "bg-verde-100 text-verde-700" : "bg-tierra-100 text-tierra-600"}`}>
+                    {c.estado === "pagada" ? "Pagada" : "Pendiente"}
+                  </span>
+                </td>
+              </tr>
+            ))}
+            {compras.length === 0 && (
+              <tr><td colSpan={5} className="py-6 text-center text-tierra-500">Sin compras registradas.</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}

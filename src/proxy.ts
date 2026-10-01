@@ -11,6 +11,12 @@ export default auth((req) => {
   const isLoggedIn = !!req.auth;
   const isLoginPage = pathname.startsWith("/login");
 
+  // Única ruta pública de toda la app: la API de solo lectura que consume veragua-website
+  // para el catálogo. Se valida sin sesión, antes que cualquier otro chequeo.
+  if (pathname.startsWith("/api/public/")) {
+    return NextResponse.next();
+  }
+
   if (!isLoggedIn && !isLoginPage) {
     const url = new URL("/login", req.nextUrl.origin);
     url.searchParams.set("callbackUrl", pathname);
@@ -31,7 +37,7 @@ export default auth((req) => {
 
   if (
     isLoggedIn &&
-    pathname.startsWith("/finanzas") &&
+    (pathname.startsWith("/finanzas") || pathname.startsWith("/inventario")) &&
     req.auth?.user.role !== "ADMIN" &&
     !req.auth?.user.puedeVerFinanzas
   ) {

@@ -49,6 +49,14 @@ model User {
   finImportBatches           FinImportBatch[]            @relation("FinImportBatchImportadoPor")
   finCategoriasCreadas       FinCategory[]                @relation("FinCategoryCreadaPor")
   pushSubscriptions          PushSubscription[]
+  finProductosCreados        FinProduct[]                 @relation("FinProductCreadoPor")
+  finInventoryAjustesCreados FinInventoryAdjustment[]     @relation("FinInventoryAdjustmentCreadoPor")
+  finComprasCreadas          FinPurchase[]                @relation("FinPurchaseCreadoPor")
+  finVentasCreadas           FinSale[]                    @relation("FinSaleCreadoPor")
+  finCxCCreadas              FinCuentaPorCobrar[]         @relation("FinCxCCreadoPor")
+  finCxPCreadas              FinCuentaPorPagar[]          @relation("FinCxPCreadoPor")
+  finPagosClienteCreados     FinPagoCliente[]             @relation("FinPagoClienteCreadoPor")
+  finPagosProveedorCreados   FinPagoProveedor[]           @relation("FinPagoProveedorCreadoPor")
 }
 
 // Lista de referencia de productos que se venden, para agilizar la toma de pedidos.
@@ -182,6 +190,10 @@ model Cliente {
   zona      String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  ventas          FinSale[]
+  cuentasPorCobrar FinCuentaPorCobrar[]
+  pagos           FinPagoCliente[]
 }
 
 model Order {
@@ -488,6 +500,7 @@ model FinChannel {
   createdAt DateTime @default(now())
 
   transacciones FinTransaction[]
+  ventas        FinSale[]
 
   @@unique([company, nombre])
 }
@@ -556,6 +569,11 @@ model FinTransaction {
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
+  compra        FinPurchase?
+  venta         FinSale?
+  pagoCliente   FinPagoCliente?
+  pagoProveedor FinPagoProveedor?
+
   @@index([company, fecha])
   @@index([company, categoriaId])
   @@index([company, canalId])
@@ -570,4 +588,244 @@ model PushSubscription {
   p256dh    String
   auth      String
   createdAt DateTime @default(now())
+}
+
+// ============================================================
+// INVENTARIO — productos de reventa (Veragua y Melcoch) con foto y catálogo,
+// compras a proveedores, ventas a clientes, y Cuentas por Cobrar/Pagar.
+// Distinto del modelo `Producto` (solo nombre, para autocompletar Pedidos) y
+// del inventario de insumos/recetas de Melcoch (MelcochIngrediente y afines),
+// que no se tocan.
+// ============================================================
+
+model FinProductCategory {
+  id        String   @id @default(cuid())
+  company   String // "VERAGUA" | "MELCOCH"
+  nombre    String // ej. "Lácteos Sanorigen", "Huevos", "Café"
+  createdAt DateTime @default(now())
+
+  productos FinProduct[]
+
+  @@unique([company, nombre])
+}
+
+// El stock no se guarda: se calcula igual que computeStocks() de Melcoch
+// (compras - ventas + ajustes de conteo). Ver src/lib/inventario/stock.ts.
+model FinProduct {
+  id                String             @id @default(cuid())
+  company           String
+  categoriaId       String
+  categoria         FinProductCategory @relation(fields: [categoriaId], references: [id])
+  nombre            String
+  descripcion       String?
+  precio            Float
+  imagenUrl         String?
+  visibleEnCatalogo Boolean            @default(true)
+  activo            Boolean            @default(true)
+  creadoPorId       String
+  creadoPor         User               @relation("FinProductCreadoPor", fields: [creadoPorId], references: [id])
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  comprasItems FinPurchaseItem[]
+  ventasItems  FinSaleItem[]
+  ajustes      FinInventoryAdjustment[]
+
+  @@index([company, categoriaId])
+}
+
+// Conteo físico / corrección de inventario, igual patrón que MelcochAjusteInventario.
+model FinInventoryAdjustment {
+  id            String     @id @default(cuid())
+  productoId    String
+  producto      FinProduct @relation(fields: [productoId], references: [id])
+  teoricoAntes  Float
+  contado       Float
+  diferencia    Float
+  fecha         DateTime
+  creadoPorId   String
+  creadoPor     User       @relation("FinInventoryAdjustmentCreadoPor", fields: [creadoPorId], references: [id])
+  createdAt     DateTime   @default(now())
+}
+
+model Proveedor {
+  id        String   @id @default(cuid())
+  nombre    String   @unique
+  telefono  String?
+  contacto  String?
+  createdAt DateTime @default(now())
+
+  compras         FinPurchase[]
+  cuentasPorPagar FinCuentaPorPagar[]
+  pagos           FinPagoProveedor[]
+}
+
+// Compra/factura de proveedor (cabecera). Si estado = "pagada" al crearla,
+// finTransactionId apunta al gasto generado de una vez; si "pendiente", en
+// cambio se crea una FinCuentaPorPagar.
+model FinPurchase {
+  id               String          @id @default(cuid())
+  company          String
+  proveedorId      String
+  proveedor        Proveedor       @relation(fields: [proveedorId], references: [id])
+  fecha            DateTime
+  numeroFactura    String?
+  estado           String // "pagada" | "pendiente"
+  total            Float
+  notas            String?
+  finTransactionId String?         @unique
+  finTransaction   FinTransaction? @relation(fields: [finTransactionId], references: [id])
+  creadoPorId      String
+  creadoPor        User            @relation("FinPurchaseCreadoPor", fields: [creadoPorId], references: [id])
+  createdAt        DateTime        @default(now())
+
+  items          FinPurchaseItem[]
+  cuentaPorPagar FinCuentaPorPagar?
+
+  @@index([company, fecha])
+}
+
+model FinPurchaseItem {
+  id            String      @id @default(cuid())
+  purchaseId    String
+  purchase      FinPurchase @relation(fields: [purchaseId], references: [id])
+  productoId    String
+  producto      FinProduct  @relation(fields: [productoId], references: [id])
+  cantidad      Float
+  costoUnitario Float
+}
+
+// Venta con productos de inventario (cabecera). Igual patrón que FinPurchase:
+// "pagada" genera el ingreso de una vez, "pendiente" crea FinCuentaPorCobrar.
+model FinSale {
+  id               String          @id @default(cuid())
+  company          String
+  clienteId        String?
+  cliente          Cliente?        @relation(fields: [clienteId], references: [id])
+  canalId          String?
+  canal            FinChannel?     @relation(fields: [canalId], references: [id])
+  fecha            DateTime
+  estado           String // "pagada" | "pendiente"
+  total            Float
+  notas            String?
+  finTransactionId String?         @unique
+  finTransaction   FinTransaction? @relation(fields: [finTransactionId], references: [id])
+  creadoPorId      String
+  creadoPor        User            @relation("FinSaleCreadoPor", fields: [creadoPorId], references: [id])
+  createdAt        DateTime        @default(now())
+
+  items           FinSaleItem[]
+  cuentaPorCobrar FinCuentaPorCobrar?
+
+  @@index([company, fecha])
+}
+
+model FinSaleItem {
+  id             String     @id @default(cuid())
+  saleId         String
+  sale           FinSale    @relation(fields: [saleId], references: [id])
+  productoId     String
+  producto       FinProduct @relation(fields: [productoId], references: [id])
+  cantidad       Float
+  precioUnitario Float
+}
+
+// Factura pendiente de cobro a un cliente. saldo = montoTotal - Σ aplicaciones.
+model FinCuentaPorCobrar {
+  id               String    @id @default(cuid())
+  company          String
+  clienteId        String
+  cliente          Cliente   @relation(fields: [clienteId], references: [id])
+  ventaId          String?   @unique
+  venta            FinSale?  @relation(fields: [ventaId], references: [id])
+  fecha            DateTime
+  montoTotal       Float
+  saldo            Float
+  fechaVencimiento DateTime?
+  notas            String?
+  creadoPorId      String
+  creadoPor        User      @relation("FinCxCCreadoPor", fields: [creadoPorId], references: [id])
+  createdAt        DateTime  @default(now())
+
+  aplicaciones FinPagoClienteAplicacion[]
+
+  @@index([company, clienteId])
+}
+
+// Un pago de un cliente. Genera un único FinTransaction (base caja) por el
+// monto total pagado; cómo se reparte entre facturas queda en las aplicaciones.
+model FinPagoCliente {
+  id               String         @id @default(cuid())
+  clienteId        String
+  cliente          Cliente        @relation(fields: [clienteId], references: [id])
+  monto            Float
+  fecha            DateTime
+  metodoPago       String?
+  notas            String?
+  finTransactionId String         @unique
+  finTransaction   FinTransaction @relation(fields: [finTransactionId], references: [id])
+  creadoPorId      String
+  creadoPor        User           @relation("FinPagoClienteCreadoPor", fields: [creadoPorId], references: [id])
+  createdAt        DateTime       @default(now())
+
+  aplicaciones FinPagoClienteAplicacion[]
+}
+
+model FinPagoClienteAplicacion {
+  id            String             @id @default(cuid())
+  pagoId        String
+  pago          FinPagoCliente     @relation(fields: [pagoId], references: [id])
+  cuentaId      String
+  cuenta        FinCuentaPorCobrar @relation(fields: [cuentaId], references: [id])
+  montoAplicado Float
+  createdAt     DateTime           @default(now())
+}
+
+// Espejo exacto de FinCuentaPorCobrar/FinPagoCliente, para proveedores.
+model FinCuentaPorPagar {
+  id               String       @id @default(cuid())
+  company          String
+  proveedorId      String
+  proveedor        Proveedor    @relation(fields: [proveedorId], references: [id])
+  purchaseId       String?      @unique
+  purchase         FinPurchase? @relation(fields: [purchaseId], references: [id])
+  fecha            DateTime
+  montoTotal       Float
+  saldo            Float
+  fechaVencimiento DateTime?
+  notas            String?
+  creadoPorId      String
+  creadoPor        User         @relation("FinCxPCreadoPor", fields: [creadoPorId], references: [id])
+  createdAt        DateTime     @default(now())
+
+  aplicaciones FinPagoProveedorAplicacion[]
+
+  @@index([company, proveedorId])
+}
+
+model FinPagoProveedor {
+  id               String         @id @default(cuid())
+  proveedorId      String
+  proveedor        Proveedor      @relation(fields: [proveedorId], references: [id])
+  monto            Float
+  fecha            DateTime
+  metodoPago       String?
+  notas            String?
+  finTransactionId String         @unique
+  finTransaction   FinTransaction @relation(fields: [finTransactionId], references: [id])
+  creadoPorId      String
+  creadoPor        User           @relation("FinPagoProveedorCreadoPor", fields: [creadoPorId], references: [id])
+  createdAt        DateTime       @default(now())
+
+  aplicaciones FinPagoProveedorAplicacion[]
+}
+
+model FinPagoProveedorAplicacion {
+  id            String            @id @default(cuid())
+  pagoId        String
+  pago          FinPagoProveedor  @relation(fields: [pagoId], references: [id])
+  cuentaId      String
+  cuenta        FinCuentaPorPagar @relation(fields: [cuentaId], references: [id])
+  montoAplicado Float
+  createdAt     DateTime          @default(now())
 }

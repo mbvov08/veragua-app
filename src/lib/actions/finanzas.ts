@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { dateOnlyToUTC } from "@/lib/date";
 import { COMPANIES, type Company } from "@/lib/finanzas/queries";
 
-async function requireFinanzas() {
+export async function requireFinanzas() {
   const session = await auth();
   if (!session?.user || !(session.user.role === "ADMIN" || session.user.puedeVerFinanzas)) {
     throw new Error("No tienes acceso al módulo de Finanzas.");

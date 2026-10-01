@@ -1,0 +1,169 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { prisma } from "@/lib/prisma";
+import { dateOnlyToUTC } from "@/lib/date";
+import { requireFinanzas } from "@/lib/actions/finanzas";
+import { parseCompany, parsePurchaseItems, findDefaultCategory } from "@/lib/inventario/shared";
+import { repartirPagoProveedor, aplicarCreditoDisponibleProveedor } from "@/lib/inventario/credito";
+
+function revalidateProveedores() {
+  revalidatePath("/inventario");
+  revalidatePath("/inventario/proveedores");
+}
+
+export async function upsertProveedor(nombre: string, telefono?: string | null, contacto?: string | null) {
+  return prisma.proveedor.upsert({
+    where: { nombre },
+    update: { telefono: telefono || undefined, contacto: contacto || undefined },
+    create: { nombre, telefono: telefono || null, contacto: contacto || null },
+  });
+}
+
+export async function crearProveedor(formData: FormData) {
+  await requireFinanzas();
+  const nombre = String(formData.get("nombre") ?? "").trim();
+  const telefono = String(formData.get("telefono") ?? "").trim() || null;
+  const contacto = String(formData.get("contacto") ?? "").trim() || null;
+  if (!nombre) throw new Error("El nombre del proveedor es obligatorio.");
+
+  const existing = await prisma.proveedor.findUnique({ where: { nombre } });
+  if (existing) throw new Error("Ya existe un proveedor con ese nombre.");
+
+  await prisma.proveedor.create({ data: { nombre, telefono, contacto } });
+  revalidateProveedores();
+}
+
+export async function registrarCompra(formData: FormData) {
+  const session = await requireFinanzas();
+
+  const company = parseCompany(formData.get("company"));
+  const proveedorId = String(formData.get("proveedorId") ?? "");
+  const fechaStr = String(formData.get("fecha") ?? "");
+  const numeroFactura = String(formData.get("numeroFactura") ?? "").trim() || null;
+  const estado = String(formData.get("estado") ?? "pendiente");
+  const notas = String(formData.get("notas") ?? "").trim() || null;
+  const items = parsePurchaseItems(formData);
+
+  if (!proveedorId) throw new Error("Selecciona un proveedor.");
+  if (!fechaStr) throw new Error("La fecha es obligatoria.");
+  if (estado !== "pagada" && estado !== "pendiente") throw new Error("Estado inválido.");
+  if (items.length === 0) throw new Error("Agrega al menos un producto a la compra.");
+
+  const fecha = dateOnlyToUTC(fechaStr);
+  const total = items.reduce((sum, it) => sum + it.cantidad * it.costoUnitario, 0);
+
+  await prisma.$transaction(async (tx) => {
+    let finTransactionId: string | null = null;
+    if (estado === "pagada") {
+      const categoria = await findDefaultCategory(company, "6135");
+      const proveedor = await tx.proveedor.findUniqueOrThrow({ where: { id: proveedorId } });
+      const transaction = await tx.finTransaction.create({
+        data: {
+          company,
+          tipo: "expense",
+          fecha,
+          monto: total,
+          categoriaId: categoria.id,
+          contraparte: proveedor.nombre,
+          descripcion: numeroFactura ? `Compra factura ${numeroFactura}` : "Compra de inventario",
+          fuente: "manual",
+          creadoPorId: session.user.id,
+        },
+      });
+      finTransactionId = transaction.id;
+    }
+
+    const purchase = await tx.finPurchase.create({
+      data: {
+        company,
+        proveedorId,
+        fecha,
+        numeroFactura,
+        estado,
+        total,
+        notas,
+        finTransactionId,
+        creadoPorId: session.user.id,
+        items: { create: items.map((it) => ({ productoId: it.productoId, cantidad: it.cantidad, costoUnitario: it.costoUnitario })) },
+      },
+    });
+
+    if (estado === "pendiente") {
+      const cuenta = await tx.finCuentaPorPagar.create({
+        data: {
+          company,
+          proveedorId,
+          purchaseId: purchase.id,
+          fecha,
+          montoTotal: total,
+          saldo: total,
+          creadoPorId: session.user.id,
+        },
+      });
+      await aplicarCreditoDisponibleProveedor(tx, cuenta.id, proveedorId);
+    }
+  }, { maxWait: 10000, timeout: 20000 });
+
+  revalidateProveedores();
+  revalidatePath("/finanzas");
+  revalidatePath("/finanzas/movimientos");
+  revalidatePath("/finanzas/pyg");
+  revalidatePath("/finanzas/canales");
+}
+
+export async function registrarPagoProveedor(formData: FormData) {
+  const session = await requireFinanzas();
+
+  const proveedorId = String(formData.get("proveedorId") ?? "");
+  const company = parseCompany(formData.get("company"));
+  const monto = Number(formData.get("monto"));
+  const fechaStr = String(formData.get("fecha") ?? "");
+  const metodoPago = String(formData.get("metodoPago") ?? "").trim() || null;
+  const notas = String(formData.get("notas") ?? "").trim() || null;
+
+  if (!proveedorId) throw new Error("Selecciona un proveedor.");
+  if (!fechaStr) throw new Error("La fecha es obligatoria.");
+  if (!(monto > 0)) throw new Error("El monto debe ser mayor a cero.");
+
+  const fecha = dateOnlyToUTC(fechaStr);
+
+  await prisma.$transaction(async (tx) => {
+    const categoria = await findDefaultCategory(company, "6135");
+    const proveedor = await tx.proveedor.findUniqueOrThrow({ where: { id: proveedorId } });
+
+    const transaction = await tx.finTransaction.create({
+      data: {
+        company,
+        tipo: "expense",
+        fecha,
+        monto,
+        categoriaId: categoria.id,
+        contraparte: proveedor.nombre,
+        metodoPago,
+        descripcion: "Pago a proveedor",
+        fuente: "manual",
+        creadoPorId: session.user.id,
+      },
+    });
+
+    const pago = await tx.finPagoProveedor.create({
+      data: {
+        proveedorId,
+        monto,
+        fecha,
+        metodoPago,
+        notas,
+        finTransactionId: transaction.id,
+        creadoPorId: session.user.id,
+      },
+    });
+
+    await repartirPagoProveedor(tx, pago.id, proveedorId, monto);
+  }, { maxWait: 10000, timeout: 20000 });
+
+  revalidateProveedores();
+  revalidatePath("/finanzas");
+  revalidatePath("/finanzas/movimientos");
+  revalidatePath("/finanzas/pyg");
+}
