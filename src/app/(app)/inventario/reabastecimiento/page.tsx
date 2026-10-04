@@ -34,7 +34,7 @@ export default async function ReabastecimientoPage({
   await rellenarDemandaRealPendiente(company);
 
   const [productos, proveedores, relaciones, forecastHistory] = await Promise.all([
-    prisma.finProduct.findMany({ where: { company, activo: true }, orderBy: { nombre: "asc" } }),
+    prisma.finProduct.findMany({ where: { company, activo: true, esServicio: false }, orderBy: { nombre: "asc" } }),
     prisma.proveedor.findMany({ orderBy: { nombre: "asc" } }),
     prisma.finProductoProveedor.findMany({
       where: { producto: { company } },

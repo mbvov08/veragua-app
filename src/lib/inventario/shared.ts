@@ -18,6 +18,15 @@ export function parseCompany(value: FormDataEntryValue | null): Company {
   return v as Company;
 }
 
+/** Motivos de ajuste manual de inventario (conteo físico / corrección). */
+export const MOTIVOS_AJUSTE_INVENTARIO = [
+  "Conteo físico / corrección",
+  "Producto dañado o vencido",
+  "Pérdida o robo",
+  "Cortesía / consumo interno",
+  "Otro",
+] as const;
+
 export type SaleItemInput = { productoId: string; cantidad: number; precioUnitario: number };
 export type PurchaseItemInput = { productoId: string; cantidad: number; costoUnitario: number };
 

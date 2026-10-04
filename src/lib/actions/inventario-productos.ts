@@ -11,6 +11,7 @@ import { computeSingleProductStock } from "@/lib/inventario/stock";
 function revalidateInventario() {
   revalidatePath("/inventario");
   revalidatePath("/inventario/productos");
+  revalidatePath("/inventario/historial");
 }
 
 export async function createProductCategory(formData: FormData) {
@@ -39,6 +40,9 @@ export async function createProduct(formData: FormData) {
   const descripcion = String(formData.get("descripcion") ?? "").trim() || null;
   const precio = Number(formData.get("precio"));
   const foto = formData.get("foto");
+  const grupo = String(formData.get("grupo") ?? "").trim() || null;
+  const nombreVariante = String(formData.get("nombreVariante") ?? "").trim() || null;
+  const esServicio = formData.get("esServicio") === "on";
 
   if (!categoriaId) throw new Error("Selecciona una categoría.");
   if (!nombre) throw new Error("El nombre del producto es obligatorio.");
@@ -60,6 +64,9 @@ export async function createProduct(formData: FormData) {
       descripcion,
       precio,
       imagenUrl,
+      grupo,
+      nombreVariante,
+      esServicio,
       creadoPorId: session.user.id,
     },
   });
@@ -75,12 +82,15 @@ export async function updateProduct(productId: string, formData: FormData) {
   const descripcion = String(formData.get("descripcion") ?? "").trim() || null;
   const precio = Number(formData.get("precio"));
   const foto = formData.get("foto");
+  const grupo = String(formData.get("grupo") ?? "").trim() || null;
+  const nombreVariante = String(formData.get("nombreVariante") ?? "").trim() || null;
+  const esServicio = formData.get("esServicio") === "on";
 
   if (!categoriaId) throw new Error("Selecciona una categoría.");
   if (!nombre) throw new Error("El nombre del producto es obligatorio.");
   if (!(precio >= 0)) throw new Error("El precio debe ser mayor o igual a cero.");
 
-  const data: Record<string, unknown> = { categoriaId, nombre, descripcion, precio };
+  const data: Record<string, unknown> = { categoriaId, nombre, descripcion, precio, grupo, nombreVariante, esServicio };
 
   if (foto instanceof File && foto.size > 0) {
     const producto = await prisma.finProduct.findUniqueOrThrow({ where: { id: productId } });
@@ -128,10 +138,12 @@ export async function registrarAjusteInventario(formData: FormData) {
   const productoId = String(formData.get("productoId") ?? "");
   const contado = Number(formData.get("contado"));
   const fechaStr = String(formData.get("fecha") ?? "");
+  const motivo = String(formData.get("motivo") ?? "").trim() || null;
 
   if (!productoId) throw new Error("Selecciona un producto.");
   if (!fechaStr) throw new Error("La fecha es obligatoria.");
   if (Number.isNaN(contado)) throw new Error("La cantidad contada es inválida.");
+  if (!motivo) throw new Error("Selecciona el motivo del ajuste.");
 
   const teoricoAntes = await computeSingleProductStock(productoId);
   const diferencia = contado - teoricoAntes;
@@ -142,6 +154,7 @@ export async function registrarAjusteInventario(formData: FormData) {
       teoricoAntes,
       contado,
       diferencia,
+      motivo,
       fecha: dateOnlyToUTC(fechaStr),
       creadoPorId: session.user.id,
     },

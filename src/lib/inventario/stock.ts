@@ -4,6 +4,8 @@ import type { Company } from "@/lib/finanzas/queries";
 export type ProductStock = {
   id: string;
   nombre: string;
+  descripcion: string | null;
+  categoriaId: string;
   categoriaNombre: string;
   precio: number;
   imagenUrl: string | null;
@@ -11,6 +13,9 @@ export type ProductStock = {
   comparaConGalpon: boolean;
   unidadesGalpon: number;
   stock: number;
+  grupo: string | null;
+  nombreVariante: string | null;
+  esServicio: boolean;
 };
 
 /** Saldo teórico de cada producto: compras − ventas + ajustes de conteo. */
@@ -50,6 +55,8 @@ export async function computeProductStocks(company: Company): Promise<ProductSto
     return {
       id: p.id,
       nombre: p.nombre,
+      descripcion: p.descripcion,
+      categoriaId: p.categoriaId,
       categoriaNombre: p.categoria.nombre,
       precio: p.precio,
       imagenUrl: p.imagenUrl,
@@ -57,6 +64,9 @@ export async function computeProductStocks(company: Company): Promise<ProductSto
       comparaConGalpon: p.comparaConGalpon,
       unidadesGalpon: p.unidadesGalpon,
       stock: comprado - vendido + ajuste,
+      grupo: p.grupo,
+      nombreVariante: p.nombreVariante,
+      esServicio: p.esServicio,
     };
   });
 }

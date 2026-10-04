@@ -621,6 +621,15 @@ model FinProduct {
   precio            Float
   imagenUrl         String?
   activo            Boolean            @default(true)
+  // Agrupa variantes de un mismo producto (ej. "Gelato Premium", "Huevos Marrones").
+  // Si es null, el producto se muestra suelto (sin agrupar), como hasta ahora.
+  grupo             String?
+  // Etiqueta corta de la variante dentro del grupo (ej. "Pistacho Sicilia", "X30").
+  // Solo se usa para mostrar cuando `grupo` no es null.
+  nombreVariante    String?
+  // Producto sin inventario físico (ej. domicilio, café preparado al momento): no se
+  // calcula ni se muestra stock, y no entra en las sugerencias de Reabastecimiento.
+  esServicio        Boolean            @default(false)
   // Se produce internamente (ej. huevos rojos del galpón): compara la producción
   // registrada en RegistroGalpon contra la demanda en vez de sugerir compras.
   comparaConGalpon  Boolean            @default(false)
@@ -650,6 +659,8 @@ model FinInventoryAdjustment {
   teoricoAntes  Float
   contado       Float
   diferencia    Float
+  // Por qué se ajustó (solo en ajustes manuales; los de migración/compensación quedan null).
+  motivo        String?
   fecha         DateTime
   creadoPorId   String
   creadoPor     User       @relation("FinInventoryAdjustmentCreadoPor", fields: [creadoPorId], references: [id])

@@ -58,8 +58,44 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         {
           label: "Gestiona tu negocio",
           items: [
-            ...(puedeVerFinanzas ? [{ href: "/finanzas", label: "Finanzas", icon: "finanzas" as const }] : []),
-            ...(puedeVerFinanzas ? [{ href: "/inventario", label: "Inventario", icon: "inventario" as const }] : []),
+            ...(puedeVerFinanzas
+              ? [
+                  {
+                    href: "/finanzas",
+                    label: "Finanzas",
+                    icon: "finanzas" as const,
+                    children: [
+                      { href: "/finanzas", label: "Resumen" },
+                      { href: "/finanzas/movimientos", label: "Movimientos" },
+                      { href: "/finanzas/pyg", label: "PyG" },
+                      { href: "/finanzas/canales", label: "Canales" },
+                      { href: "/inventario/clientes", label: "Cuentas por Cobrar" },
+                      { href: "/inventario/proveedores", label: "Cuentas por Pagar" },
+                      { href: "/finanzas/ajustes/categorias", label: "Categorías" },
+                      { href: "/finanzas/ajustes/canales", label: "Canales de venta" },
+                    ],
+                  },
+                ]
+              : []),
+            ...(puedeVerFinanzas
+              ? [
+                  {
+                    href: "/inventario",
+                    label: "Inventario",
+                    icon: "inventario" as const,
+                    children: [
+                      { href: "/inventario", label: "Resumen" },
+                      { href: "/inventario/productos", label: "Productos" },
+                      { href: "/inventario/historial", label: "Historial" },
+                      { href: "/inventario/ventas", label: "Ventas" },
+                      { href: "/inventario/clientes", label: "Clientes (CxC)" },
+                      { href: "/inventario/proveedores", label: "Proveedores (CxP)" },
+                      { href: "/inventario/reabastecimiento", label: "Reabastecimiento" },
+                      { href: "/inventario/ajustes/categorias", label: "Categorías" },
+                    ],
+                  },
+                ]
+              : []),
             { href: "/pedidos", label: "Pedidos", icon: "pedidos" as const },
             { href: "/produccion", label: "Postura/Huevos", icon: "produccion" as const },
             { href: "/melcoch", label: "Melcoch", icon: "melcoch" as const },
@@ -108,6 +144,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         roleLabel={ROL_LABEL[session.user.role] ?? session.user.role}
         logout={logout}
         topBarRight={topBarRight}
+        mobileTopBarRight={<NotificationBell items={reminderItems} />}
       />
       <div className="flex min-h-screen flex-1 flex-col">
         <div className="hidden items-center justify-end gap-3 border-b border-verde-100 bg-white px-4 py-2 md:flex">

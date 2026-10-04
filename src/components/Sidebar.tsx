@@ -5,7 +5,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Icon, type IconName } from "@/components/icons";
 
-export type NavItem = { href: string; label: string; icon: IconName };
+export type NavChild = { href: string; label: string };
+export type NavItem = { href: string; label: string; icon: IconName; children?: NavChild[] };
 export type NavSection = { label?: string; items: NavItem[] };
 
 export default function Sidebar({
@@ -14,17 +15,22 @@ export default function Sidebar({
   roleLabel,
   logout,
   topBarRight,
+  mobileTopBarRight,
 }: {
   sections: NavSection[];
   userName: string;
   roleLabel: string;
   logout: React.ReactNode;
   topBarRight: React.ReactNode;
+  mobileTopBarRight: React.ReactNode;
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const [expandedOverride, setExpandedOverride] = useState<Record<string, boolean>>({});
 
   const isActive = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
+  const toggleExpanded = (label: string) =>
+    setExpandedOverride((prev) => ({ ...prev, [label]: !(prev[label] ?? false) }));
 
   const navContent = (
     <div className="flex h-full flex-col">
@@ -53,20 +59,53 @@ export default function Sidebar({
             <div className="space-y-0.5">
               {section.items.map((item) => {
                 const active = isActive(item.href);
+                const hasChildren = !!item.children?.length;
+                const expanded = item.label in expandedOverride ? expandedOverride[item.label] : active;
                 return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={() => setOpen(false)}
-                    className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                      active
-                        ? "bg-dorado-100 text-verde-900"
-                        : "text-tierra-600 hover:bg-verde-50 hover:text-verde-800"
-                    }`}
-                  >
-                    <Icon name={item.icon} className="h-5 w-5 shrink-0" />
-                    <span className="truncate">{item.label}</span>
-                  </Link>
+                  <div key={item.href}>
+                    <div
+                      className={`flex items-center rounded-lg transition-colors ${
+                        active ? "bg-dorado-100 text-verde-900" : "text-tierra-600 hover:bg-verde-50 hover:text-verde-800"
+                      }`}
+                    >
+                      <Link
+                        href={item.href}
+                        onClick={() => setOpen(false)}
+                        className="flex flex-1 items-center gap-3 px-3 py-2 text-sm font-medium"
+                      >
+                        <Icon name={item.icon} className="h-5 w-5 shrink-0" />
+                        <span className="truncate">{item.label}</span>
+                      </Link>
+                      {hasChildren && (
+                        <button
+                          type="button"
+                          onClick={() => toggleExpanded(item.label)}
+                          aria-label={expanded ? "Contraer" : "Expandir"}
+                          className="p-2 text-tierra-400 hover:text-verde-700"
+                        >
+                          <Icon name="chevron-right" className={`h-4 w-4 transition-transform ${expanded ? "rotate-90" : ""}`} />
+                        </button>
+                      )}
+                    </div>
+                    {hasChildren && expanded && (
+                      <div className="ml-4 mt-0.5 space-y-0.5 border-l border-verde-100 pl-4">
+                        {item.children!.map((child) => (
+                          <Link
+                            key={child.href}
+                            href={child.href}
+                            onClick={() => setOpen(false)}
+                            className={`block rounded-md px-2 py-1.5 text-xs transition-colors ${
+                              isActive(child.href)
+                                ? "font-medium text-verde-800"
+                                : "text-tierra-500 hover:text-verde-700"
+                            }`}
+                          >
+                            {child.label}
+                          </Link>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 );
               })}
             </div>
@@ -79,18 +118,18 @@ export default function Sidebar({
 
   return (
     <>
-      <div className="flex items-center justify-between border-b border-verde-100 bg-white px-3 py-2 md:hidden">
+      <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2 border-b border-verde-100 bg-white px-2 py-2 md:hidden">
         <button
           onClick={() => setOpen(true)}
-          className="rounded-md p-2 text-tierra-600 hover:bg-verde-50"
+          className="shrink-0 rounded-md p-2 text-tierra-600 hover:bg-verde-50"
           aria-label="Abrir menú"
         >
           <Icon name="menu" className="h-6 w-6" />
         </button>
-        <span className="font-serif text-lg text-verde-900" style={{ letterSpacing: "0.05em" }}>
+        <span className="truncate text-center font-serif text-lg text-verde-900" style={{ letterSpacing: "0.05em" }}>
           veragua
         </span>
-        <div className="flex items-center gap-1">{topBarRight}</div>
+        <div className="flex shrink-0 items-center justify-end gap-1">{mobileTopBarRight}</div>
       </div>
 
       <aside className="hidden md:flex md:w-64 md:shrink-0 md:flex-col md:border-r md:border-verde-100 md:bg-white">
