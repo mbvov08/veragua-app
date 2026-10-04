@@ -624,6 +624,10 @@ model FinProduct {
   // Se produce internamente (ej. huevos rojos del galpón): compara la producción
   // registrada en RegistroGalpon contra la demanda en vez de sugerir compras.
   comparaConGalpon  Boolean            @default(false)
+  // Cuántas unidades del galpón (huevos sueltos) representa 1 unidad de este producto
+  // (ej. "Huevos Marrones X30" = 30, "Huevo colorado unidad" = 1). Solo importa si
+  // comparaConGalpon = true.
+  unidadesGalpon    Int                @default(1)
   creadoPorId       String
   creadoPor         User               @relation("FinProductCreadoPor", fields: [creadoPorId], references: [id])
   createdAt         DateTime           @default(now())

@@ -100,9 +100,24 @@ export async function toggleProductActivo(productId: string, activo: boolean) {
   revalidateInventario();
 }
 
-export async function toggleComparaConGalpon(productId: string, valor: boolean) {
+export async function vincularConGalpon(formData: FormData) {
   await requireFinanzas();
-  await prisma.finProduct.update({ where: { id: productId }, data: { comparaConGalpon: valor } });
+  const productId = String(formData.get("productId") ?? "");
+  const unidadesGalpon = Number(formData.get("unidadesGalpon"));
+  if (!productId) throw new Error("Falta el producto.");
+  if (!(unidadesGalpon >= 1)) throw new Error("Las unidades del galpón por producto deben ser al menos 1.");
+
+  await prisma.finProduct.update({
+    where: { id: productId },
+    data: { comparaConGalpon: true, unidadesGalpon },
+  });
+  revalidateInventario();
+  revalidatePath("/inventario/reabastecimiento");
+}
+
+export async function desvincularDeGalpon(productId: string) {
+  await requireFinanzas();
+  await prisma.finProduct.update({ where: { id: productId }, data: { comparaConGalpon: false } });
   revalidateInventario();
   revalidatePath("/inventario/reabastecimiento");
 }

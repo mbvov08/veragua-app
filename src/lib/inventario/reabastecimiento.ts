@@ -233,14 +233,17 @@ export async function computeGalponBalances(company: Company): Promise<GalponBal
   const balances: GalponBalance[] = [];
   for (const producto of productos) {
     const stats = await computeDemandStats(producto.id);
+    // La demanda está en unidades del producto (ej. cartones de 30); se convierte a
+    // unidades del galpón (huevos sueltos) para comparar contra la producción.
+    const demandaEnUnidadesGalpon = stats.demandaDiariaProm * producto.unidadesGalpon;
     balances.push({
       productoId: producto.id,
       productoNombre: producto.nombre,
       produccionDiariaProm,
       diasConRegistro,
-      demandaDiariaProm: stats.demandaDiariaProm,
-      balance: produccionDiariaProm - stats.demandaDiariaProm,
-      deficit: produccionDiariaProm < stats.demandaDiariaProm,
+      demandaDiariaProm: demandaEnUnidadesGalpon,
+      balance: produccionDiariaProm - demandaEnUnidadesGalpon,
+      deficit: produccionDiariaProm < demandaEnUnidadesGalpon,
     });
   }
   return balances;

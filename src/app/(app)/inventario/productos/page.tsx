@@ -4,7 +4,7 @@ import { resolveCompanyParam, COMPANY_LABEL } from "@/lib/finanzas/queries";
 import { computeProductStocks } from "@/lib/inventario/stock";
 import { formatCOP } from "@/lib/finanzas/format";
 import { prisma } from "@/lib/prisma";
-import { createProduct, toggleProductActivo, toggleComparaConGalpon, registrarAjusteInventario } from "@/lib/actions/inventario-productos";
+import { createProduct, toggleProductActivo, vincularConGalpon, desvincularDeGalpon, registrarAjusteInventario } from "@/lib/actions/inventario-productos";
 import { formatDateOnly, todayColombia } from "@/lib/date";
 import ConfirmButton from "@/components/ConfirmButton";
 
@@ -130,17 +130,23 @@ export default async function ProductosPage({
                 <td className="py-2 pr-2">{s.stock}</td>
                 <td className="py-2 pr-2 text-right">
                   <div className="flex flex-wrap items-center justify-end gap-2">
-                    <ConfirmButton
-                      action={toggleComparaConGalpon.bind(null, s.id, !s.comparaConGalpon)}
-                      confirmMessage={
-                        s.comparaConGalpon
-                          ? "¿Dejar de comparar este producto con la producción del galpón?"
-                          : "¿Comparar este producto con la producción registrada en Postura/Huevos? Úsalo solo para lo que se produce internamente (ej. huevos rojos)."
-                      }
-                      className={s.comparaConGalpon ? "chip-edit" : "chip-neutral"}
-                    >
-                      {s.comparaConGalpon ? "Vinculado al galpón" : "Vincular a galpón"}
-                    </ConfirmButton>
+                    {s.comparaConGalpon ? (
+                      <ConfirmButton
+                        action={desvincularDeGalpon.bind(null, s.id)}
+                        confirmMessage="¿Dejar de comparar este producto con la producción del galpón?"
+                        className="chip-edit"
+                      >
+                        Vinculado al galpón (1 = {s.unidadesGalpon} huevo{s.unidadesGalpon === 1 ? "" : "s"})
+                      </ConfirmButton>
+                    ) : (
+                      <form action={vincularConGalpon} className="flex items-center gap-1">
+                        <input type="hidden" name="productId" value={s.id} />
+                        <span className="text-xs text-tierra-500">1 unidad =</span>
+                        <input type="number" name="unidadesGalpon" min="1" step="1" defaultValue={1} className="input w-16 py-1 text-xs" />
+                        <span className="text-xs text-tierra-500">huevos</span>
+                        <button type="submit" className="chip-neutral">Vincular a galpón</button>
+                      </form>
+                    )}
                     <ConfirmButton
                       action={toggleProductActivo.bind(null, s.id, !s.activo)}
                       confirmMessage={s.activo ? "¿Desactivar este producto?" : "¿Reactivar este producto?"}
