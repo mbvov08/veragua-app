@@ -50,6 +50,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       ]
     : [
         { href: "/", label: "Inicio" },
+        ...(puedeVerFinanzas ? [{ href: "/finanzas", label: "Finanzas" }] : []),
+        ...(puedeVerFinanzas ? [{ href: "/inventario", label: "Inventario" }] : []),
         { href: "/personal", label: "Personal" },
         ...(isAdmin ? [{ href: "/nomina", label: "Nómina" }] : []),
         { href: "/pedidos", label: "Pedidos" },
@@ -59,8 +61,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         { href: "/compras", label: "Compras" },
         { href: "/calendario", label: "Calendario" },
         { href: "/recordatorios", label: "Recordatorios" },
-        ...(puedeVerFinanzas ? [{ href: "/finanzas", label: "Finanzas" }] : []),
-        ...(puedeVerFinanzas ? [{ href: "/inventario", label: "Inventario" }] : []),
         ...(isAdmin ? [{ href: "/usuarios", label: "Usuarios" }] : []),
       ];
 
