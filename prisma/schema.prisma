@@ -620,7 +620,6 @@ model FinProduct {
   descripcion       String?
   precio            Float
   imagenUrl         String?
-  visibleEnCatalogo Boolean            @default(true)
   activo            Boolean            @default(true)
   creadoPorId       String
   creadoPor         User               @relation("FinProductCreadoPor", fields: [creadoPorId], references: [id])

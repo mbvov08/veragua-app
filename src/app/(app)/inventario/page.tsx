@@ -37,7 +37,7 @@ export default async function InventarioResumenPage({
               <th className="py-2 pr-2">Categoría</th>
               <th className="py-2 pr-2">Precio</th>
               <th className="py-2 pr-2">Stock</th>
-              <th className="py-2 pr-2">Catálogo</th>
+              <th className="py-2 pr-2">Estado</th>
             </tr>
           </thead>
           <tbody>
@@ -50,12 +50,10 @@ export default async function InventarioResumenPage({
                   {s.stock}
                 </td>
                 <td className="py-2 pr-2 text-xs">
-                  {!s.activo ? (
-                    <span className="badge bg-tierra-100 text-tierra-600">Inactivo</span>
-                  ) : s.visibleEnCatalogo ? (
-                    <span className="badge bg-verde-100 text-verde-700">Visible</span>
+                  {s.activo ? (
+                    <span className="badge bg-verde-100 text-verde-700">Activo</span>
                   ) : (
-                    <span className="badge bg-tierra-100 text-tierra-600">Oculto</span>
+                    <span className="badge bg-tierra-100 text-tierra-600">Inactivo</span>
                   )}
                 </td>
               </tr>

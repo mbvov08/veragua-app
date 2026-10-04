@@ -38,7 +38,6 @@ export async function createProduct(formData: FormData) {
   const nombre = String(formData.get("nombre") ?? "").trim();
   const descripcion = String(formData.get("descripcion") ?? "").trim() || null;
   const precio = Number(formData.get("precio"));
-  const visibleEnCatalogo = formData.get("visibleEnCatalogo") === "on";
   const foto = formData.get("foto");
 
   if (!categoriaId) throw new Error("Selecciona una categoría.");
@@ -61,7 +60,6 @@ export async function createProduct(formData: FormData) {
       descripcion,
       precio,
       imagenUrl,
-      visibleEnCatalogo,
       creadoPorId: session.user.id,
     },
   });
@@ -76,14 +74,13 @@ export async function updateProduct(productId: string, formData: FormData) {
   const nombre = String(formData.get("nombre") ?? "").trim();
   const descripcion = String(formData.get("descripcion") ?? "").trim() || null;
   const precio = Number(formData.get("precio"));
-  const visibleEnCatalogo = formData.get("visibleEnCatalogo") === "on";
   const foto = formData.get("foto");
 
   if (!categoriaId) throw new Error("Selecciona una categoría.");
   if (!nombre) throw new Error("El nombre del producto es obligatorio.");
   if (!(precio >= 0)) throw new Error("El precio debe ser mayor o igual a cero.");
 
-  const data: Record<string, unknown> = { categoriaId, nombre, descripcion, precio, visibleEnCatalogo };
+  const data: Record<string, unknown> = { categoriaId, nombre, descripcion, precio };
 
   if (foto instanceof File && foto.size > 0) {
     const producto = await prisma.finProduct.findUniqueOrThrow({ where: { id: productId } });

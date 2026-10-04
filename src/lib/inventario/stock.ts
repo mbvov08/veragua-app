@@ -7,7 +7,6 @@ export type ProductStock = {
   categoriaNombre: string;
   precio: number;
   imagenUrl: string | null;
-  visibleEnCatalogo: boolean;
   activo: boolean;
   stock: number;
 };
@@ -52,7 +51,6 @@ export async function computeProductStocks(company: Company): Promise<ProductSto
       categoriaNombre: p.categoria.nombre,
       precio: p.precio,
       imagenUrl: p.imagenUrl,
-      visibleEnCatalogo: p.visibleEnCatalogo,
       activo: p.activo,
       stock: comprado - vendido + ajuste,
     };

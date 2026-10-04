@@ -68,10 +68,6 @@ export default async function ProductosPage({
               <label className="label">Descripción (opcional)</label>
               <textarea name="descripcion" rows={2} className="input" />
             </div>
-            <div className="flex items-center gap-2 sm:col-span-2">
-              <input type="checkbox" name="visibleEnCatalogo" id="visibleEnCatalogo" defaultChecked className="h-4 w-4" />
-              <label htmlFor="visibleEnCatalogo" className="text-sm text-tierra-700">Visible en el catálogo</label>
-            </div>
             <div className="sm:col-span-2">
               <button type="submit" className="btn-primary">Guardar producto</button>
             </div>
