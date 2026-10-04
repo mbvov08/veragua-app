@@ -78,6 +78,13 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, Helvetica, sans-serif;
 }
 
+/* Los checkboxes/radios nativos traen borde y relleno negros por defecto en la mayoría
+   de navegadores; esto los alinea con la paleta de la app en vez de verse ajenos. */
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: var(--color-verde-600);
+}
+
 @layer components {
   .btn-primary {
     @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none bg-verde-600 text-white hover:bg-verde-700;
@@ -95,7 +102,7 @@ body {
     @apply rounded-xl border border-verde-100 bg-white p-4 shadow-sm;
   }
   .input {
-    @apply w-full rounded-lg border border-tierra-200 bg-white px-3 py-2 text-sm outline-none focus:border-verde-400 focus:ring-2 focus:ring-verde-100;
+    @apply w-full rounded-lg border border-verde-100 bg-verde-50/40 px-3 py-2 text-sm outline-none focus:border-verde-300 focus:bg-white focus:ring-2 focus:ring-verde-100;
   }
   .label {
     @apply mb-1 block text-xs font-medium text-tierra-700;
