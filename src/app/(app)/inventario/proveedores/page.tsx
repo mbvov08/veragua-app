@@ -2,6 +2,7 @@ import InventarioCompanyPicker from "@/components/inventario/CompanyPicker";
 import ItemsPicker, { type Item } from "@/components/inventario/SaleItemsPicker";
 import SubmitButton from "@/components/SubmitButton";
 import ConfirmButton from "@/components/ConfirmButton";
+import { Icon } from "@/components/icons";
 import { resolveCompanyParam, COMPANY_LABEL } from "@/lib/finanzas/queries";
 import { formatCOP } from "@/lib/finanzas/format";
 import { formatDateOnly, formatDateShortEs, todayColombia } from "@/lib/date";
@@ -34,9 +35,12 @@ export default async function ProveedoresPage({
   ]);
 
   const saldoPorProveedor = new Map<string, number>();
+  const facturasPorProveedor = new Map<string, number>();
   for (const c of cuentas) {
     saldoPorProveedor.set(c.proveedorId, (saldoPorProveedor.get(c.proveedorId) ?? 0) + c.saldo);
+    facturasPorProveedor.set(c.proveedorId, (facturasPorProveedor.get(c.proveedorId) ?? 0) + 1);
   }
+  const totalSaldoProveedores = [...saldoPorProveedor.values()].reduce((s, v) => s + v, 0);
 
   let initialItems: Item[] = [];
   const esPedidoSugerido = Boolean(params.items);
@@ -141,44 +145,63 @@ export default async function ProveedoresPage({
       </details>
 
       <div className="card">
-        <h2 className="mb-3 text-sm font-semibold text-verde-800">Cuentas por Pagar — saldo pendiente</h2>
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-verde-800">Cuentas por Pagar — saldo pendiente</h2>
+          {totalSaldoProveedores > 0 && (
+            <span className="text-sm font-semibold text-red-600">{formatCOP(totalSaldoProveedores)}</span>
+          )}
+        </div>
         {proveedores.filter((p) => (saldoPorProveedor.get(p.id) ?? 0) > 0).length === 0 ? (
           <p className="text-sm text-tierra-500">No le debes a ningún proveedor ahora mismo.</p>
         ) : (
-          <div className="space-y-3">
+          <div className="divide-y divide-verde-50">
             {proveedores
               .filter((p) => (saldoPorProveedor.get(p.id) ?? 0) > 0)
-              .map((p) => (
-                <div key={p.id} className="rounded-lg border border-verde-100 p-3">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="text-sm font-medium text-tierra-800">{p.nombre}</span>
-                    <span className="text-sm font-semibold text-red-600">{formatCOP(saldoPorProveedor.get(p.id) ?? 0)}</span>
-                  </div>
-                  <form action={registrarPagoProveedor} className="mt-2 flex flex-wrap items-end gap-2">
-                    <input type="hidden" name="proveedorId" value={p.id} />
-                    <input type="hidden" name="company" value={company} />
-                    <div>
-                      <label className="label">Monto pagado</label>
-                      <input type="number" name="monto" min="0" step="1" required className="input w-32" />
+              .map((p) => {
+                const facturas = facturasPorProveedor.get(p.id) ?? 0;
+                return (
+                  <details key={p.id} className="group py-1">
+                    <summary className="flex cursor-pointer list-none items-center gap-3 rounded-lg px-1 py-2 hover:bg-verde-50/60">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-dorado-100 text-sm font-semibold text-tierra-800">
+                        {p.nombre.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium text-tierra-800">{p.nombre}</p>
+                        <p className="text-xs text-tierra-500">{facturas} factura{facturas === 1 ? "" : "s"} pendiente{facturas === 1 ? "" : "s"}</p>
+                      </div>
+                      <span className="text-sm font-semibold text-red-600">{formatCOP(saldoPorProveedor.get(p.id) ?? 0)}</span>
+                      <Icon name="chevron-right" className="h-4 w-4 shrink-0 text-tierra-400 transition-transform group-open:rotate-90" />
+                    </summary>
+
+                    <div className="mt-2 rounded-lg border border-verde-100 bg-verde-50/40 p-3">
+                      <form action={registrarPagoProveedor} className="flex flex-wrap items-end gap-2">
+                        <input type="hidden" name="proveedorId" value={p.id} />
+                        <input type="hidden" name="company" value={company} />
+                        <div>
+                          <label className="label">Monto pagado</label>
+                          <input type="number" name="monto" min="0" step="1" required className="input w-32" />
+                        </div>
+                        <div>
+                          <label className="label">Fecha</label>
+                          <input type="date" name="fecha" required defaultValue={formatDateOnly(todayColombia())} className="input" />
+                        </div>
+                        <div>
+                          <label className="label">Método (opcional)</label>
+                          <input name="metodoPago" className="input w-32" />
+                        </div>
+                        <SubmitButton className="btn-secondary">Registrar pago</SubmitButton>
+                      </form>
+                      <a
+                        href={`/api/inventario/export/historial/proveedor/${p.id}`}
+                        className="chip-edit mt-3 inline-flex items-center gap-1"
+                      >
+                        <Icon name="download" className="h-3.5 w-3.5" />
+                        Descargar historial
+                      </a>
                     </div>
-                    <div>
-                      <label className="label">Fecha</label>
-                      <input type="date" name="fecha" required defaultValue={formatDateOnly(todayColombia())} className="input" />
-                    </div>
-                    <div>
-                      <label className="label">Método (opcional)</label>
-                      <input name="metodoPago" className="input w-32" />
-                    </div>
-                    <SubmitButton className="btn-secondary">Registrar pago</SubmitButton>
-                  </form>
-                  <a
-                    href={`/api/inventario/export/historial/proveedor/${p.id}`}
-                    className="chip-edit mt-2"
-                  >
-                    Descargar historial
-                  </a>
-                </div>
-              ))}
+                  </details>
+                );
+              })}
           </div>
         )}
       </div>

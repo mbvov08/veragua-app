@@ -39,6 +39,7 @@ yarn-error.log*
 
 # local tooling (machine-specific paths)
 .claude/
+.scratch/
 
 # typescript
 *.tsbuildinfo

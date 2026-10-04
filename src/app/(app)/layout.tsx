@@ -3,7 +3,8 @@ import { auth, signOut } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { ensureAllGenerated } from "@/lib/recurring";
 import { todayColombia } from "@/lib/date";
-import NavTabs from "@/components/NavTabs";
+import Sidebar, { NavSection } from "@/components/Sidebar";
+import { Icon } from "@/components/icons";
 import NotificationBell, { ReminderItem } from "@/components/NotificationBell";
 import PushNotificationOptIn from "@/components/PushNotificationOptIn";
 
@@ -41,53 +42,79 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     GALPON: "Encargado(a) de galpón",
   };
 
-  const tabs = isGalpon
+  const sections: NavSection[] = isGalpon
     ? [
-        { href: "/", label: "Inicio" },
-        { href: "/produccion", label: "Postura/Huevos" },
-        { href: "/tareas", label: "Tareas" },
-        { href: "/compras", label: "Compras" },
+        {
+          items: [
+            { href: "/", label: "Inicio", icon: "home" },
+            { href: "/produccion", label: "Postura/Huevos", icon: "produccion" },
+            { href: "/tareas", label: "Tareas", icon: "tareas" },
+            { href: "/compras", label: "Compras", icon: "compras" },
+          ],
+        },
       ]
     : [
-        { href: "/", label: "Inicio" },
-        ...(puedeVerFinanzas ? [{ href: "/finanzas", label: "Finanzas" }] : []),
-        ...(puedeVerFinanzas ? [{ href: "/inventario", label: "Inventario" }] : []),
-        { href: "/personal", label: "Personal" },
-        ...(isAdmin ? [{ href: "/nomina", label: "Nómina" }] : []),
-        { href: "/pedidos", label: "Pedidos" },
-        { href: "/produccion", label: "Postura/Huevos" },
-        { href: "/melcoch", label: "Melcoch" },
-        { href: "/tareas", label: "Tareas" },
-        { href: "/compras", label: "Compras" },
-        { href: "/calendario", label: "Calendario" },
-        { href: "/recordatorios", label: "Recordatorios" },
-        ...(isAdmin ? [{ href: "/usuarios", label: "Usuarios" }] : []),
+        { items: [{ href: "/", label: "Inicio", icon: "home" }] },
+        {
+          label: "Gestiona tu negocio",
+          items: [
+            ...(puedeVerFinanzas ? [{ href: "/finanzas", label: "Finanzas", icon: "finanzas" as const }] : []),
+            ...(puedeVerFinanzas ? [{ href: "/inventario", label: "Inventario", icon: "inventario" as const }] : []),
+            { href: "/pedidos", label: "Pedidos", icon: "pedidos" as const },
+            { href: "/produccion", label: "Postura/Huevos", icon: "produccion" as const },
+            { href: "/melcoch", label: "Melcoch", icon: "melcoch" as const },
+            { href: "/compras", label: "Compras", icon: "compras" as const },
+          ],
+        },
+        {
+          label: "Equipo",
+          items: [
+            { href: "/personal", label: "Personal", icon: "personal" },
+            ...(isAdmin ? [{ href: "/nomina", label: "Nómina", icon: "nomina" as const }] : []),
+            { href: "/tareas", label: "Tareas", icon: "tareas" },
+            { href: "/calendario", label: "Calendario", icon: "calendario" },
+            { href: "/recordatorios", label: "Recordatorios", icon: "recordatorios" },
+          ],
+        },
+        ...(isAdmin
+          ? [{ label: "Administración", items: [{ href: "/usuarios", label: "Usuarios", icon: "usuarios" as const }] }]
+          : []),
       ];
 
+  const logout = (
+    <form action={logoutAction}>
+      <button
+        type="submit"
+        className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
+      >
+        <Icon name="logout" className="h-5 w-5 shrink-0" />
+        Salir
+      </button>
+    </form>
+  );
+
+  const topBarRight = (
+    <>
+      <PushNotificationOptIn />
+      <NotificationBell items={reminderItems} />
+    </>
+  );
+
   return (
-    <div className="flex min-h-screen flex-col">
-      <header className="flex items-center justify-between border-b border-verde-100 bg-white px-4 py-3">
-        <div className="flex items-center gap-2">
-          <span className="font-serif text-lg text-verde-900" style={{ letterSpacing: "0.05em" }}>
-            veragua
-          </span>
+    <div className="flex min-h-screen">
+      <Sidebar
+        sections={sections}
+        userName={session.user.name ?? session.user.username}
+        roleLabel={ROL_LABEL[session.user.role] ?? session.user.role}
+        logout={logout}
+        topBarRight={topBarRight}
+      />
+      <div className="flex min-h-screen flex-1 flex-col">
+        <div className="hidden items-center justify-end gap-3 border-b border-verde-100 bg-white px-4 py-2 md:flex">
+          {topBarRight}
         </div>
-        <div className="flex items-center gap-3">
-          <PushNotificationOptIn />
-          <NotificationBell items={reminderItems} />
-          <div className="hidden text-right sm:block">
-            <p className="text-sm font-medium text-tierra-800">{session.user.name}</p>
-            <p className="text-xs text-tierra-500">{ROL_LABEL[session.user.role] ?? session.user.role}</p>
-          </div>
-          <form action={logoutAction}>
-            <button type="submit" className="btn-outline text-xs">
-              Salir
-            </button>
-          </form>
-        </div>
-      </header>
-      <NavTabs tabs={tabs} />
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6">{children}</main>
+        <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6">{children}</main>
+      </div>
     </div>
   );
 }
