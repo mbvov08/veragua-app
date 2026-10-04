@@ -130,7 +130,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     </form>
   );
 
-  const topBarRight = (
+  const desktopTopBarRight = (
     <>
       <PushNotificationOptIn />
       <NotificationBell items={reminderItems} />
@@ -138,21 +138,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   );
 
   return (
-    <div className="flex min-h-screen">
-      <Sidebar
-        sections={sections}
-        userName={session.user.name ?? session.user.username}
-        roleLabel={ROL_LABEL[session.user.role] ?? session.user.role}
-        logout={logout}
-        topBarRight={topBarRight}
-        mobileTopBarRight={<NotificationBell items={reminderItems} />}
-      />
-      <div className="flex min-h-screen flex-1 flex-col">
-        <div className="hidden items-center justify-end gap-3 border-b border-verde-100 bg-white px-4 py-2 md:flex">
-          {topBarRight}
-        </div>
-        <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6">{children}</main>
-      </div>
-    </div>
+    <Sidebar
+      sections={sections}
+      userName={session.user.name ?? session.user.username}
+      roleLabel={ROL_LABEL[session.user.role] ?? session.user.role}
+      logout={logout}
+      desktopTopBarRight={desktopTopBarRight}
+      mobileTopBarRight={<NotificationBell items={reminderItems} />}
+    >
+      {children}
+    </Sidebar>
   );
 }

@@ -14,15 +14,17 @@ export default function Sidebar({
   userName,
   roleLabel,
   logout,
-  topBarRight,
+  desktopTopBarRight,
   mobileTopBarRight,
+  children,
 }: {
   sections: NavSection[];
   userName: string;
   roleLabel: string;
   logout: React.ReactNode;
-  topBarRight: React.ReactNode;
+  desktopTopBarRight: React.ReactNode;
   mobileTopBarRight: React.ReactNode;
+  children: React.ReactNode;
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
@@ -117,21 +119,7 @@ export default function Sidebar({
   );
 
   return (
-    <>
-      <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2 border-b border-verde-100 bg-white px-2 py-2 md:hidden">
-        <button
-          onClick={() => setOpen(true)}
-          className="shrink-0 rounded-md p-2 text-tierra-600 hover:bg-verde-50"
-          aria-label="Abrir menú"
-        >
-          <Icon name="menu" className="h-6 w-6" />
-        </button>
-        <span className="truncate text-center font-serif text-lg text-verde-900" style={{ letterSpacing: "0.05em" }}>
-          veragua
-        </span>
-        <div className="flex shrink-0 items-center justify-end gap-1">{mobileTopBarRight}</div>
-      </div>
-
+    <div className="flex min-h-screen">
       <aside className="hidden md:flex md:w-64 md:shrink-0 md:flex-col md:border-r md:border-verde-100 md:bg-white">
         {navContent}
       </aside>
@@ -153,6 +141,30 @@ export default function Sidebar({
           </aside>
         </div>
       )}
-    </>
+
+      <div className="flex min-h-screen flex-1 flex-col">
+        <div className="flex items-center justify-between gap-2 border-b border-verde-100 bg-white px-2 py-2 md:hidden">
+          <div className="flex min-w-0 items-center gap-1">
+            <button
+              onClick={() => setOpen(true)}
+              className="shrink-0 rounded-md p-2 text-tierra-600 hover:bg-verde-50"
+              aria-label="Abrir menú"
+            >
+              <Icon name="menu" className="h-6 w-6" />
+            </button>
+            <span className="truncate font-serif text-lg text-verde-900" style={{ letterSpacing: "0.05em" }}>
+              veragua
+            </span>
+          </div>
+          <div className="flex shrink-0 items-center gap-1">{mobileTopBarRight}</div>
+        </div>
+
+        <div className="hidden items-center justify-end gap-3 border-b border-verde-100 bg-white px-4 py-2 md:flex">
+          {desktopTopBarRight}
+        </div>
+
+        <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6">{children}</main>
+      </div>
+    </div>
   );
 }
