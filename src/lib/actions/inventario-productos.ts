@@ -100,6 +100,13 @@ export async function toggleProductActivo(productId: string, activo: boolean) {
   revalidateInventario();
 }
 
+export async function toggleComparaConGalpon(productId: string, valor: boolean) {
+  await requireFinanzas();
+  await prisma.finProduct.update({ where: { id: productId }, data: { comparaConGalpon: valor } });
+  revalidateInventario();
+  revalidatePath("/inventario/reabastecimiento");
+}
+
 export async function registrarAjusteInventario(formData: FormData) {
   const session = await requireFinanzas();
 

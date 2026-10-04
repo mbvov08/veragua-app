@@ -621,6 +621,9 @@ model FinProduct {
   precio            Float
   imagenUrl         String?
   activo            Boolean            @default(true)
+  // Se produce internamente (ej. huevos rojos del galpón): compara la producción
+  // registrada en RegistroGalpon contra la demanda en vez de sugerir compras.
+  comparaConGalpon  Boolean            @default(false)
   creadoPorId       String
   creadoPor         User               @relation("FinProductCreadoPor", fields: [creadoPorId], references: [id])
   createdAt         DateTime           @default(now())

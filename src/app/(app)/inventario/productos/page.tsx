@@ -4,7 +4,7 @@ import { resolveCompanyParam, COMPANY_LABEL } from "@/lib/finanzas/queries";
 import { computeProductStocks } from "@/lib/inventario/stock";
 import { formatCOP } from "@/lib/finanzas/format";
 import { prisma } from "@/lib/prisma";
-import { createProduct, toggleProductActivo, registrarAjusteInventario } from "@/lib/actions/inventario-productos";
+import { createProduct, toggleProductActivo, toggleComparaConGalpon, registrarAjusteInventario } from "@/lib/actions/inventario-productos";
 import { formatDateOnly, todayColombia } from "@/lib/date";
 import ConfirmButton from "@/components/ConfirmButton";
 
@@ -129,13 +129,26 @@ export default async function ProductosPage({
                 <td className="py-2 pr-2">{formatCOP(s.precio)}</td>
                 <td className="py-2 pr-2">{s.stock}</td>
                 <td className="py-2 pr-2 text-right">
-                  <ConfirmButton
-                    action={toggleProductActivo.bind(null, s.id, !s.activo)}
-                    confirmMessage={s.activo ? "¿Desactivar este producto?" : "¿Reactivar este producto?"}
-                    className="chip-neutral"
-                  >
-                    {s.activo ? "Desactivar" : "Reactivar"}
-                  </ConfirmButton>
+                  <div className="flex flex-wrap items-center justify-end gap-2">
+                    <ConfirmButton
+                      action={toggleComparaConGalpon.bind(null, s.id, !s.comparaConGalpon)}
+                      confirmMessage={
+                        s.comparaConGalpon
+                          ? "¿Dejar de comparar este producto con la producción del galpón?"
+                          : "¿Comparar este producto con la producción registrada en Postura/Huevos? Úsalo solo para lo que se produce internamente (ej. huevos rojos)."
+                      }
+                      className={s.comparaConGalpon ? "chip-edit" : "chip-neutral"}
+                    >
+                      {s.comparaConGalpon ? "Vinculado al galpón" : "Vincular a galpón"}
+                    </ConfirmButton>
+                    <ConfirmButton
+                      action={toggleProductActivo.bind(null, s.id, !s.activo)}
+                      confirmMessage={s.activo ? "¿Desactivar este producto?" : "¿Reactivar este producto?"}
+                      className="chip-neutral"
+                    >
+                      {s.activo ? "Desactivar" : "Reactivar"}
+                    </ConfirmButton>
+                  </div>
                 </td>
               </tr>
             ))}

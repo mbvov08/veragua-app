@@ -183,3 +183,65 @@ export async function getForecastHistory(company: Company, take = 30) {
     take,
   });
 }
+
+export type GalponBalance = {
+  productoId: string;
+  productoNombre: string;
+  produccionDiariaProm: number;
+  diasConRegistro: number;
+  demandaDiariaProm: number;
+  balance: number; // producción − demanda; negativo = falta producción
+  deficit: boolean;
+};
+
+/**
+ * Promedio diario de huevos netos (producidos − rotos) registrados en el galpón.
+ * A diferencia de la demanda, NO se rellenan ceros en días sin registro: una gallina
+ * pone todos los días, así que un día sin registro casi siempre es un olvido de
+ * registrarlo, no una producción real de cero.
+ */
+async function computeProduccionGalponDiaria(ventanaDias = 90): Promise<{ promedio: number; diasConRegistro: number }> {
+  const hoy = todayColombia();
+  const inicio = addDays(hoy, -(ventanaDias - 1));
+
+  const registros = await prisma.registroGalpon.findMany({
+    where: { fecha: { gte: inicio, lte: hoy } },
+    select: { fecha: true, huevosProducidos: true, huevosRotos: true },
+  });
+
+  const porDia = new Map<string, number>();
+  for (const r of registros) {
+    const key = formatDateOnly(r.fecha);
+    const neto = r.huevosProducidos - r.huevosRotos;
+    porDia.set(key, (porDia.get(key) ?? 0) + neto);
+  }
+
+  const dias = [...porDia.values()];
+  const promedio = dias.length > 0 ? dias.reduce((s, v) => s + v, 0) / dias.length : 0;
+  return { promedio, diasConRegistro: dias.length };
+}
+
+/** Productos marcados como "se producen en el galpón", comparando producción vs. demanda. */
+export async function computeGalponBalances(company: Company): Promise<GalponBalance[]> {
+  const productos = await prisma.finProduct.findMany({
+    where: { company, comparaConGalpon: true, activo: true },
+  });
+  if (productos.length === 0) return [];
+
+  const { promedio: produccionDiariaProm, diasConRegistro } = await computeProduccionGalponDiaria();
+
+  const balances: GalponBalance[] = [];
+  for (const producto of productos) {
+    const stats = await computeDemandStats(producto.id);
+    balances.push({
+      productoId: producto.id,
+      productoNombre: producto.nombre,
+      produccionDiariaProm,
+      diasConRegistro,
+      demandaDiariaProm: stats.demandaDiariaProm,
+      balance: produccionDiariaProm - stats.demandaDiariaProm,
+      deficit: produccionDiariaProm < stats.demandaDiariaProm,
+    });
+  }
+  return balances;
+}

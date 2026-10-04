@@ -8,6 +8,7 @@ import { prisma } from "@/lib/prisma";
 import {
   computeDemandStats,
   computeSuggestionsForProduct,
+  computeGalponBalances,
   registrarForecastSiNecesario,
   rellenarDemandaRealPendiente,
   getForecastHistory,
@@ -42,6 +43,8 @@ export default async function ReabastecimientoPage({
     }),
     getForecastHistory(company, 20),
   ]);
+
+  const galponBalances = await computeGalponBalances(company);
 
   const relacionesActivas = relaciones.filter((r) => r.activo);
   const productosConRelacion = new Map<string, (typeof productos)[number]>();
@@ -175,6 +178,36 @@ export default async function ReabastecimientoPage({
                 </Link>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {galponBalances.length > 0 && (
+        <div className="card">
+          <h2 className="mb-3 text-sm font-semibold text-verde-800">Producción propia (galpón) vs. demanda</h2>
+          <div className="space-y-3">
+            {galponBalances.map((b) => (
+              <div key={b.productoId} className="rounded-lg border border-verde-100 p-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-sm font-medium text-tierra-800">{b.productoNombre}</span>
+                  {b.diasConRegistro === 0 ? (
+                    <span className="text-xs text-tierra-500">Sin registros de producción todavía en Postura/Huevos.</span>
+                  ) : b.deficit ? (
+                    <span className="badge bg-red-100 text-red-700">
+                      Faltan {Math.abs(b.balance).toFixed(1)}/día — considera comprar a tu proveedor de respaldo
+                    </span>
+                  ) : (
+                    <span className="badge bg-verde-100 text-verde-700">Sobran {b.balance.toFixed(1)}/día</span>
+                  )}
+                </div>
+                {b.diasConRegistro > 0 && (
+                  <p className="mt-1 text-xs text-tierra-500">
+                    Producción: {b.produccionDiariaProm.toFixed(1)}/día ({b.diasConRegistro} días con registro) ·
+                    Demanda: {b.demandaDiariaProm.toFixed(1)}/día
+                  </p>
+                )}
+              </div>
+            ))}
           </div>
         </div>
       )}

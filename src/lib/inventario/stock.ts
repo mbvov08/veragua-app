@@ -8,6 +8,7 @@ export type ProductStock = {
   precio: number;
   imagenUrl: string | null;
   activo: boolean;
+  comparaConGalpon: boolean;
   stock: number;
 };
 
@@ -52,6 +53,7 @@ export async function computeProductStocks(company: Company): Promise<ProductSto
       precio: p.precio,
       imagenUrl: p.imagenUrl,
       activo: p.activo,
+      comparaConGalpon: p.comparaConGalpon,
       stock: comprado - vendido + ajuste,
     };
   });
