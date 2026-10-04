@@ -47,7 +47,7 @@ export default async function CanalesAjustesPage({
                 </span>
               </span>
               <form action={toggleChannelActive.bind(null, ch.id, !ch.activo)}>
-                <button type="submit" className="text-xs text-verde-700 hover:underline">
+                <button type="submit" className="chip-edit">
                   {ch.activo ? "Desactivar" : "Activar"}
                 </button>
               </form>

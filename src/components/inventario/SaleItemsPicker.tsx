@@ -84,7 +84,7 @@ export default function ItemsPicker({
                     {formatCOP((Number(it.cantidad) || 0) * (Number(it.precio) || 0))}
                   </td>
                   <td className="py-1">
-                    <button type="button" onClick={() => quitar(it.productoId)} className="text-xs text-red-500 hover:underline">
+                    <button type="button" onClick={() => quitar(it.productoId)} className="chip-danger">
                       Quitar
                     </button>
                   </td>

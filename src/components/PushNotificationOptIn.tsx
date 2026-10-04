@@ -52,7 +52,7 @@ export default function PushNotificationOptIn() {
     <button
       onClick={activar}
       disabled={status === "loading"}
-      className="text-xs text-verde-700 hover:underline"
+      className="chip-edit"
       title="Recibe notificaciones cuando te asignen una tarea"
     >
       {status === "denied" ? "Notificaciones bloqueadas" : status === "loading" ? "Activando..." : "Activar notificaciones"}

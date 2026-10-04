@@ -43,7 +43,7 @@ function ListaCategoria({
                 <ConfirmButton
                   action={eliminarItemCompra.bind(null, i.id)}
                   confirmMessage="¿Eliminar este ítem?"
-                  className="text-xs text-red-600 hover:underline"
+                  className="chip-danger"
                 >
                   Eliminar
                 </ConfirmButton>

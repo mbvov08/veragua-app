@@ -67,7 +67,7 @@ export default function OrderItemsPicker({
                 <button
                   type="button"
                   onClick={() => quitar(it.productoId)}
-                  className="text-xs text-red-500 hover:underline"
+                  className="chip-danger"
                 >
                   Quitar
                 </button>
@@ -83,7 +83,7 @@ export default function OrderItemsPicker({
           <button
             type="button"
             onClick={() => setEditando((v) => !v)}
-            className="text-xs text-tierra-600 hover:underline"
+            className="chip-neutral"
           >
             {editando ? "Listo" : "Editar lista"}
           </button>
@@ -115,7 +115,7 @@ export default function OrderItemsPicker({
                             router.refresh();
                           })
                         }
-                        className="text-xs text-red-500 hover:underline"
+                        className="chip-danger"
                         aria-label={`Eliminar ${p.nombre}`}
                       >
                         ✕

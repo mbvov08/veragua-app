@@ -34,7 +34,7 @@ function EditTaskDetails({
 }) {
   return (
     <details className="mt-2">
-      <summary className="cursor-pointer text-xs text-verde-700 hover:underline">Editar</summary>
+      <summary className="chip-edit cursor-pointer">Editar</summary>
       <form
         action={updateTask.bind(null, task.id)}
         className="mt-2 grid gap-2 rounded-lg border border-verde-100 bg-verde-50/30 p-3 sm:grid-cols-2"
@@ -256,7 +256,7 @@ export default async function TareasPage({
                           ? "¿Eliminar este proyecto y todas sus fases?"
                           : "¿Eliminar esta tarea?"
                       }
-                      className="text-xs text-red-600 hover:underline"
+                      className="chip-danger"
                     >
                       Eliminar
                     </ConfirmButton>

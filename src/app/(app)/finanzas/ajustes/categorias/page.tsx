@@ -82,7 +82,7 @@ export default async function CategoriasAjustesPage({
                   <ConfirmButton
                     action={deleteCategory.bind(null, cat.id)}
                     confirmMessage="¿Eliminar esta categoría?"
-                    className="text-xs text-red-600 hover:underline"
+                    className="chip-danger"
                   >
                     Eliminar
                   </ConfirmButton>

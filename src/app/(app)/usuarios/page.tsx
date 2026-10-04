@@ -75,7 +75,7 @@ export default async function UsuariosPage() {
                     minLength={6}
                     className="input w-40 py-1 text-xs"
                   />
-                  <button type="submit" className="text-xs text-verde-700 hover:underline">
+                  <button type="submit" className="chip-edit">
                     Cambiar clave
                   </button>
                 </form>
@@ -87,7 +87,7 @@ export default async function UsuariosPage() {
                         ? "¿Quitarle el acceso a Finanzas a esta persona?"
                         : "¿Darle acceso a Finanzas (ingresos, gastos, PyG) a esta persona?"
                     }
-                    className={`text-xs hover:underline ${u.puedeVerFinanzas ? "text-verde-700" : "text-tierra-600"}`}
+                    className={u.puedeVerFinanzas ? "chip-neutral" : "chip-edit"}
                   >
                     {u.puedeVerFinanzas ? "Quitar acceso a Finanzas" : "Dar acceso a Finanzas"}
                   </ConfirmButton>
@@ -95,7 +95,7 @@ export default async function UsuariosPage() {
                 <ConfirmButton
                   action={toggleUserActive.bind(null, u.id, !u.activo)}
                   confirmMessage={u.activo ? "¿Desactivar este usuario? No podrá iniciar sesión." : "¿Reactivar este usuario?"}
-                  className="text-xs text-tierra-600 hover:underline"
+                  className="chip-neutral"
                 >
                   {u.activo ? "Desactivar" : "Reactivar"}
                 </ConfirmButton>

@@ -50,7 +50,7 @@ export default async function CategoriasProductoPage({
                 <ConfirmButton
                   action={deleteProductCategory.bind(null, c.id)}
                   confirmMessage="¿Eliminar esta categoría?"
-                  className="text-xs text-red-500 hover:underline"
+                  className="chip-danger"
                 >
                   Eliminar
                 </ConfirmButton>

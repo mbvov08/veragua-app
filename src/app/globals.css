@@ -83,7 +83,7 @@ body {
     @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none bg-verde-600 text-white hover:bg-verde-700;
   }
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none bg-tierra-100 text-tierra-800 hover:bg-tierra-200;
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none bg-dorado-200 text-tierra-900 hover:bg-dorado-300;
   }
   .btn-outline {
     @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none border border-verde-300 text-verde-700 hover:bg-verde-50;
@@ -102,5 +102,17 @@ body {
   }
   .badge {
     @apply inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium;
+  }
+
+  /* Chips de acción pequeños: reemplazan los enlaces de texto subrayado (Editar, Eliminar,
+     Pausar, PDF...) por botones con color, para que resalten sin ocupar tanto espacio. */
+  .chip-edit {
+    @apply inline-flex items-center rounded-full border border-verde-200 bg-verde-50 px-2.5 py-1 text-xs font-medium text-verde-700 transition-colors hover:bg-verde-100 disabled:opacity-50 disabled:pointer-events-none;
+  }
+  .chip-neutral {
+    @apply inline-flex items-center rounded-full border border-dorado-200 bg-dorado-50 px-2.5 py-1 text-xs font-medium text-tierra-700 transition-colors hover:bg-dorado-100 disabled:opacity-50 disabled:pointer-events-none;
+  }
+  .chip-danger {
+    @apply inline-flex items-center rounded-full border border-red-200 bg-red-50 px-2.5 py-1 text-xs font-medium text-red-700 transition-colors hover:bg-red-100 disabled:opacity-50 disabled:pointer-events-none;
   }
 }

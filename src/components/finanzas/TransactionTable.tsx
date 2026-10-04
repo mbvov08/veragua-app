@@ -47,13 +47,13 @@ export default function TransactionTable({ transactions }: { transactions: Trans
               <td className="max-w-[220px] truncate py-2">{t.descripcion ?? "—"}</td>
               <td className="whitespace-nowrap py-2 text-right">{formatCOP(t.monto)}</td>
               <td className="whitespace-nowrap py-2 text-right">
-                <Link href={`/finanzas/${t.id}/editar`} className="mr-2 text-xs text-verde-700 hover:underline">
+                <Link href={`/finanzas/${t.id}/editar`} className="chip-edit mr-2">
                   Editar
                 </Link>
                 <button
                   disabled={isPending}
                   onClick={() => startTransition(() => voidTransaction(t.id))}
-                  className="text-xs text-red-600 hover:underline"
+                  className="chip-danger"
                 >
                   Anular
                 </button>

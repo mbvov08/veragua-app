@@ -193,7 +193,7 @@ export default async function HistorialPage({
                   <ConfirmButton
                     action={adminDeleteTimeEntry.bind(null, e.id)}
                     confirmMessage="¿Eliminar este registro de horario?"
-                    className="text-xs text-red-600 hover:underline"
+                    className="chip-danger"
                   >
                     Eliminar
                   </ConfirmButton>

@@ -300,6 +300,7 @@ export type PagoGalponBreakdown = {
   huevosBuenos: number;
   huevosRecibidosLocal: number;
   huevosVerificados: number;
+  verificadoConLocal: boolean;
   cubetas: number;
   valorCubeta: number;
   totalPagar: number;
@@ -307,13 +308,16 @@ export type PagoGalponBreakdown = {
 
 /**
  * Pago por producción del encargado del galpón: se paga por cubeta (30 huevos, configurable)
- * en buen estado, verificando que lo que él reporta como producido coincida con lo que
- * realmente entró al local — se paga sobre el menor de los dos totales del periodo.
+ * en buen estado. Por defecto se verifica que lo que él reporta como producido coincida con
+ * lo que realmente entró al local (se paga sobre el menor de los dos totales), pero esa
+ * verificación se puede omitir cuando no se registró la recepción en el local (a veces se le
+ * olvida a quien lo registra) para no castigar a Omar por un dato que no depende de él.
  */
 export async function computePagoGalpon(
   userId: string,
   periodStart: Date,
-  periodEnd: Date
+  periodEnd: Date,
+  verificarConLocal = true
 ): Promise<PagoGalponBreakdown> {
   const settings = await prisma.payrollSettings.findUnique({ where: { id: "singleton" } });
   if (!settings) throw new Error("Configura primero los ajustes de nómina.");
@@ -331,7 +335,9 @@ export async function computePagoGalpon(
   const huevosRotos = registros.reduce((sum, r) => sum + r.huevosRotos, 0);
   const huevosBuenos = huevosProducidos - huevosRotos;
   const huevosRecibidosLocal = recepciones.reduce((sum, r) => sum + r.cantidadRecibida, 0);
-  const huevosVerificados = Math.max(0, Math.min(huevosBuenos, huevosRecibidosLocal));
+  const huevosVerificados = verificarConLocal
+    ? Math.max(0, Math.min(huevosBuenos, huevosRecibidosLocal))
+    : Math.max(0, huevosBuenos);
 
   const cubetas = huevosVerificados / settings.huevosPorCubeta;
   const valorCubeta = settings.valorCubetaGalpon;
@@ -343,6 +349,7 @@ export async function computePagoGalpon(
     huevosBuenos,
     huevosRecibidosLocal,
     huevosVerificados,
+    verificadoConLocal: verificarConLocal,
     cubetas,
     valorCubeta,
     totalPagar,

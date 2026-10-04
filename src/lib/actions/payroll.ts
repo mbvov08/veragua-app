@@ -262,8 +262,9 @@ export async function generatePagoGalpon(formData: FormData) {
   const userId = String(formData.get("userId") ?? "");
   const periodStart = dateOnlyToUTC(String(formData.get("periodStart") ?? ""));
   const periodEnd = dateOnlyToUTC(String(formData.get("periodEnd") ?? ""));
+  const verificarConLocal = formData.get("verificarConLocal") === "on";
 
-  const breakdown = await computePagoGalpon(userId, periodStart, periodEnd);
+  const breakdown = await computePagoGalpon(userId, periodStart, periodEnd, verificarConLocal);
 
   await prisma.pagoGalpon.create({
     data: {

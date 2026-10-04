@@ -223,14 +223,14 @@ export default async function PedidosPage({
                       <ConfirmButton
                         action={deleteOrder.bind(null, o.id)}
                         confirmMessage="¿Eliminar este pedido?"
-                        className="text-xs text-red-600 hover:underline"
+                        className="chip-danger"
                       >
                         Eliminar
                       </ConfirmButton>
                     </div>
                   </div>
                   <details className="mt-2">
-                    <summary className="cursor-pointer text-xs text-verde-700 hover:underline">Editar</summary>
+                    <summary className="chip-edit cursor-pointer">Editar</summary>
                     <form
                       action={updateOrder.bind(null, o.id)}
                       className="mt-2 grid gap-2 rounded-lg border border-verde-100 bg-verde-50/30 p-3 sm:grid-cols-2"
@@ -308,14 +308,14 @@ export default async function PedidosPage({
                   <ConfirmButton
                     action={toggleRecurringRule.bind(null, r.id, false)}
                     confirmMessage="¿Pausar este pedido recurrente? No se generarán nuevas fechas."
-                    className="text-xs text-tierra-600 hover:underline"
+                    className="chip-neutral"
                   >
                     Pausar
                   </ConfirmButton>
                   <ConfirmButton
                     action={deleteRecurringRule.bind(null, r.id)}
                     confirmMessage="¿Eliminar este pedido recurrente y sus fechas futuras pendientes?"
-                    className="text-xs text-red-600 hover:underline"
+                    className="chip-danger"
                   >
                     Eliminar
                   </ConfirmButton>

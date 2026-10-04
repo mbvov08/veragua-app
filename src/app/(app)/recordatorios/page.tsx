@@ -93,14 +93,14 @@ export default async function RecordatoriosPage() {
                 <ConfirmButton
                   action={toggleReminderRule.bind(null, r.id, !r.activo)}
                   confirmMessage={r.activo ? "¿Pausar este recordatorio?" : "¿Reactivar este recordatorio?"}
-                  className="text-xs text-tierra-600 hover:underline"
+                  className="chip-neutral"
                 >
                   {r.activo ? "Pausar" : "Reactivar"}
                 </ConfirmButton>
                 <ConfirmButton
                   action={deleteReminderRule.bind(null, r.id)}
                   confirmMessage="¿Eliminar este recordatorio?"
-                  className="text-xs text-red-600 hover:underline"
+                  className="chip-danger"
                 >
                   Eliminar
                 </ConfirmButton>
@@ -129,14 +129,14 @@ export default async function RecordatoriosPage() {
                 <ConfirmButton
                   action={toggleReminderRule.bind(null, e.id, !e.activo)}
                   confirmMessage={e.activo ? "¿Pausar este evento?" : "¿Reactivar este evento?"}
-                  className="text-xs text-tierra-600 hover:underline"
+                  className="chip-neutral"
                 >
                   {e.activo ? "Pausar" : "Reactivar"}
                 </ConfirmButton>
                 <ConfirmButton
                   action={deleteReminderRule.bind(null, e.id)}
                   confirmMessage="¿Eliminar este evento?"
-                  className="text-xs text-red-600 hover:underline"
+                  className="chip-danger"
                 >
                   Eliminar
                 </ConfirmButton>

@@ -162,13 +162,13 @@ export default async function NominaPage() {
                 </td>
                 <td className="py-2 pr-2 font-semibold text-verde-700">{COP.format(s.netoPagar)}</td>
                 <td className="py-2 pr-2 whitespace-nowrap">
-                  <a href={`/api/nomina/pdf/${s.id}`} className="mr-3 text-xs text-verde-700 hover:underline">
+                  <a href={`/api/nomina/pdf/${s.id}`} className="chip-edit mr-3">
                     PDF
                   </a>
                   <ConfirmButton
                     action={deletePayrollSlip.bind(null, s.id)}
                     confirmMessage="¿Eliminar esta nómina generada?"
-                    className="text-xs text-red-600 hover:underline"
+                    className="chip-danger"
                   >
                     Eliminar
                   </ConfirmButton>
@@ -328,6 +328,13 @@ export default async function NominaPage() {
               <div className="flex items-end">
                 <button type="submit" className="btn-primary w-full">Calcular pago</button>
               </div>
+              <div className="sm:col-span-4 flex items-center gap-2">
+                <input type="checkbox" name="verificarConLocal" id="verificarConLocal" defaultChecked className="h-4 w-4" />
+                <label htmlFor="verificarConLocal" className="text-xs text-tierra-600">
+                  Verificar contra lo recibido en el local (desmárcalo si no se registró la recepción ese periodo —
+                  se le pagará completo por lo que él reportó)
+                </label>
+              </div>
             </form>
           </details>
 
@@ -354,17 +361,24 @@ export default async function NominaPage() {
                       <td className="py-2 pr-2">{p.user.name}</td>
                       <td className="py-2 pr-2">{p.huevosProducidos - p.huevosRotos}</td>
                       <td className="py-2 pr-2">{p.huevosRecibidosLocal}</td>
-                      <td className="py-2 pr-2">{p.huevosVerificados}</td>
+                      <td className="py-2 pr-2">
+                        {p.huevosVerificados}
+                        {!(JSON.parse(p.detalleJson)?.verificadoConLocal ?? true) && (
+                          <span className="ml-1 badge bg-dorado-100 text-tierra-700" title="No se verificó contra lo recibido en el local">
+                            sin verificar
+                          </span>
+                        )}
+                      </td>
                       <td className="py-2 pr-2">{p.cubetas.toFixed(2)}</td>
                       <td className="py-2 pr-2 font-semibold text-verde-700">{COP.format(p.totalPagar)}</td>
                       <td className="py-2 pr-2 whitespace-nowrap">
-                        <a href={`/api/nomina/pdf-galpon/${p.id}`} className="mr-3 text-xs text-verde-700 hover:underline">
+                        <a href={`/api/nomina/pdf-galpon/${p.id}`} className="chip-edit mr-3">
                           PDF
                         </a>
                         <ConfirmButton
                           action={deletePagoGalpon.bind(null, p.id)}
                           confirmMessage="¿Eliminar este pago generado?"
-                          className="text-xs text-red-600 hover:underline"
+                          className="chip-danger"
                         >
                           Eliminar
                         </ConfirmButton>

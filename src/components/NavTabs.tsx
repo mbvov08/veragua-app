@@ -17,10 +17,10 @@ export default function NavTabs({ tabs }: { tabs: Tab[] }) {
           <Link
             key={tab.href}
             href={tab.href}
-            className={`whitespace-nowrap px-3 py-3 text-sm font-medium border-b-2 transition-colors ${
+            className={`whitespace-nowrap rounded-t-lg px-3 py-3 text-sm font-medium border-b-2 transition-colors ${
               active
-                ? "border-verde-600 text-verde-700"
-                : "border-transparent text-tierra-600 hover:text-verde-700"
+                ? "border-verde-600 bg-verde-50 text-verde-800"
+                : "border-transparent text-tierra-600 hover:bg-verde-50/60 hover:text-verde-700"
             }`}
           >
             {tab.label}

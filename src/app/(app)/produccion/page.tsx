@@ -110,7 +110,7 @@ export default async function ProduccionPage({
                     <ConfirmButton
                       action={eliminarRegistroGalpon.bind(null, r.id)}
                       confirmMessage="¿Eliminar este registro?"
-                      className="text-xs text-red-600 hover:underline"
+                      className="chip-danger"
                     >
                       Eliminar
                     </ConfirmButton>
@@ -263,7 +263,7 @@ export default async function ProduccionPage({
                       <ConfirmButton
                         action={eliminarRegistroGalpon.bind(null, r.id)}
                         confirmMessage="¿Eliminar este registro?"
-                        className="text-xs text-red-600 hover:underline"
+                        className="chip-danger"
                       >
                         Eliminar
                       </ConfirmButton>
@@ -297,7 +297,7 @@ export default async function ProduccionPage({
                     <ConfirmButton
                       action={eliminarRecepcionLocal.bind(null, r.id)}
                       confirmMessage="¿Eliminar este registro?"
-                      className="text-xs text-red-600 hover:underline"
+                      className="chip-danger"
                     >
                       Eliminar
                     </ConfirmButton>

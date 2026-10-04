@@ -136,7 +136,7 @@ export default async function ProductosPage({
                   <ConfirmButton
                     action={toggleProductActivo.bind(null, s.id, !s.activo)}
                     confirmMessage={s.activo ? "¿Desactivar este producto?" : "¿Reactivar este producto?"}
-                    className="text-xs text-tierra-600 hover:underline"
+                    className="chip-neutral"
                   >
                     {s.activo ? "Desactivar" : "Reactivar"}
                   </ConfirmButton>

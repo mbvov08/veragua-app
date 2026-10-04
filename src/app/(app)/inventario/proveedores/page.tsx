@@ -146,7 +146,7 @@ export default async function ProveedoresPage({
                   </form>
                   <a
                     href={`/api/inventario/export/historial/proveedor/${p.id}`}
-                    className="mt-2 inline-block text-xs text-verde-700 hover:underline"
+                    className="chip-edit mt-2"
                   >
                     Descargar historial
                   </a>
