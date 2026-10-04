@@ -23,7 +23,7 @@ export async function computeProductStocks(company: Company): Promise<ProductSto
     prisma.finPurchaseItem.groupBy({
       by: ["productoId"],
       _sum: { cantidad: true },
-      where: { producto: { company } },
+      where: { producto: { company }, purchase: { recibido: true } },
     }),
     prisma.finSaleItem.groupBy({
       by: ["productoId"],
@@ -59,7 +59,7 @@ export async function computeProductStocks(company: Company): Promise<ProductSto
 
 export async function computeSingleProductStock(productoId: string): Promise<number> {
   const [compra, venta, ajuste] = await Promise.all([
-    prisma.finPurchaseItem.aggregate({ where: { productoId }, _sum: { cantidad: true } }),
+    prisma.finPurchaseItem.aggregate({ where: { productoId, purchase: { recibido: true } }, _sum: { cantidad: true } }),
     prisma.finSaleItem.aggregate({ where: { productoId }, _sum: { cantidad: true } }),
     prisma.finInventoryAdjustment.aggregate({ where: { productoId }, _sum: { diferencia: true } }),
   ]);

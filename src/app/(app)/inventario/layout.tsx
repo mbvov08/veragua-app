@@ -6,6 +6,7 @@ const SUBNAV = [
   { href: "/inventario/ventas", label: "Ventas" },
   { href: "/inventario/clientes", label: "Clientes (CxC)" },
   { href: "/inventario/proveedores", label: "Proveedores (CxP)" },
+  { href: "/inventario/reabastecimiento", label: "Reabastecimiento" },
   { href: "/inventario/ajustes/categorias", label: "Categorías" },
 ];
 

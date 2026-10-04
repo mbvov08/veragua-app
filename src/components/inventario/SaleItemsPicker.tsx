@@ -3,19 +3,21 @@
 import { useState } from "react";
 import { formatCOP } from "@/lib/finanzas/format";
 
-type Item = { productoId: string; nombre: string; cantidad: string; precio: string };
+export type Item = { productoId: string; nombre: string; cantidad: string; precio: string };
 type Producto = { id: string; nombre: string; precioDefault: number };
 
 export default function ItemsPicker({
   productos,
   priceFieldName,
   priceLabel = "Precio unitario",
+  initialItems = [],
 }: {
   productos: Producto[];
   priceFieldName: "precioUnitario" | "costoUnitario";
   priceLabel?: string;
+  initialItems?: Item[];
 }) {
-  const [items, setItems] = useState<Item[]>([]);
+  const [items, setItems] = useState<Item[]>(initialItems);
   const [seleccion, setSeleccion] = useState(productos[0]?.id ?? "");
 
   function agregar() {

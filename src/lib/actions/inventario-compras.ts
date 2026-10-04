@@ -42,6 +42,7 @@ export async function registrarCompra(formData: FormData) {
   const fechaStr = String(formData.get("fecha") ?? "");
   const numeroFactura = String(formData.get("numeroFactura") ?? "").trim() || null;
   const estado = String(formData.get("estado") ?? "pendiente");
+  const recibido = formData.get("recibido") === "on";
   const notas = String(formData.get("notas") ?? "").trim() || null;
   const items = parsePurchaseItems(formData);
 
@@ -81,6 +82,8 @@ export async function registrarCompra(formData: FormData) {
         fecha,
         numeroFactura,
         estado,
+        recibido,
+        fechaRecibido: recibido ? fecha : null,
         total,
         notas,
         finTransactionId,
@@ -166,4 +169,15 @@ export async function registrarPagoProveedor(formData: FormData) {
   revalidatePath("/finanzas");
   revalidatePath("/finanzas/movimientos");
   revalidatePath("/finanzas/pyg");
+}
+
+export async function marcarCompraRecibida(purchaseId: string) {
+  await requireFinanzas();
+  await prisma.finPurchase.update({
+    where: { id: purchaseId },
+    data: { recibido: true, fechaRecibido: new Date() },
+  });
+  revalidateProveedores();
+  revalidatePath("/inventario/productos");
+  revalidatePath("/inventario/reabastecimiento");
 }

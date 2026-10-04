@@ -1,16 +1,17 @@
 import InventarioCompanyPicker from "@/components/inventario/CompanyPicker";
-import ItemsPicker from "@/components/inventario/SaleItemsPicker";
+import ItemsPicker, { type Item } from "@/components/inventario/SaleItemsPicker";
 import SubmitButton from "@/components/SubmitButton";
+import ConfirmButton from "@/components/ConfirmButton";
 import { resolveCompanyParam, COMPANY_LABEL } from "@/lib/finanzas/queries";
 import { formatCOP } from "@/lib/finanzas/format";
 import { formatDateOnly, formatDateShortEs, todayColombia } from "@/lib/date";
 import { prisma } from "@/lib/prisma";
-import { crearProveedor, registrarCompra, registrarPagoProveedor } from "@/lib/actions/inventario-compras";
+import { crearProveedor, registrarCompra, registrarPagoProveedor, marcarCompraRecibida } from "@/lib/actions/inventario-compras";
 
 export default async function ProveedoresPage({
   searchParams,
 }: {
-  searchParams: Promise<{ company?: string }>;
+  searchParams: Promise<{ company?: string; proveedorId?: string; items?: string }>;
 }) {
   const params = await searchParams;
   const selection = resolveCompanyParam(params.company);
@@ -35,6 +36,23 @@ export default async function ProveedoresPage({
   const saldoPorProveedor = new Map<string, number>();
   for (const c of cuentas) {
     saldoPorProveedor.set(c.proveedorId, (saldoPorProveedor.get(c.proveedorId) ?? 0) + c.saldo);
+  }
+
+  let initialItems: Item[] = [];
+  const esPedidoSugerido = Boolean(params.items);
+  if (params.items) {
+    try {
+      const parsed = JSON.parse(params.items) as { productoId: string; cantidad: number }[];
+      initialItems = parsed
+        .map((it) => {
+          const producto = productos.find((p) => p.id === it.productoId);
+          if (!producto) return null;
+          return { productoId: producto.id, nombre: producto.nombre, cantidad: String(it.cantidad), precio: String(producto.precio) };
+        })
+        .filter((it): it is Item => it !== null);
+    } catch {
+      initialItems = [];
+    }
   }
 
   return (
@@ -74,7 +92,8 @@ export default async function ProveedoresPage({
             <input type="hidden" name="company" value={company} />
             <div>
               <label className="label">Proveedor</label>
-              <select name="proveedorId" required className="input">
+              <select name="proveedorId" required defaultValue={params.proveedorId ?? ""} className="input">
+                <option value="" disabled>Selecciona un proveedor</option>
                 {proveedores.map((p) => (
                   <option key={p.id} value={p.id}>{p.nombre}</option>
                 ))}
@@ -100,7 +119,15 @@ export default async function ProveedoresPage({
               productos={productos.map((p) => ({ id: p.id, nombre: p.nombre, precioDefault: p.precio }))}
               priceFieldName="costoUnitario"
               priceLabel="Costo unitario"
+              initialItems={initialItems}
             />
+
+            <div className="flex items-center gap-2 sm:col-span-2">
+              <input type="checkbox" name="recibido" id="recibido" defaultChecked={!esPedidoSugerido} className="h-4 w-4" />
+              <label htmlFor="recibido" className="text-sm text-tierra-700">
+                ¿Ya la recibiste? (si la desmarcas, queda como pedido en camino: no suma al stock hasta que la marques recibida)
+              </label>
+            </div>
 
             <div className="sm:col-span-2">
               <label className="label">Notas (opcional)</label>
@@ -166,6 +193,8 @@ export default async function ProveedoresPage({
               <th className="py-2 pr-2">Productos</th>
               <th className="py-2 pr-2">Total</th>
               <th className="py-2 pr-2">Estado</th>
+              <th className="py-2 pr-2">Recibido</th>
+              <th className="py-2 pr-2"></th>
             </tr>
           </thead>
           <tbody>
@@ -182,10 +211,28 @@ export default async function ProveedoresPage({
                     {c.estado === "pagada" ? "Pagada" : "Pendiente"}
                   </span>
                 </td>
+                <td className="py-2 pr-2">
+                  {c.recibido ? (
+                    <span className="badge bg-verde-100 text-verde-700">Recibido</span>
+                  ) : (
+                    <ConfirmButton
+                      action={marcarCompraRecibida.bind(null, c.id)}
+                      confirmMessage="¿Confirmas que ya recibiste este pedido? Esto sumará las cantidades al stock."
+                      className="chip-neutral"
+                    >
+                      Marcar recibido
+                    </ConfirmButton>
+                  )}
+                </td>
+                <td className="py-2 pr-2 text-right">
+                  <a href={`/api/inventario/export/pedido/${c.id}`} className="chip-edit">
+                    {c.recibido ? "Comprobante" : "Pedido PDF"}
+                  </a>
+                </td>
               </tr>
             ))}
             {compras.length === 0 && (
-              <tr><td colSpan={5} className="py-6 text-center text-tierra-500">Sin compras registradas.</td></tr>
+              <tr><td colSpan={7} className="py-6 text-center text-tierra-500">Sin compras registradas.</td></tr>
             )}
           </tbody>
         </table>

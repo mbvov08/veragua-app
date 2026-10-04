@@ -629,6 +629,8 @@ model FinProduct {
   comprasItems FinPurchaseItem[]
   ventasItems  FinSaleItem[]
   ajustes      FinInventoryAdjustment[]
+  proveedores  FinProductoProveedor[]
+  pronosticos  FinDemandForecast[]
 
   @@index([company, categoriaId])
 }
@@ -657,6 +659,7 @@ model Proveedor {
   compras         FinPurchase[]
   cuentasPorPagar FinCuentaPorPagar[]
   pagos           FinPagoProveedor[]
+  productos       FinProductoProveedor[]
 }
 
 // Compra/factura de proveedor (cabecera). Si estado = "pagada" al crearla,
@@ -670,6 +673,8 @@ model FinPurchase {
   fecha            DateTime
   numeroFactura    String?
   estado           String // "pagada" | "pendiente"
+  recibido         Boolean         @default(true) // false = pedido hecho pero aún no llega (no suma al stock)
+  fechaRecibido    DateTime?
   total            Float
   notas            String?
   finTransactionId String?         @unique
@@ -827,4 +832,45 @@ model FinPagoProveedorAplicacion {
   cuenta        FinCuentaPorPagar @relation(fields: [cuentaId], references: [id])
   montoAplicado Float
   createdAt     DateTime          @default(now())
+}
+
+// ============================================================
+// REABASTECIMIENTO — lead time por proveedor, inventario de seguridad, punto de
+// reorden y pronóstico de demanda (con registro histórico para comparar contra lo
+// que realmente pasó). Ver src/lib/inventario/reabastecimiento.ts.
+// ============================================================
+
+// Relación producto-proveedor: de dónde se compra, con qué lead time y cada cuánto
+// se revisa/pide. Un producto puede tener varias (ej. dos proveedores distintos).
+model FinProductoProveedor {
+  id                      String     @id @default(cuid())
+  productoId              String
+  producto                FinProduct @relation(fields: [productoId], references: [id])
+  proveedorId             String
+  proveedor               Proveedor  @relation(fields: [proveedorId], references: [id])
+  leadTimeDias            Int
+  diasRevision            Int // cada cuánto se revisa/pide este producto a este proveedor
+  costoUnitarioReferencia Float? // solo para prellenar el formulario de compra; no autoritativo
+  activo                  Boolean    @default(true)
+  createdAt               DateTime   @default(now())
+
+  @@unique([productoId, proveedorId])
+}
+
+// Pronóstico calculado en un momento dado, para poder comparar después contra lo que
+// realmente se vendió en ese mismo período.
+model FinDemandForecast {
+  id                  String     @id @default(cuid())
+  productoId          String
+  producto            FinProduct @relation(fields: [productoId], references: [id])
+  calculadoAt         DateTime   @default(now())
+  ventanaDias         Int // cuántos días de histórico se usaron para calcularlo
+  demandaDiariaProm   Float
+  demandaDiariaDesv   Float
+  periodoInicio       DateTime // período que se está pronosticando
+  periodoFin          DateTime
+  demandaPronosticada Float // demandaDiariaProm × días del período
+  demandaReal         Float? // se rellena cuando el período ya pasó
+
+  @@index([productoId, periodoFin])
 }
