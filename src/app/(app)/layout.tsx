@@ -68,6 +68,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                       { href: "/finanzas", label: "Resumen" },
                       { href: "/finanzas/movimientos", label: "Movimientos" },
                       { href: "/finanzas/pyg", label: "PyG" },
+                      { href: "/finanzas/estadisticas", label: "Estadísticas" },
                       { href: "/finanzas/canales", label: "Canales" },
                       { href: "/inventario/clientes", label: "Cuentas por Cobrar" },
                       { href: "/inventario/proveedores", label: "Cuentas por Pagar" },
