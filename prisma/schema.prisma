@@ -57,6 +57,7 @@ model User {
   finCxPCreadas              FinCuentaPorPagar[]          @relation("FinCxPCreadoPor")
   finPagosClienteCreados     FinPagoCliente[]             @relation("FinPagoClienteCreadoPor")
   finPagosProveedorCreados   FinPagoProveedor[]           @relation("FinPagoProveedorCreadoPor")
+  suscripcionesCreadas       Suscripcion[]                @relation("SuscripcionCreadaPor")
 }
 
 // Lista de referencia de productos que se venden, para agilizar la toma de pedidos.
@@ -69,6 +70,7 @@ model Producto {
   creadoPor   User        @relation("ProductoCreadoPor", fields: [creadoPorId], references: [id])
   createdAt   DateTime    @default(now())
   ordenados   OrderItem[]
+  reglaItems  RecurringOrderRuleItem[]
 }
 
 // Día fijo de la semana en que sale cada ruta (Pereira, Manizales), ya que solo se hacen una vez por semana.
@@ -194,6 +196,7 @@ model Cliente {
   ventas          FinSale[]
   cuentasPorCobrar FinCuentaPorCobrar[]
   pagos           FinPagoCliente[]
+  suscripciones   Suscripcion[]
 }
 
 model Order {
@@ -237,11 +240,49 @@ model RecurringOrderRule {
   diaSemana   Int // 0=domingo .. 6=sábado
   notas       String?
   activo      Boolean  @default(true)
+  // Si no es null, no se generan pedidos con fechaEntrega posterior a esta fecha
+  // (se usa para suscripciones mensuales: la entrega recurrente para cuando vence).
+  fechaFin    DateTime?
   creadoPorId String
   creadoPor   User     @relation("RecurringRuleCreatedBy", fields: [creadoPorId], references: [id])
   createdAt   DateTime @default(now())
 
-  orders Order[]
+  orders        Order[]
+  items         RecurringOrderRuleItem[]
+  suscripciones Suscripcion[]
+}
+
+// Plantilla de productos que se copia a cada pedido generado por la regla recurrente,
+// para no tener que volver a escribirlos cada semana (ej. los productos de una suscripción).
+model RecurringOrderRuleItem {
+  id                String             @id @default(cuid())
+  recurringRuleId   String
+  recurringRule     RecurringOrderRule @relation(fields: [recurringRuleId], references: [id])
+  productoId        String
+  producto          Producto           @relation(fields: [productoId], references: [id])
+  cantidad          String?
+  createdAt         DateTime           @default(now())
+}
+
+// Suscripción mensual: el cliente paga por adelantado y recibe entregas recurrentes
+// (la RecurringOrderRule) hasta la fecha de vencimiento. Al vencer, se crea un
+// recordatorio para preguntar si renueva.
+model Suscripcion {
+  id              String             @id @default(cuid())
+  company         String
+  clienteId       String
+  cliente         Cliente            @relation(fields: [clienteId], references: [id])
+  recurringRuleId String
+  recurringRule   RecurringOrderRule @relation(fields: [recurringRuleId], references: [id])
+  fechaInicio     DateTime
+  fechaFin        DateTime
+  montoPagado     Float
+  metodoPago      String?
+  estado          String             @default("activa") // "activa" | "cancelada"
+  reminderRuleId  String?
+  creadoPorId     String
+  creadoPor       User               @relation("SuscripcionCreadaPor", fields: [creadoPorId], references: [id])
+  createdAt       DateTime           @default(now())
 }
 
 model Task {
