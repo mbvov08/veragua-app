@@ -18,18 +18,38 @@ export default async function ClientesPage({
 
   const cuentas = await prisma.finCuentaPorCobrar.findMany({
     where: { company, saldo: { gt: 0 } },
-    include: { cliente: true },
+    include: { cliente: true, venta: { include: { items: { include: { producto: true } } } } },
     orderBy: { fecha: "asc" },
   });
 
-  const saldoPorCliente = new Map<string, { id: string; nombre: string; saldo: number; facturas: number }>();
+  function describirCuenta(c: (typeof cuentas)[number]) {
+    if (c.venta && c.venta.items.length > 0) {
+      return c.venta.items.map((it) => `${it.cantidad} ${it.producto.nombre}`).join(", ");
+    }
+    return c.notas ?? "Saldo pendiente";
+  }
+
+  function whatsappLink(telefono: string | null, nombre: string, saldo: number) {
+    if (!telefono) return null;
+    const digitos = telefono.replace(/\D/g, "");
+    if (!digitos) return null;
+    const numero = digitos.startsWith("57") ? digitos : `57${digitos}`;
+    const mensaje = `Hola ${nombre.split(" ")[0]}! Te escribimos de Veragua para recordarte con cariño que tienes un saldo pendiente de ${formatCOP(saldo)}. Cuando puedas, nos cuentas 😊 ¡Gracias!`;
+    return `https://wa.me/${numero}?text=${encodeURIComponent(mensaje)}`;
+  }
+
+  const saldoPorCliente = new Map<
+    string,
+    { id: string; nombre: string; telefono: string | null; saldo: number; facturas: typeof cuentas }
+  >();
   for (const c of cuentas) {
     const prev = saldoPorCliente.get(c.clienteId);
     saldoPorCliente.set(c.clienteId, {
       id: c.clienteId,
       nombre: c.cliente.nombre,
+      telefono: c.cliente.telefono,
       saldo: (prev?.saldo ?? 0) + c.saldo,
-      facturas: (prev?.facturas ?? 0) + 1,
+      facturas: [...(prev?.facturas ?? []), c],
     });
   }
   const clientesConSaldo = [...saldoPorCliente.values()].sort((a, b) => b.saldo - a.saldo);
@@ -61,13 +81,36 @@ export default async function ClientesPage({
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium text-tierra-800">{c.nombre}</p>
-                    <p className="text-xs text-tierra-500">{c.facturas} factura{c.facturas === 1 ? "" : "s"} pendiente{c.facturas === 1 ? "" : "s"}</p>
+                    <p className="text-xs text-tierra-500">{c.facturas.length} factura{c.facturas.length === 1 ? "" : "s"} pendiente{c.facturas.length === 1 ? "" : "s"}</p>
                   </div>
                   <span className="text-sm font-semibold text-red-600">{formatCOP(c.saldo)}</span>
                   <Icon name="chevron-right" className="h-4 w-4 shrink-0 text-tierra-400 transition-transform group-open:rotate-90" />
                 </summary>
 
                 <div className="mt-2 rounded-lg border border-verde-100 bg-verde-50/40 p-3">
+                  {(() => {
+                    const link = whatsappLink(c.telefono, c.nombre, c.saldo);
+                    return link ? (
+                      <a href={link} target="_blank" rel="noreferrer" className="chip-edit mb-3 inline-flex items-center gap-1">
+                        💬 Enviar recordatorio por WhatsApp
+                      </a>
+                    ) : (
+                      <p className="mb-3 text-xs text-tierra-400">Sin teléfono registrado para enviar recordatorio.</p>
+                    );
+                  })()}
+
+                  <div className="mb-3 space-y-2">
+                    {c.facturas.map((f) => (
+                      <div key={f.id} className="flex items-center justify-between gap-2 border-b border-verde-100 pb-2 text-sm last:border-0 last:pb-0">
+                        <div className="min-w-0">
+                          <p className="truncate text-tierra-800">{describirCuenta(f)}</p>
+                          <p className="text-xs text-tierra-500">{formatDateOnly(f.fecha)}</p>
+                        </div>
+                        <span className="shrink-0 font-medium text-red-600">{formatCOP(f.saldo)}</span>
+                      </div>
+                    ))}
+                  </div>
+
                   <form action={registrarPagoCliente} className="flex flex-wrap items-end gap-2">
                     <input type="hidden" name="clienteId" value={c.id} />
                     <input type="hidden" name="company" value={company} />
