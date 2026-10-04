@@ -1,11 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import type { FinCategory, FinChannel, FinTransaction } from "@prisma/client";
+import { useActionState, useMemo, useState } from "react";
+import type { FinCategory, FinChannel, FinProduct, FinProductCategory, FinTransaction } from "@prisma/client";
 import { createTransaction, updateTransaction } from "@/lib/actions/finanzas";
 import { COMPANY_LABEL, type Company } from "@/lib/finanzas/queries";
 import { formatDateOnly } from "@/lib/date";
 import SubmitButton from "@/components/SubmitButton";
+import ItemsPicker from "@/components/inventario/SaleItemsPicker";
 
 export type TransactionKind = "venta" | "gasto" | "otro";
 
@@ -13,6 +14,7 @@ interface CompanyFormData {
   company: Company;
   categories: FinCategory[];
   channels: FinChannel[];
+  products: (FinProduct & { categoria: FinProductCategory })[];
 }
 
 interface TransactionFormProps {
@@ -46,12 +48,16 @@ export default function TransactionForm({ companies, kind, transaction }: Transa
     );
   }, [activeCompany, kind, tipo]);
 
-  const action = isEdit ? updateTransaction.bind(null, transaction!.id) : createTransaction;
+  const [resetKey, createAndReset] = useActionState(async (_prevKey: number, formData: FormData) => {
+    await createTransaction(formData);
+    return _prevKey + 1;
+  }, 0);
+  const action = isEdit ? updateTransaction.bind(null, transaction!.id) : createAndReset;
 
   if (companies.length === 0) return null;
 
   return (
-    <form action={action} className="grid gap-3 sm:grid-cols-2">
+    <form key={isEdit ? "edit" : resetKey} action={action} className="grid gap-3 sm:grid-cols-2">
       <input type="hidden" name="tipo" value={tipo} />
 
       <div className="sm:col-span-2">
@@ -114,7 +120,28 @@ export default function TransactionForm({ companies, kind, transaction }: Transa
           defaultValue={transaction?.monto}
           className="input"
         />
+        {kind === "venta" && !isEdit && (
+          <p className="mt-1 text-xs text-tierra-400">
+            Se ignora si agregas productos abajo — en ese caso el monto se calcula solo.
+          </p>
+        )}
       </div>
+
+      {kind === "venta" && !isEdit && (
+        <>
+          <div className="sm:col-span-2">
+            <label className="label">¿Ya te pagaron?</label>
+            <select name="estado" defaultValue="pagada" className="input">
+              <option value="pagada">Sí, ya pagaron</option>
+              <option value="pendiente">No, queda fiado</option>
+            </select>
+          </div>
+          <ItemsPicker
+            productos={(activeCompany?.products ?? []).map((p) => ({ id: p.id, nombre: p.nombre, precioDefault: p.precio, categoria: p.categoria.nombre }))}
+            priceFieldName="precioUnitario"
+          />
+        </>
+      )}
 
       <div className="sm:col-span-2">
         <label className="label">Categoría</label>

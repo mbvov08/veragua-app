@@ -36,7 +36,7 @@ export async function getChannels(company: Company) {
   return prisma.finChannel.findMany({ where: { company }, orderBy: { nombre: "asc" } });
 }
 
-// Carga categorías y canales de ambas empresas a la vez, para el formulario
+// Carga categorías, canales y productos de ambas empresas a la vez, para el formulario
 // de movimientos (permite cambiar de empresa sin recargar la página).
 export async function getTransactionFormData() {
   return Promise.all(
@@ -44,6 +44,11 @@ export async function getTransactionFormData() {
       company,
       categories: await getCategories(company),
       channels: await getChannels(company),
+      products: await prisma.finProduct.findMany({
+        where: { company, activo: true, esServicio: false },
+        include: { categoria: true },
+        orderBy: { nombre: "asc" },
+      }),
     }))
   );
 }

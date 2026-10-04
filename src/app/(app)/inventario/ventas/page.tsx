@@ -1,11 +1,9 @@
 import InventarioCompanyPicker from "@/components/inventario/CompanyPicker";
-import ItemsPicker from "@/components/inventario/SaleItemsPicker";
-import SubmitButton from "@/components/SubmitButton";
+import NuevaVentaForm from "@/components/inventario/NuevaVentaForm";
 import { resolveCompanyParam, COMPANY_LABEL, getChannels } from "@/lib/finanzas/queries";
 import { formatCOP } from "@/lib/finanzas/format";
-import { formatDateOnly, formatDateShortEs, todayColombia } from "@/lib/date";
+import { formatDateShortEs } from "@/lib/date";
 import { prisma } from "@/lib/prisma";
-import { registrarVenta } from "@/lib/actions/inventario-ventas";
 
 export default async function VentasPage({
   searchParams,
@@ -17,7 +15,7 @@ export default async function VentasPage({
   const company = selection.company ?? "VERAGUA";
 
   const [productos, canales, clientes, ventas] = await Promise.all([
-    prisma.finProduct.findMany({ where: { company, activo: true }, orderBy: { nombre: "asc" } }),
+    prisma.finProduct.findMany({ where: { company, activo: true }, include: { categoria: true }, orderBy: { nombre: "asc" } }),
     getChannels(company),
     prisma.cliente.findMany({ orderBy: { nombre: "asc" } }),
     prisma.finSale.findMany({
@@ -40,52 +38,12 @@ export default async function VentasPage({
         {productos.length === 0 ? (
           <p className="mt-3 text-sm text-tierra-500">Primero crea productos en la pestaña Productos.</p>
         ) : (
-          <form action={registrarVenta} className="mt-4 grid gap-3 sm:grid-cols-2">
-            <input type="hidden" name="company" value={company} />
-            <div>
-              <label className="label">Fecha</label>
-              <input type="date" name="fecha" required defaultValue={formatDateOnly(todayColombia())} className="input" />
-            </div>
-            <div>
-              <label className="label">Canal (opcional)</label>
-              <select name="canalId" className="input">
-                <option value="">Sin canal</option>
-                {canales.map((ch) => (
-                  <option key={ch.id} value={ch.id}>{ch.nombre}</option>
-                ))}
-              </select>
-            </div>
-            <div className="sm:col-span-2">
-              <label className="label">Cliente (opcional — obligatorio si es fiada)</label>
-              <input name="clienteNombre" list="clientes-existentes" className="input" placeholder="Nombre del cliente" />
-              <datalist id="clientes-existentes">
-                {clientes.map((c) => (
-                  <option key={c.id} value={c.nombre} />
-                ))}
-              </datalist>
-            </div>
-
-            <ItemsPicker
-              productos={productos.map((p) => ({ id: p.id, nombre: p.nombre, precioDefault: p.precio }))}
-              priceFieldName="precioUnitario"
-              priceLabel="Precio unitario"
-            />
-
-            <div className="sm:col-span-2">
-              <label className="label">Estado</label>
-              <select name="estado" className="input" defaultValue="pagada">
-                <option value="pagada">Pagada de una vez</option>
-                <option value="pendiente">Fiada (queda en Cuentas por Cobrar)</option>
-              </select>
-            </div>
-            <div className="sm:col-span-2">
-              <label className="label">Notas (opcional)</label>
-              <textarea name="notas" rows={2} className="input" />
-            </div>
-            <div className="sm:col-span-2">
-              <SubmitButton>Guardar venta</SubmitButton>
-            </div>
-          </form>
+          <NuevaVentaForm
+            company={company}
+            canales={canales}
+            clientes={clientes}
+            productos={productos.map((p) => ({ id: p.id, nombre: p.nombre, precioDefault: p.precio, categoria: p.categoria.nombre }))}
+          />
         )}
       </details>
 

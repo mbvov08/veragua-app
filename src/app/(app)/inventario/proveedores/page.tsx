@@ -19,7 +19,7 @@ export default async function ProveedoresPage({
   const company = selection.company ?? "VERAGUA";
 
   const [productos, proveedores, compras, cuentas] = await Promise.all([
-    prisma.finProduct.findMany({ where: { company, activo: true }, orderBy: { nombre: "asc" } }),
+    prisma.finProduct.findMany({ where: { company, activo: true }, include: { categoria: true }, orderBy: { nombre: "asc" } }),
     prisma.proveedor.findMany({ orderBy: { nombre: "asc" } }),
     prisma.finPurchase.findMany({
       where: { company },
@@ -120,7 +120,7 @@ export default async function ProveedoresPage({
             </div>
 
             <ItemsPicker
-              productos={productos.map((p) => ({ id: p.id, nombre: p.nombre, precioDefault: p.precio }))}
+              productos={productos.map((p) => ({ id: p.id, nombre: p.nombre, precioDefault: p.precio, categoria: p.categoria.nombre }))}
               priceFieldName="costoUnitario"
               priceLabel="Costo unitario"
               initialItems={initialItems}

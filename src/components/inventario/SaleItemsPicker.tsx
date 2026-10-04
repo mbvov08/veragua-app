@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { formatCOP } from "@/lib/finanzas/format";
 
 export type Item = { productoId: string; nombre: string; cantidad: string; precio: string };
-type Producto = { id: string; nombre: string; precioDefault: number };
+type Producto = { id: string; nombre: string; precioDefault: number; categoria: string };
 
 export default function ItemsPicker({
   productos,
@@ -18,13 +18,22 @@ export default function ItemsPicker({
   initialItems?: Item[];
 }) {
   const [items, setItems] = useState<Item[]>(initialItems);
-  const [seleccion, setSeleccion] = useState(productos[0]?.id ?? "");
+  const [query, setQuery] = useState("");
 
-  function agregar() {
-    const producto = productos.find((p) => p.id === seleccion);
-    if (!producto) return;
-    if (items.some((it) => it.productoId === producto.id)) return;
-    setItems((prev) => [...prev, { productoId: producto.id, nombre: producto.nombre, cantidad: "1", precio: String(producto.precioDefault) }]);
+  const categorias = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    const filtrados = q ? productos.filter((p) => p.nombre.toLowerCase().includes(q)) : productos;
+    const map = new Map<string, Producto[]>();
+    for (const p of filtrados) map.set(p.categoria, [...(map.get(p.categoria) ?? []), p]);
+    return [...map.entries()].sort(([a], [b]) => a.localeCompare(b));
+  }, [productos, query]);
+
+  function agregar(producto: Producto) {
+    setItems((prev) => {
+      if (prev.some((it) => it.productoId === producto.id)) return prev;
+      return [...prev, { productoId: producto.id, nombre: producto.nombre, cantidad: "1", precio: String(producto.precioDefault) }];
+    });
+    setQuery("");
   }
 
   function quitar(productoId: string) {
@@ -47,18 +56,6 @@ export default function ItemsPicker({
           items.map(({ productoId, cantidad, precio }) => ({ productoId, cantidad, [priceFieldName]: precio }))
         )}
       />
-
-      <div className="flex flex-wrap items-end gap-2">
-        <div className="flex-1">
-          <label className="label">Producto</label>
-          <select value={seleccion} onChange={(e) => setSeleccion(e.target.value)} className="input">
-            {productos.map((p) => (
-              <option key={p.id} value={p.id}>{p.nombre} — {formatCOP(p.precioDefault)}</option>
-            ))}
-          </select>
-        </div>
-        <button type="button" onClick={agregar} className="btn-secondary">Agregar</button>
-      </div>
 
       {items.length > 0 && (
         <div className="rounded-lg border border-verde-200 bg-white p-3">
@@ -97,6 +94,38 @@ export default function ItemsPicker({
           <p className="mt-2 text-right text-sm font-semibold text-verde-800">Total: {formatCOP(total)}</p>
         </div>
       )}
+
+      <div className="rounded-lg border border-verde-100 bg-verde-50/40 p-3">
+        <label className="label">Buscar producto</label>
+        <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Escribe para buscar..."
+          className="input mb-2"
+        />
+        <div className="max-h-72 space-y-2 overflow-y-auto">
+          {categorias.map(([categoria, prods]) => (
+            <details key={categoria} className="rounded-lg border border-verde-100 bg-white" open={query.length > 0}>
+              <summary className="cursor-pointer select-none px-3 py-2 text-sm font-medium text-verde-800">
+                {categoria} <span className="text-xs font-normal text-tierra-400">({prods.length})</span>
+              </summary>
+              <div className="flex flex-wrap gap-2 p-3 pt-0">
+                {prods.map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => agregar(p)}
+                    className="rounded-full border border-verde-200 bg-verde-50 px-3 py-1 text-xs text-tierra-700 hover:bg-verde-100"
+                  >
+                    {p.nombre} — {formatCOP(p.precioDefault)}
+                  </button>
+                ))}
+              </div>
+            </details>
+          ))}
+          {categorias.length === 0 && <p className="text-xs text-tierra-500">Sin resultados.</p>}
+        </div>
+      </div>
     </div>
   );
 }
