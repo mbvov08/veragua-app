@@ -2,6 +2,8 @@
 
 import { useActionState } from "react";
 import ItemsPicker from "@/components/inventario/SaleItemsPicker";
+import EstadoPagoToggle from "@/components/finanzas/EstadoPagoToggle";
+import MetodoPagoPicker from "@/components/finanzas/MetodoPagoPicker";
 import SubmitButton from "@/components/SubmitButton";
 import { formatDateOnly, todayColombia } from "@/lib/date";
 import { registrarVenta } from "@/lib/actions/inventario-ventas";
@@ -29,12 +31,19 @@ export default function NuevaVentaForm({
   return (
     <form key={resetKey} action={action} className="mt-4 grid gap-3 sm:grid-cols-2">
       <input type="hidden" name="company" value={company} />
+
+      <EstadoPagoToggle />
+
+      <ItemsPicker productos={productos} priceFieldName="precioUnitario" priceLabel="Precio unitario" />
+
+      <MetodoPagoPicker />
+
       <div>
         <label className="label">Fecha</label>
         <input type="date" name="fecha" required defaultValue={formatDateOnly(todayColombia())} className="input" />
       </div>
       <div>
-        <label className="label">Canal (opcional)</label>
+        <label className="label">Canal</label>
         <select name="canalId" className="input">
           <option value="">Sin canal</option>
           {canales.map((ch) => (
@@ -43,7 +52,7 @@ export default function NuevaVentaForm({
         </select>
       </div>
       <div className="sm:col-span-2">
-        <label className="label">Cliente (opcional — obligatorio si es fiada)</label>
+        <label className="label">Cliente</label>
         <input name="clienteNombre" list="clientes-existentes" className="input" placeholder="Nombre del cliente" />
         <datalist id="clientes-existentes">
           {clientes.map((c) => (
@@ -51,18 +60,8 @@ export default function NuevaVentaForm({
           ))}
         </datalist>
       </div>
-
-      <ItemsPicker productos={productos} priceFieldName="precioUnitario" priceLabel="Precio unitario" />
-
       <div className="sm:col-span-2">
-        <label className="label">Estado</label>
-        <select name="estado" className="input" defaultValue="pagada">
-          <option value="pagada">Pagada de una vez</option>
-          <option value="pendiente">Fiada (queda en Cuentas por Cobrar)</option>
-        </select>
-      </div>
-      <div className="sm:col-span-2">
-        <label className="label">Notas (opcional)</label>
+        <label className="label">Notas</label>
         <textarea name="notas" rows={2} className="input" />
       </div>
       <div className="sm:col-span-2">

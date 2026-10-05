@@ -30,6 +30,7 @@ export async function registrarVenta(formData: FormData) {
   const canalId = String(formData.get("canalId") ?? "") || null;
   const fechaStr = String(formData.get("fecha") ?? "");
   const estado = String(formData.get("estado") ?? "pagada");
+  const metodoPago = String(formData.get("metodoPago") ?? "").trim() || null;
   const notas = String(formData.get("notas") ?? "").trim() || null;
   const items = parseSaleItems(formData);
 
@@ -61,6 +62,7 @@ export async function registrarVenta(formData: FormData) {
           monto: total,
           categoriaId: categoria.id,
           canalId,
+          metodoPago,
           contraparte: clienteNombre || null,
           descripcion: "Venta de inventario",
           fuente: "manual",

@@ -7,6 +7,8 @@ import { COMPANY_LABEL, type Company } from "@/lib/finanzas/queries";
 import { formatDateOnly } from "@/lib/date";
 import SubmitButton from "@/components/SubmitButton";
 import ItemsPicker from "@/components/inventario/SaleItemsPicker";
+import EstadoPagoToggle from "@/components/finanzas/EstadoPagoToggle";
+import MetodoPagoPicker from "@/components/finanzas/MetodoPagoPicker";
 
 export type TransactionKind = "venta" | "gasto" | "otro";
 
@@ -113,37 +115,29 @@ export default function TransactionForm({ companies, kind, transaction }: Transa
           className="input"
         />
       </div>
-      <div>
-        <label className="label">Monto (COP)</label>
-        <input
-          type="number"
-          name="monto"
-          min="0"
-          step="1"
-          required
-          defaultValue={transaction?.monto}
-          className="input"
-        />
-        {kind === "venta" && !isEdit && (
-          <p className="mt-1 text-xs text-tierra-400">
-            Se ignora si agregas productos abajo — en ese caso el monto se calcula solo.
-          </p>
-        )}
-      </div>
+      {!(kind === "venta" && !isEdit) && (
+        <div>
+          <label className="label">Monto (COP)</label>
+          <input
+            type="number"
+            name="monto"
+            min="0"
+            step="1"
+            required
+            defaultValue={transaction?.monto}
+            className="input"
+          />
+        </div>
+      )}
 
       {kind === "venta" && !isEdit && (
         <>
-          <div className="sm:col-span-2">
-            <label className="label">¿Ya te pagaron?</label>
-            <select name="estado" defaultValue="pagada" className="input">
-              <option value="pagada">Sí, ya pagaron</option>
-              <option value="pendiente">No, queda fiado</option>
-            </select>
-          </div>
+          <EstadoPagoToggle />
           <ItemsPicker
             productos={(activeCompany?.products ?? []).map((p) => ({ id: p.id, nombre: p.nombre, precioDefault: p.precio, categoria: p.categoria.nombre }))}
             priceFieldName="precioUnitario"
           />
+          <MetodoPagoPicker />
         </>
       )}
 
@@ -168,14 +162,14 @@ export default function TransactionForm({ companies, kind, transaction }: Transa
       </div>
 
       <div className="sm:col-span-2">
-        <label className="label">{kind === "venta" ? "Canal de venta" : "Canal de venta (opcional)"}</label>
+        <label className="label">Canal</label>
         <select
           name="canalId"
           required={channelRequired}
           defaultValue={transaction?.canalId ?? ""}
           className="input"
         >
-          <option value="">{kind === "venta" ? "¿Dónde fue la venta?" : "Sin canal (gasto/ingreso compartido)"}</option>
+          <option value="">{kind === "venta" ? "¿Dónde fue la venta?" : "Sin canal"}</option>
           {activeCompany?.channels.map((ch) => (
             <option key={ch.id} value={ch.id}>
               {ch.nombre}
@@ -190,12 +184,14 @@ export default function TransactionForm({ companies, kind, transaction }: Transa
         )}
       </div>
 
+      {!(kind === "venta" && !isEdit) && (
+        <div>
+          <label className="label">Método de pago</label>
+          <input name="metodoPago" placeholder="Efectivo, transferencia..." defaultValue={transaction?.metodoPago ?? ""} className="input" />
+        </div>
+      )}
       <div>
-        <label className="label">Método de pago</label>
-        <input name="metodoPago" placeholder="Efectivo, transferencia..." defaultValue={transaction?.metodoPago ?? ""} className="input" />
-      </div>
-      <div>
-        <label className="label">Cliente / Proveedor</label>
+        <label className="label">{kind === "venta" ? "Cliente" : "Cliente / Proveedor"}</label>
         <input name="contraparte" defaultValue={transaction?.contraparte ?? ""} className="input" />
       </div>
 

@@ -41,6 +41,7 @@ async function createTransactionConProductos(
   contraparte: string | null
 ) {
   const estado = String(formData.get("estado") ?? "pagada");
+  const metodoPago = String(formData.get("metodoPago") ?? "").trim() || null;
   const notas = String(formData.get("descripcion") ?? "").trim() || null;
   const items = parseSaleItems(formData);
 
@@ -71,6 +72,7 @@ async function createTransactionConProductos(
           monto: total,
           categoriaId: categoria.id,
           canalId,
+          metodoPago,
           contraparte,
           descripcion: "Venta de inventario",
           fuente: "manual",
