@@ -1,7 +1,7 @@
-import Link from "next/link";
 import InventarioCompanyPicker from "@/components/inventario/CompanyPicker";
 import SubmitButton from "@/components/SubmitButton";
 import ConfirmButton from "@/components/ConfirmButton";
+import ArmarPedidoWhatsApp from "@/components/inventario/ArmarPedidoWhatsApp";
 import { resolveCompanyParam, COMPANY_LABEL } from "@/lib/finanzas/queries";
 import { formatDateOnly } from "@/lib/date";
 import { prisma } from "@/lib/prisma";
@@ -41,6 +41,7 @@ export default async function ReabastecimientoPage({
   ]);
 
   const galponBalances = await computeGalponBalances(company);
+  const proveedoresInsumos = proveedores.filter((p) => p.tipo === "insumos");
 
   const relacionesActivas = relaciones.filter((r) => r.activo);
   const productosConRelacion = new Map<string, (typeof productos)[number]>();
@@ -60,15 +61,15 @@ export default async function ReabastecimientoPage({
     }))
   );
 
-  // Agrupa sugerencias por proveedor, para el botón "Armar pedido a X".
-  const porProveedor = new Map<string, { nombre: string; items: { productoId: string; nombre: string; cantidad: number }[] }>();
+  // Agrupa sugerencias por proveedor, para prellenar el armador de pedidos.
+  const sugerenciasPorProveedor: Record<string, { productoId: string; nombre: string; cantidad: number }[]> = {};
   for (const [productoId, sugerencias] of sugerenciasPorProducto) {
     const producto = productosConRelacion.get(productoId)!;
     for (const s of sugerencias) {
       if (s.cantidadSugerida <= 0) continue;
-      const entry = porProveedor.get(s.proveedorId) ?? { nombre: s.proveedorNombre, items: [] };
-      entry.items.push({ productoId, nombre: producto.nombre, cantidad: s.cantidadSugerida });
-      porProveedor.set(s.proveedorId, entry);
+      const arr = sugerenciasPorProveedor[s.proveedorId] ?? [];
+      arr.push({ productoId, nombre: producto.nombre, cantidad: s.cantidadSugerida });
+      sugerenciasPorProveedor[s.proveedorId] = arr;
     }
   }
 
@@ -81,8 +82,8 @@ export default async function ReabastecimientoPage({
 
       <details className="card">
         <summary className="cursor-pointer text-sm font-semibold text-verde-800">Configurar proveedor y lead time</summary>
-        {productos.length === 0 || proveedores.length === 0 ? (
-          <p className="mt-3 text-sm text-tierra-500">Necesitas al menos un producto y un proveedor creados.</p>
+        {productos.length === 0 || proveedoresInsumos.length === 0 ? (
+          <p className="mt-3 text-sm text-tierra-500">Necesitas al menos un producto y un proveedor de insumos creados.</p>
         ) : (
           <form action={crearRelacionProductoProveedor} className="mt-4 grid gap-3 sm:grid-cols-2">
             <div>
@@ -96,7 +97,7 @@ export default async function ReabastecimientoPage({
             <div>
               <label className="label">Proveedor</label>
               <select name="proveedorId" required className="input">
-                {proveedores.map((p) => (
+                {proveedoresInsumos.map((p) => (
                   <option key={p.id} value={p.id}>{p.nombre}</option>
                 ))}
               </select>
@@ -161,25 +162,15 @@ export default async function ReabastecimientoPage({
         </div>
       )}
 
-      {porProveedor.size > 0 && (
+      {proveedoresInsumos.length > 0 && (
         <div className="card">
           <h2 className="mb-3 text-sm font-semibold text-verde-800">Armar pedido</h2>
-          <div className="flex flex-wrap gap-2">
-            {[...porProveedor.entries()].map(([proveedorId, data]) => {
-              const itemsParam = encodeURIComponent(
-                JSON.stringify(data.items.map((it) => ({ productoId: it.productoId, cantidad: it.cantidad })))
-              );
-              return (
-                <Link
-                  key={proveedorId}
-                  href={`/inventario/proveedores?proveedorId=${proveedorId}&items=${itemsParam}`}
-                  className="btn-primary text-sm"
-                >
-                  Armar pedido a {data.nombre} ({data.items.length} producto{data.items.length === 1 ? "" : "s"})
-                </Link>
-              );
-            })}
-          </div>
+          <ArmarPedidoWhatsApp
+            companyLabel={COMPANY_LABEL[company]}
+            proveedores={proveedoresInsumos.map((p) => ({ id: p.id, nombre: p.nombre, telefono: p.telefono }))}
+            productos={productos.map((p) => ({ id: p.id, nombre: p.nombre }))}
+            sugerenciasPorProveedor={sugerenciasPorProveedor}
+          />
         </div>
       )}
 

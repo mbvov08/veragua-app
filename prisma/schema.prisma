@@ -736,6 +736,9 @@ model Proveedor {
   nombre    String   @unique
   telefono  String?
   contacto  String?
+  // "insumos" (proveedor real de productos/servicios) o "financiero" (banco/entidad a la
+  // que se le paga un crédito) — distingue a quién sí tiene sentido mandarle un pedido.
+  tipo      String   @default("insumos")
   createdAt DateTime @default(now())
 
   compras         FinPurchase[]

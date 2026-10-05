@@ -6,6 +6,15 @@ import { formatCOP } from "@/lib/finanzas/format";
 export type Item = { productoId: string; nombre: string; cantidad: string; precio: string };
 type Producto = { id: string; nombre: string; precioDefault: number; categoria: string };
 
+/** Ignora tildes al buscar (ej. "kefir" sí encuentra "Kéfir"). */
+function normalizar(s: string): string {
+  return s
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .trim()
+    .toLowerCase();
+}
+
 export default function ItemsPicker({
   productos,
   priceFieldName,
@@ -21,8 +30,8 @@ export default function ItemsPicker({
   const [query, setQuery] = useState("");
 
   const categorias = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    const filtrados = q ? productos.filter((p) => p.nombre.toLowerCase().includes(q)) : productos;
+    const q = normalizar(query);
+    const filtrados = q ? productos.filter((p) => normalizar(p.nombre).includes(q)) : productos;
     const map = new Map<string, Producto[]>();
     for (const p of filtrados) map.set(p.categoria, [...(map.get(p.categoria) ?? []), p]);
     return [...map.entries()].sort(([a], [b]) => a.localeCompare(b));

@@ -17,27 +17,30 @@ export type DemandStats = {
 /**
  * Demanda diaria histórica de un producto, incluyendo los días sin venta como cero
  * (importante para productos de compra poco frecuente como café o gelatos, donde casi
- * todos los días son cero). La ventana nunca se extiende antes de que el producto
- * exista, para no diluir el promedio con ceros de un período en que no se vendía.
+ * todos los días son cero). La ventana nunca se extiende antes de la primera venta real
+ * del producto, para no diluir el promedio con ceros de un período en que no se vendía.
+ * Se usa la primera venta real (no `createdAt`) porque varios productos se recrearon o
+ * reorganizaron en el catálogo después de que sus ventas históricas ya existían —
+ * `createdAt` quedaría más reciente que ventas reales, cortando el historial a casi nada.
  */
 export async function computeDemandStats(productoId: string, ventanaDias = 180): Promise<DemandStats> {
-  const producto = await prisma.finProduct.findUniqueOrThrow({
-    where: { id: productoId },
-    select: { createdAt: true },
-  });
-
   const hoy = todayColombia();
   const inicioVentana = addDays(hoy, -(ventanaDias - 1));
-  const creado = new Date(Date.UTC(producto.createdAt.getUTCFullYear(), producto.createdAt.getUTCMonth(), producto.createdAt.getUTCDate(), 12));
-  const inicio = creado > inicioVentana ? creado : inicioVentana;
 
   const items = await prisma.finSaleItem.findMany({
-    where: { productoId, sale: { fecha: { gte: inicio, lte: hoy } } },
+    where: { productoId, sale: { fecha: { lte: hoy } } },
     select: { cantidad: true, sale: { select: { fecha: true } } },
   });
 
+  let primeraVenta: Date | null = null;
+  for (const it of items) {
+    if (!primeraVenta || it.sale.fecha < primeraVenta) primeraVenta = it.sale.fecha;
+  }
+  const inicio = primeraVenta && primeraVenta > inicioVentana ? primeraVenta : inicioVentana;
+
   const porDia = new Map<string, number>();
   for (const it of items) {
+    if (it.sale.fecha < inicio) continue;
     const key = formatDateOnly(it.sale.fecha);
     porDia.set(key, (porDia.get(key) ?? 0) + it.cantidad);
   }
@@ -83,7 +86,7 @@ type RelacionActiva = {
  */
 export async function computeReabastecimientoBulk(
   company: Company,
-  productos: { id: string; createdAt: Date }[],
+  productos: { id: string }[],
   relacionesActivas: RelacionActiva[],
   ventanaDias = 180
 ): Promise<{ statsPorProducto: Map<string, DemandStats>; sugerenciasPorProducto: Map<string, Suggestion[]> }> {
@@ -93,9 +96,13 @@ export async function computeReabastecimientoBulk(
   const hoy = todayColombia();
   const inicioVentana = addDays(hoy, -(ventanaDias - 1));
 
+  // Sin filtro de fecha: se necesita la primera venta real de cada producto (puede ser
+  // anterior a la ventana) para no clampear el historial a la fecha de creación del
+  // registro, que no siempre coincide con desde cuándo se vende de verdad (ver nota en
+  // computeDemandStats).
   const [ventas, stocks, enTransitoItems, forecastsDeHoy] = await Promise.all([
     prisma.finSaleItem.findMany({
-      where: { productoId: { in: productIds }, sale: { fecha: { gte: inicioVentana, lte: hoy } } },
+      where: { productoId: { in: productIds }, sale: { fecha: { lte: hoy } } },
       select: { productoId: true, cantidad: true, sale: { select: { fecha: true } } },
     }),
     computeProductStocks(company),
@@ -128,13 +135,16 @@ export async function computeReabastecimientoBulk(
 
   const statsPorProducto = new Map<string, DemandStats>();
   for (const producto of productos) {
-    const creado = new Date(
-      Date.UTC(producto.createdAt.getUTCFullYear(), producto.createdAt.getUTCMonth(), producto.createdAt.getUTCDate(), 12)
-    );
-    const inicio = creado > inicioVentana ? creado : inicioVentana;
+    const ventasProducto = ventasPorProducto.get(producto.id) ?? [];
+    let primeraVenta: Date | null = null;
+    for (const v of ventasProducto) {
+      if (!primeraVenta || v.fecha < primeraVenta) primeraVenta = v.fecha;
+    }
+    const inicio = primeraVenta && primeraVenta > inicioVentana ? primeraVenta : inicioVentana;
 
     const porDia = new Map<string, number>();
-    for (const v of ventasPorProducto.get(producto.id) ?? []) {
+    for (const v of ventasProducto) {
+      if (v.fecha < inicio) continue;
       const key = formatDateOnly(v.fecha);
       porDia.set(key, (porDia.get(key) ?? 0) + v.cantidad);
     }

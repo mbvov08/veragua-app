@@ -35,6 +35,8 @@ export default async function ProveedoresPage({
     }),
   ]);
 
+  const proveedoresInsumos = proveedores.filter((p) => p.tipo === "insumos");
+
   const saldoPorProveedor = new Map<string, number>();
   const facturasPorProveedor = new Map<string, number>();
   for (const c of cuentas) {
@@ -82,6 +84,13 @@ export default async function ProveedoresPage({
             <label className="label">Contacto (opcional)</label>
             <input name="contacto" className="input" />
           </div>
+          <div>
+            <label className="label">Tipo</label>
+            <select name="tipo" className="input" defaultValue="insumos">
+              <option value="insumos">Insumos (proveedor de productos)</option>
+              <option value="financiero">Financiero (banco / crédito)</option>
+            </select>
+          </div>
           <div className="sm:col-span-3">
             <ImportarContactoButton nombreInputId="proveedorNombre" telefonoInputId="proveedorTelefono" />
           </div>
@@ -107,6 +116,7 @@ export default async function ProveedoresPage({
                       {p.telefono ? ` · ${p.telefono}` : ""}
                     </p>
                   </div>
+                  {p.tipo === "financiero" && <span className="badge bg-tierra-100 text-tierra-600">Financiero</span>}
                   {!p.telefono && <span className="badge bg-tierra-100 text-tierra-500">Sin teléfono</span>}
                   <Icon name="chevron-right" className="h-4 w-4 shrink-0 text-tierra-400 transition-transform group-open:rotate-90" />
                 </summary>
@@ -129,6 +139,13 @@ export default async function ProveedoresPage({
                     <label className="label">Contacto</label>
                     <input name="contacto" defaultValue={p.contacto ?? ""} className="input" />
                   </div>
+                  <div>
+                    <label className="label">Tipo</label>
+                    <select name="tipo" className="input" defaultValue={p.tipo}>
+                      <option value="insumos">Insumos (proveedor de productos)</option>
+                      <option value="financiero">Financiero (banco / crédito)</option>
+                    </select>
+                  </div>
                   <div className="sm:col-span-3">
                     <SubmitButton className="btn-secondary">Guardar cambios</SubmitButton>
                   </div>
@@ -139,10 +156,10 @@ export default async function ProveedoresPage({
         )}
       </div>
 
-      <details className="card" open={productos.length > 0 && proveedores.length > 0}>
+      <details className="card" open={productos.length > 0 && proveedoresInsumos.length > 0}>
         <summary className="cursor-pointer text-sm font-semibold text-verde-800">Registrar compra</summary>
-        {proveedores.length === 0 || productos.length === 0 ? (
-          <p className="mt-3 text-sm text-tierra-500">Necesitas al menos un proveedor y un producto creados.</p>
+        {proveedoresInsumos.length === 0 || productos.length === 0 ? (
+          <p className="mt-3 text-sm text-tierra-500">Necesitas al menos un proveedor de insumos y un producto creados.</p>
         ) : (
           <form action={registrarCompra} className="mt-4 grid gap-3 sm:grid-cols-2">
             <input type="hidden" name="company" value={company} />
@@ -150,7 +167,7 @@ export default async function ProveedoresPage({
               <label className="label">Proveedor</label>
               <select name="proveedorId" required defaultValue={params.proveedorId ?? ""} className="input">
                 <option value="" disabled>Selecciona un proveedor</option>
-                {proveedores.map((p) => (
+                {proveedoresInsumos.map((p) => (
                   <option key={p.id} value={p.id}>{p.nombre}</option>
                 ))}
               </select>
