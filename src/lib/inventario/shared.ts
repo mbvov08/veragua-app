@@ -1,5 +1,7 @@
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { COMPANIES, type Company } from "@/lib/finanzas/queries";
+import { formatCOP } from "@/lib/finanzas/format";
 
 /** Categoría NIIF por defecto para los movimientos generados desde Inventario. */
 export async function findDefaultCategory(company: Company, codigo: string) {
@@ -10,6 +12,37 @@ export async function findDefaultCategory(company: Company, codigo: string) {
     throw new Error(`No existe la categoría ${codigo}. Créala primero en Finanzas › Categorías.`);
   }
   return categoria;
+}
+
+// Bold cobra 3.29% + $300 fijo por cada venta pagada con tarjeta (confirmado por
+// Daniela). Falta el % de ReteICA que también aplica — cuando se tenga, se suma aquí.
+const BOLD_COMISION_PORCENTAJE = 0.0329;
+const BOLD_COMISION_FIJA = 300;
+
+/** Registra automáticamente el gasto de comisión de Bold cuando una venta se paga con tarjeta. */
+export async function registrarComisionBoldSiAplica(
+  tx: Prisma.TransactionClient,
+  opts: { company: Company; fecha: Date; metodoPago: string | null; montoVenta: number; canalId: string | null; creadoPorId: string }
+) {
+  if (opts.metodoPago !== "Tarjeta" || opts.montoVenta <= 0) return;
+
+  const comision = Math.round(opts.montoVenta * BOLD_COMISION_PORCENTAJE) + BOLD_COMISION_FIJA;
+  const categoria = await findDefaultCategory(opts.company, "5230");
+
+  await tx.finTransaction.create({
+    data: {
+      company: opts.company,
+      tipo: "expense",
+      fecha: opts.fecha,
+      monto: comision,
+      categoriaId: categoria.id,
+      canalId: opts.canalId,
+      metodoPago: "Tarjeta",
+      descripcion: `Comisión Bold (3.29% + $300) sobre venta de ${formatCOP(opts.montoVenta)}`,
+      fuente: "manual",
+      creadoPorId: opts.creadoPorId,
+    },
+  });
 }
 
 export function parseCompany(value: FormDataEntryValue | null): Company {

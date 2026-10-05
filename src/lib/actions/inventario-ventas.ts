@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { dateOnlyToUTC } from "@/lib/date";
 import { requireFinanzas } from "@/lib/actions/finanzas";
-import { parseCompany, parseSaleItems, findDefaultCategory } from "@/lib/inventario/shared";
+import { parseCompany, parseSaleItems, findDefaultCategory, registrarComisionBoldSiAplica } from "@/lib/inventario/shared";
 import { repartirPagoCliente, aplicarCreditoDisponibleCliente } from "@/lib/inventario/credito";
 
 function revalidateVentas() {
@@ -70,6 +70,7 @@ export async function registrarVenta(formData: FormData) {
         },
       });
       finTransactionId = transaction.id;
+      await registrarComisionBoldSiAplica(tx, { company, fecha, metodoPago, montoVenta: total, canalId, creadoPorId: session.user.id });
     }
 
     const sale = await tx.finSale.create({

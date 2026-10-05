@@ -5,7 +5,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { dateOnlyToUTC } from "@/lib/date";
 import { COMPANIES, type Company } from "@/lib/finanzas/queries";
-import { parseSaleItems, findDefaultCategory } from "@/lib/inventario/shared";
+import { parseSaleItems, findDefaultCategory, registrarComisionBoldSiAplica } from "@/lib/inventario/shared";
 import { aplicarCreditoDisponibleCliente } from "@/lib/inventario/credito";
 
 export async function requireFinanzas() {
@@ -80,6 +80,7 @@ async function createTransactionConProductos(
         },
       });
       finTransactionId = transaction.id;
+      await registrarComisionBoldSiAplica(tx, { company, fecha, metodoPago, montoVenta: total, canalId, creadoPorId: session.user.id });
     }
 
     const sale = await tx.finSale.create({
