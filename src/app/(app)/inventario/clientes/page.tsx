@@ -4,7 +4,7 @@ import ImportarContactoButton from "@/components/ImportarContactoButton";
 import { Icon } from "@/components/icons";
 import { resolveCompanyParam, COMPANY_LABEL } from "@/lib/finanzas/queries";
 import { formatCOP } from "@/lib/finanzas/format";
-import { formatDateOnly, todayColombia } from "@/lib/date";
+import { formatDateOnly, formatDateShortEs, todayColombia } from "@/lib/date";
 import { prisma } from "@/lib/prisma";
 import { registrarPagoCliente, crearCliente, editarCliente } from "@/lib/actions/inventario-ventas";
 
@@ -39,8 +39,11 @@ export default async function ClientesPage({
     return c.notas ?? "Saldo pendiente";
   }
 
-  function whatsappLink(telefono: string | null, nombre: string, saldo: number) {
-    const mensaje = `Hola ${nombre.split(" ")[0]}! Te escribimos de Veragua para recordarte con cariño que tienes un saldo pendiente de ${formatCOP(saldo)}. Cuando puedas, nos cuentas 😊 ¡Gracias!`;
+  function whatsappLink(telefono: string | null, nombre: string, saldo: number, facturas: typeof cuentas) {
+    const detalle = facturas
+      .map((f) => `📅 ${formatDateShortEs(f.fecha)} — ${describirCuenta(f)}: ${formatCOP(f.saldo)}`)
+      .join("\n");
+    const mensaje = `Hola ${nombre.split(" ")[0]}! Te escribimos de Veragua para recordarte con cariño que tienes un saldo pendiente de ${formatCOP(saldo)}, de estas facturas:\n\n${detalle}\n\nCuando puedas, nos cuentas 😊 ¡Gracias!`;
     const digitos = telefono?.replace(/\D/g, "") ?? "";
     if (!digitos) {
       // Sin teléfono registrado: igual abre WhatsApp con el mensaje listo, para que
@@ -202,7 +205,7 @@ export default async function ClientesPage({
 
                 <div className="mt-2 rounded-lg border border-verde-100 bg-verde-50/40 p-3">
                   <a
-                    href={whatsappLink(c.telefono, c.nombre, c.saldo)}
+                    href={whatsappLink(c.telefono, c.nombre, c.saldo, c.facturas)}
                     target="_blank"
                     rel="noreferrer"
                     className="chip-edit mb-3 inline-flex items-center gap-1"
