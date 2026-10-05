@@ -226,7 +226,19 @@ export default async function ClientesPage({
                           <p className="truncate text-tierra-800">{describirCuenta(f)}</p>
                           <p className="text-xs text-tierra-500">{formatDateOnly(f.fecha)}</p>
                         </div>
-                        <span className="shrink-0 font-medium text-red-600">{formatCOP(f.saldo)}</span>
+                        <div className="flex shrink-0 items-center gap-2">
+                          <span className="font-medium text-red-600">{formatCOP(f.saldo)}</span>
+                          {f.ventaId && (
+                            <a
+                              href={`/api/inventario/export/comprobante/${f.ventaId}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="chip-edit"
+                            >
+                              Comprobante
+                            </a>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>
