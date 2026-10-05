@@ -600,7 +600,10 @@ model FinTransaction {
   importBatchId    String?
   importBatch      FinImportBatch? @relation(fields: [importBatchId], references: [id])
   esReembolso      Boolean   @default(false)
-  esIntercompania  Boolean   @default(false)
+  // Gasto administrativo fijo compartido entre Veragua y Melcoch (ej. arriendo, nómina
+  // administrativa). Se guarda con company="VERAGUA" como ancla, pero el PyG de cada
+  // empresa reparte el monto según el % de ventas de ESE mes — ver getPnlRows().
+  esCompartido     Boolean   @default(false)
   anulado          Boolean   @default(false)
   anuladoAt        DateTime?
   anuladoPorId     String?

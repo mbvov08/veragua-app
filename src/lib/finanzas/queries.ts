@@ -53,16 +53,58 @@ export async function getTransactionFormData() {
   );
 }
 
+function monthKey(d: Date) {
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+
+/** Ingresos operacionales de cada empresa, mes a mes, dentro del rango — se usa para
+ * repartir los gastos compartidos según el % de ventas de CADA mes (no un promedio del
+ * rango completo). Ignora las transacciones ya compartidas (no tendría sentido repartir
+ * usando un ingreso que a su vez está repartido). */
+async function getMonthlyRevenueByCompany(start: Date, end: Date): Promise<Map<string, Record<Company, number>>> {
+  const transactions = await prisma.finTransaction.findMany({
+    where: { anulado: false, tipo: "income", esCompartido: false, fecha: { gte: start, lte: end } },
+    select: { company: true, fecha: true, monto: true },
+  });
+  const byMonth = new Map<string, Record<Company, number>>();
+  for (const t of transactions) {
+    const key = monthKey(t.fecha);
+    const entry = byMonth.get(key) ?? { VERAGUA: 0, MELCOCH: 0 };
+    entry[t.company as Company] += t.monto;
+    byMonth.set(key, entry);
+  }
+  return byMonth;
+}
+
 export async function getPnlRows(company: Company, start: Date, end: Date): Promise<PnlRow[]> {
   const categories = await getCategories(company);
-  const transactions = await prisma.finTransaction.findMany({
-    where: { company, anulado: false, fecha: { gte: start, lte: end } },
-    select: { categoriaId: true, monto: true },
-  });
+  const [transactions, compartidas] = await Promise.all([
+    prisma.finTransaction.findMany({
+      where: { company, anulado: false, esCompartido: false, fecha: { gte: start, lte: end } },
+      select: { categoriaId: true, monto: true },
+    }),
+    prisma.finTransaction.findMany({
+      where: { anulado: false, esCompartido: true, fecha: { gte: start, lte: end } },
+      select: { categoriaId: true, monto: true, fecha: true },
+    }),
+  ]);
+
   const totals = new Map<string, number>();
   for (const t of transactions) {
     totals.set(t.categoriaId, (totals.get(t.categoriaId) ?? 0) + t.monto);
   }
+
+  if (compartidas.length > 0) {
+    const revenueByMonth = await getMonthlyRevenueByCompany(start, end);
+    for (const t of compartidas) {
+      const revenue = revenueByMonth.get(monthKey(t.fecha)) ?? { VERAGUA: 0, MELCOCH: 0 };
+      const totalRevenue = revenue.VERAGUA + revenue.MELCOCH;
+      // Sin ventas de ninguna empresa ese mes: reparte parejo en vez de con un 0/0.
+      const share = totalRevenue > 0 ? revenue[company] / totalRevenue : 0.5;
+      totals.set(t.categoriaId, (totals.get(t.categoriaId) ?? 0) + t.monto * share);
+    }
+  }
+
   return categories
     .map((c) => ({
       category_id: c.id,
@@ -129,11 +171,28 @@ export function mergeChannelRows(rowSets: ChannelContributionRow[][]): ChannelCo
 }
 
 export async function getSharedOverhead(company: Company, start: Date, end: Date): Promise<number> {
-  const result = await prisma.finTransaction.aggregate({
-    where: { company, anulado: false, tipo: "expense", canalId: null, fecha: { gte: start, lte: end } },
-    _sum: { monto: true },
-  });
-  return result._sum.monto ?? 0;
+  const [result, compartidas] = await Promise.all([
+    prisma.finTransaction.aggregate({
+      where: { company, anulado: false, esCompartido: false, tipo: "expense", canalId: null, fecha: { gte: start, lte: end } },
+      _sum: { monto: true },
+    }),
+    prisma.finTransaction.findMany({
+      where: { anulado: false, esCompartido: true, tipo: "expense", fecha: { gte: start, lte: end } },
+      select: { monto: true, fecha: true },
+    }),
+  ]);
+
+  let total = result._sum.monto ?? 0;
+  if (compartidas.length > 0) {
+    const revenueByMonth = await getMonthlyRevenueByCompany(start, end);
+    for (const t of compartidas) {
+      const revenue = revenueByMonth.get(monthKey(t.fecha)) ?? { VERAGUA: 0, MELCOCH: 0 };
+      const totalRevenue = revenue.VERAGUA + revenue.MELCOCH;
+      const share = totalRevenue > 0 ? revenue[company] / totalRevenue : 0.5;
+      total += t.monto * share;
+    }
+  }
+  return total;
 }
 
 export interface MonthlyTrendPoint {
@@ -144,10 +203,17 @@ export interface MonthlyTrendPoint {
 
 export async function getMonthlyTrend(company: Company, monthsBack: number, endDate: Date): Promise<MonthlyTrendPoint[]> {
   const start = new Date(Date.UTC(endDate.getUTCFullYear(), endDate.getUTCMonth() - (monthsBack - 1), 1, 12, 0, 0));
-  const transactions = await prisma.finTransaction.findMany({
-    where: { company, anulado: false, fecha: { gte: start } },
-    select: { fecha: true, tipo: true, monto: true },
-  });
+  const end = new Date(Date.UTC(endDate.getUTCFullYear(), endDate.getUTCMonth() + 1, 0, 23, 59, 59));
+  const [transactions, compartidas] = await Promise.all([
+    prisma.finTransaction.findMany({
+      where: { company, anulado: false, esCompartido: false, fecha: { gte: start } },
+      select: { fecha: true, tipo: true, monto: true },
+    }),
+    prisma.finTransaction.findMany({
+      where: { anulado: false, esCompartido: true, fecha: { gte: start, lte: end } },
+      select: { fecha: true, tipo: true, monto: true },
+    }),
+  ]);
 
   const points = new Map<string, MonthlyTrendPoint>();
   for (let i = 0; i < monthsBack; i++) {
@@ -156,12 +222,27 @@ export async function getMonthlyTrend(company: Company, monthsBack: number, endD
     points.set(key, { month: key, income: 0, expense: 0 });
   }
   for (const t of transactions) {
-    const key = `${t.fecha.getUTCFullYear()}-${String(t.fecha.getUTCMonth() + 1).padStart(2, "0")}`;
+    const key = monthKey(t.fecha);
     const point = points.get(key);
     if (!point) continue;
     if (t.tipo === "income") point.income += t.monto;
     else point.expense += t.monto;
   }
+
+  if (compartidas.length > 0) {
+    const revenueByMonth = await getMonthlyRevenueByCompany(start, end);
+    for (const t of compartidas) {
+      const key = monthKey(t.fecha);
+      const point = points.get(key);
+      if (!point) continue;
+      const revenue = revenueByMonth.get(key) ?? { VERAGUA: 0, MELCOCH: 0 };
+      const totalRevenue = revenue.VERAGUA + revenue.MELCOCH;
+      const share = totalRevenue > 0 ? revenue[company] / totalRevenue : 0.5;
+      if (t.tipo === "income") point.income += t.monto * share;
+      else point.expense += t.monto * share;
+    }
+  }
+
   return Array.from(points.values());
 }
 

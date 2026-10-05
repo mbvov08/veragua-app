@@ -129,7 +129,7 @@ export async function createTransaction(formData: FormData) {
   const metodoPago = String(formData.get("metodoPago") ?? "").trim() || null;
   const descripcion = String(formData.get("descripcion") ?? "").trim() || null;
   const contraparte = String(formData.get("contraparte") ?? "").trim() || null;
-  const esIntercompania = formData.get("esIntercompania") === "on";
+  const esCompartido = formData.get("esCompartido") === "on";
 
   if (tipo !== "income" && tipo !== "expense") throw new Error("Tipo inválido.");
   if (!fechaStr) throw new Error("La fecha es obligatoria.");
@@ -143,18 +143,27 @@ export async function createTransaction(formData: FormData) {
   if (!(monto > 0)) throw new Error("El monto debe ser mayor a cero.");
   if (!categoriaId) throw new Error("Selecciona una categoría.");
 
+  if (esCompartido) {
+    const categoria = await prisma.finCategory.findUniqueOrThrow({ where: { id: categoriaId } });
+    if (categoria.tipo !== "gasto_admin") {
+      throw new Error("Solo los gastos administrativos fijos se pueden marcar como compartidos.");
+    }
+  }
+
   await prisma.finTransaction.create({
     data: {
-      company,
+      // Un gasto compartido se ancla a VERAGUA sin importar qué empresa se seleccionó en
+      // el formulario — el reparto real lo calcula el PyG según las ventas de cada mes.
+      company: esCompartido ? "VERAGUA" : company,
       tipo,
       fecha: dateOnlyToUTC(fechaStr),
       monto,
       categoriaId,
-      canalId,
+      canalId: esCompartido ? null : canalId,
       metodoPago,
       descripcion,
       contraparte,
-      esIntercompania,
+      esCompartido,
       fuente: "manual",
       creadoPorId: session.user.id,
     },
@@ -174,7 +183,6 @@ export async function updateTransaction(transactionId: string, formData: FormDat
   const metodoPago = String(formData.get("metodoPago") ?? "").trim() || null;
   const descripcion = String(formData.get("descripcion") ?? "").trim() || null;
   const contraparte = String(formData.get("contraparte") ?? "").trim() || null;
-  const esIntercompania = formData.get("esIntercompania") === "on";
 
   if (tipo !== "income" && tipo !== "expense") throw new Error("Tipo inválido.");
   if (!fechaStr) throw new Error("La fecha es obligatoria.");
@@ -192,7 +200,6 @@ export async function updateTransaction(transactionId: string, formData: FormDat
       metodoPago,
       descripcion,
       contraparte,
-      esIntercompania,
     },
   });
 

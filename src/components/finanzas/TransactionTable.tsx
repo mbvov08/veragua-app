@@ -42,7 +42,14 @@ export default function TransactionTable({ transactions }: { transactions: Trans
                   {t.tipo === "income" ? "Ingreso" : "Egreso"}
                 </span>
               </td>
-              <td className="whitespace-nowrap py-2">{t.categoria.codigo} · {t.categoria.nombre}</td>
+              <td className="whitespace-nowrap py-2">
+                {t.categoria.codigo} · {t.categoria.nombre}
+                {t.esCompartido && (
+                  <span className="badge ml-1 bg-dorado-100 text-tierra-700" title="Se reparte con Melcoch en el PyG según las ventas de cada mes">
+                    🔀 Compartido
+                  </span>
+                )}
+              </td>
               <td className="whitespace-nowrap py-2">{t.canal?.nombre ?? "—"}</td>
               <td className="max-w-[220px] truncate py-2">{t.descripcion ?? "—"}</td>
               <td className="whitespace-nowrap py-2 text-right">{formatCOP(t.monto)}</td>

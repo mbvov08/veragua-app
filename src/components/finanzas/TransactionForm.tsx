@@ -37,6 +37,7 @@ export default function TransactionForm({ companies, kind, transaction }: Transa
   const channelRequired = kind === "venta";
 
   const activeCompany = companies.find((c) => c.company === company) ?? companies[0];
+  const [categoriaId, setCategoriaId] = useState(transaction?.categoriaId ?? "");
 
   const filteredCategories = useMemo(() => {
     if (!activeCompany) return [];
@@ -47,6 +48,9 @@ export default function TransactionForm({ companies, kind, transaction }: Transa
         : c.tipo !== "ingreso_operacional" && c.tipo !== "ingreso_no_operacional"
     );
   }, [activeCompany, kind, tipo]);
+
+  const selectedCategoria = filteredCategories.find((c) => c.id === categoriaId);
+  const puedeSerCompartido = kind === "gasto" && !isEdit && selectedCategoria?.tipo === "gasto_admin";
 
   const [resetKey, createAndReset] = useActionState(async (_prevKey: number, formData: FormData) => {
     await createTransaction(formData);
@@ -145,7 +149,13 @@ export default function TransactionForm({ companies, kind, transaction }: Transa
 
       <div className="sm:col-span-2">
         <label className="label">Categoría</label>
-        <select name="categoriaId" required defaultValue={transaction?.categoriaId} className="input">
+        <select
+          name="categoriaId"
+          required
+          value={categoriaId}
+          onChange={(e) => setCategoriaId(e.target.value)}
+          className="input"
+        >
           <option value="" disabled>
             Selecciona una categoría
           </option>
@@ -194,18 +204,20 @@ export default function TransactionForm({ companies, kind, transaction }: Transa
         <textarea name="descripcion" rows={2} defaultValue={transaction?.descripcion ?? ""} className="input" />
       </div>
 
-      <div className="sm:col-span-2 flex items-center gap-2">
-        <input
-          type="checkbox"
-          name="esIntercompania"
-          id="esIntercompania"
-          defaultChecked={transaction?.esIntercompania ?? false}
-          className="h-4 w-4"
-        />
-        <label htmlFor="esIntercompania" className="text-sm text-tierra-700">
-          Es una transacción entre Veragua y Melcoch (intercompañía)
-        </label>
-      </div>
+      {puedeSerCompartido && (
+        <div className="sm:col-span-2 rounded-lg border border-dorado-200 bg-dorado-50 p-3">
+          <div className="flex items-center gap-2">
+            <input type="checkbox" name="esCompartido" id="esCompartido" className="h-4 w-4" />
+            <label htmlFor="esCompartido" className="text-sm font-medium text-tierra-800">
+              Es un gasto compartido entre Veragua y Melcoch
+            </label>
+          </div>
+          <p className="mt-1 text-xs text-tierra-500">
+            No lo asignes a una sola empresa: en el PyG de cada una se reparte solo según el
+            % de ventas de ese mes (ej. si Melcoch vendió 20% del total, absorbe el 20% de este gasto).
+          </p>
+        </div>
+      )}
 
       <div className="sm:col-span-2">
         <SubmitButton pendingText="Guardando...">
