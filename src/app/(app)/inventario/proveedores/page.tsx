@@ -3,6 +3,7 @@ import ItemsPicker, { type Item } from "@/components/inventario/SaleItemsPicker"
 import SubmitButton from "@/components/SubmitButton";
 import ConfirmButton from "@/components/ConfirmButton";
 import { Icon } from "@/components/icons";
+import ImportarContactoButton from "@/components/ImportarContactoButton";
 import { resolveCompanyParam, COMPANY_LABEL } from "@/lib/finanzas/queries";
 import { formatCOP } from "@/lib/finanzas/format";
 import { formatDateOnly, formatDateShortEs, todayColombia } from "@/lib/date";
@@ -71,15 +72,18 @@ export default async function ProveedoresPage({
         <form action={crearProveedor} className="mt-4 grid gap-3 sm:grid-cols-3">
           <div>
             <label className="label">Nombre</label>
-            <input name="nombre" required className="input" />
+            <input id="proveedorNombre" name="nombre" required className="input" />
           </div>
           <div>
             <label className="label">Teléfono (opcional)</label>
-            <input name="telefono" className="input" />
+            <input id="proveedorTelefono" name="telefono" className="input" />
           </div>
           <div>
             <label className="label">Contacto (opcional)</label>
             <input name="contacto" className="input" />
+          </div>
+          <div className="sm:col-span-3">
+            <ImportarContactoButton nombreInputId="proveedorNombre" telefonoInputId="proveedorTelefono" />
           </div>
           <div className="sm:col-span-3">
             <SubmitButton>Guardar proveedor</SubmitButton>

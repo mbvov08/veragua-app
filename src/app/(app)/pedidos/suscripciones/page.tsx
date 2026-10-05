@@ -4,6 +4,7 @@ import { formatDateOnly, todayColombia, DIAS_SEMANA } from "@/lib/date";
 import { formatCOP } from "@/lib/finanzas/format";
 import OrderItemsPicker from "@/components/OrderItemsPicker";
 import ClienteAutofill from "@/components/ClienteAutofill";
+import ImportarContactoButton from "@/components/ImportarContactoButton";
 import SubmitButton from "@/components/SubmitButton";
 import ConfirmButton from "@/components/ConfirmButton";
 import { crearSuscripcion, renovarSuscripcion, cancelarSuscripcion } from "@/lib/actions/suscripciones";
@@ -42,7 +43,10 @@ export default async function SuscripcionesPage() {
           </div>
           <div>
             <label className="label">Teléfono (opcional)</label>
-            <input id="telefono" name="telefono" className="input" />
+            <div className="flex items-center gap-2">
+              <input id="telefono" name="telefono" className="input" />
+              <ImportarContactoButton nombreInputId="cliente" telefonoInputId="telefono" />
+            </div>
           </div>
           <div className="sm:col-span-2">
             <label className="label">Dirección</label>

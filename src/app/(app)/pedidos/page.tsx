@@ -9,6 +9,7 @@ import OrderItemsPicker from "@/components/OrderItemsPicker";
 import ZonaFechaSync from "@/components/ZonaFechaSync";
 import SubmitButton from "@/components/SubmitButton";
 import ClienteAutofill from "@/components/ClienteAutofill";
+import ImportarContactoButton from "@/components/ImportarContactoButton";
 
 const ZONA_LABEL: Record<string, string> = {
   LOCAL: "Local",
@@ -81,9 +82,12 @@ export default async function PedidosPage({
           <div>
             <label className="label">Cliente</label>
             <input id="cliente" name="cliente" list="clientes-existentes" required className="input" />
-            <p className="mt-1 text-xs text-tierra-400">
-              Si ya pediste antes con este nombre, dirección/teléfono/zona se completan solos.
-            </p>
+            <div className="mt-1 flex flex-wrap items-center gap-2">
+              <p className="text-xs text-tierra-400">
+                Si ya pediste antes con este nombre, dirección/teléfono/zona se completan solos.
+              </p>
+              <ImportarContactoButton nombreInputId="cliente" telefonoInputId="telefono" />
+            </div>
           </div>
           <div>
             <label className="label">Teléfono (opcional)</label>
