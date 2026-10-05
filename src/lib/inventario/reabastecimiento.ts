@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { addDays, formatDateOnly, todayColombia } from "@/lib/date";
-import { computeSingleProductStock } from "@/lib/inventario/stock";
+import { computeProductStocks } from "@/lib/inventario/stock";
+import { mapWithConcurrency } from "@/lib/concurrency";
 import type { Company } from "@/lib/finanzas/queries";
 
 /** 95% de nivel de servicio. Cambiar aquí si algún día se quiere ajustar. */
@@ -62,6 +63,175 @@ export async function computeDemandStats(productoId: string, ventanaDias = 180):
   };
 }
 
+type RelacionActiva = {
+  id: string;
+  productoId: string;
+  proveedorId: string;
+  proveedorNombre: string;
+  leadTimeDias: number;
+  diasRevision: number;
+  costoUnitarioReferencia: number | null;
+};
+
+/**
+ * Misma matemática que computeDemandStats()/computeSuggestionsForProduct()/
+ * registrarForecastSiNecesario(), pero para TODOS los productos con relación activa de
+ * una sola pasada: ~6 consultas en total en vez de ~5 por producto (con 30+ productos,
+ * eso eran más de 150 consultas secuenciales — suficiente para agotar el pool de
+ * conexiones de Prisma o, con una conexión lenta a Supabase, tardar más de un minuto en
+ * cargar la página).
+ */
+export async function computeReabastecimientoBulk(
+  company: Company,
+  productos: { id: string; createdAt: Date }[],
+  relacionesActivas: RelacionActiva[],
+  ventanaDias = 180
+): Promise<{ statsPorProducto: Map<string, DemandStats>; sugerenciasPorProducto: Map<string, Suggestion[]> }> {
+  const productIds = productos.map((p) => p.id);
+  if (productIds.length === 0) return { statsPorProducto: new Map(), sugerenciasPorProducto: new Map() };
+
+  const hoy = todayColombia();
+  const inicioVentana = addDays(hoy, -(ventanaDias - 1));
+
+  const [ventas, stocks, enTransitoItems, forecastsDeHoy] = await Promise.all([
+    prisma.finSaleItem.findMany({
+      where: { productoId: { in: productIds }, sale: { fecha: { gte: inicioVentana, lte: hoy } } },
+      select: { productoId: true, cantidad: true, sale: { select: { fecha: true } } },
+    }),
+    computeProductStocks(company),
+    prisma.finPurchaseItem.findMany({
+      where: { productoId: { in: productIds }, purchase: { recibido: false } },
+      select: { productoId: true, cantidad: true, purchase: { select: { proveedorId: true } } },
+    }),
+    prisma.finDemandForecast.findMany({
+      where: { productoId: { in: productIds }, periodoInicio: hoy },
+      select: { productoId: true },
+    }),
+  ]);
+
+  const stockMap = new Map(stocks.map((s) => [s.id, s.stock]));
+
+  const ventasPorProducto = new Map<string, { fecha: Date; cantidad: number }[]>();
+  for (const v of ventas) {
+    const arr = ventasPorProducto.get(v.productoId) ?? [];
+    arr.push({ fecha: v.sale.fecha, cantidad: v.cantidad });
+    ventasPorProducto.set(v.productoId, arr);
+  }
+
+  const enTransitoMap = new Map<string, number>();
+  for (const it of enTransitoItems) {
+    const key = `${it.productoId}:${it.purchase.proveedorId}`;
+    enTransitoMap.set(key, (enTransitoMap.get(key) ?? 0) + it.cantidad);
+  }
+
+  const yaTieneForecastHoy = new Set(forecastsDeHoy.map((f) => f.productoId));
+
+  const statsPorProducto = new Map<string, DemandStats>();
+  for (const producto of productos) {
+    const creado = new Date(
+      Date.UTC(producto.createdAt.getUTCFullYear(), producto.createdAt.getUTCMonth(), producto.createdAt.getUTCDate(), 12)
+    );
+    const inicio = creado > inicioVentana ? creado : inicioVentana;
+
+    const porDia = new Map<string, number>();
+    for (const v of ventasPorProducto.get(producto.id) ?? []) {
+      const key = formatDateOnly(v.fecha);
+      porDia.set(key, (porDia.get(key) ?? 0) + v.cantidad);
+    }
+
+    const valores: number[] = [];
+    for (let d = inicio; d <= hoy; d = addDays(d, 1)) {
+      valores.push(porDia.get(formatDateOnly(d)) ?? 0);
+    }
+
+    const diasConDatos = valores.length;
+    const demandaDiariaProm = diasConDatos > 0 ? valores.reduce((s, v) => s + v, 0) / diasConDatos : 0;
+    let demandaDiariaDesv = 0;
+    if (diasConDatos >= 2) {
+      const varianza = valores.reduce((s, v) => s + (v - demandaDiariaProm) ** 2, 0) / (diasConDatos - 1);
+      demandaDiariaDesv = Math.sqrt(varianza);
+    }
+
+    statsPorProducto.set(producto.id, {
+      demandaDiariaProm,
+      demandaDiariaDesv,
+      diasConDatos,
+      confianzaBaja: diasConDatos < 30,
+    });
+  }
+
+  const relacionesPorProducto = new Map<string, RelacionActiva[]>();
+  for (const rel of relacionesActivas) {
+    const arr = relacionesPorProducto.get(rel.productoId) ?? [];
+    arr.push(rel);
+    relacionesPorProducto.set(rel.productoId, arr);
+  }
+
+  const sugerenciasPorProducto = new Map<string, Suggestion[]>();
+  const nuevosForecasts: {
+    productoId: string;
+    ventanaDias: number;
+    demandaDiariaProm: number;
+    demandaDiariaDesv: number;
+    periodoInicio: Date;
+    periodoFin: Date;
+    demandaPronosticada: number;
+  }[] = [];
+
+  for (const producto of productos) {
+    const stats = statsPorProducto.get(producto.id)!;
+    const rels = relacionesPorProducto.get(producto.id) ?? [];
+    const stockActual = stockMap.get(producto.id) ?? 0;
+
+    if (stats.diasConDatos >= 2 && !yaTieneForecastHoy.has(producto.id)) {
+      const dias = rels.length > 0 ? Math.min(...rels.map((r) => r.diasRevision)) : 7;
+      nuevosForecasts.push({
+        productoId: producto.id,
+        ventanaDias,
+        demandaDiariaProm: stats.demandaDiariaProm,
+        demandaDiariaDesv: stats.demandaDiariaDesv,
+        periodoInicio: hoy,
+        periodoFin: addDays(hoy, dias),
+        demandaPronosticada: stats.demandaDiariaProm * dias,
+      });
+    }
+
+    const sugerencias: Suggestion[] = rels.map((rel) => {
+      const enTransito = enTransitoMap.get(`${producto.id}:${rel.proveedorId}`) ?? 0;
+      const inventarioSeguridad =
+        stats.diasConDatos >= 2 ? SERVICE_LEVEL_Z * stats.demandaDiariaDesv * Math.sqrt(rel.leadTimeDias) : 0;
+      const puntoReorden = stats.demandaDiariaProm * rel.leadTimeDias + inventarioSeguridad;
+      const stockObjetivo = stats.demandaDiariaProm * (rel.leadTimeDias + rel.diasRevision) + inventarioSeguridad;
+      const disponibleProyectado = stockActual + enTransito;
+      const cantidadSugerida = Math.max(0, Math.round(stockObjetivo - disponibleProyectado));
+
+      return {
+        relacionId: rel.id,
+        proveedorId: rel.proveedorId,
+        proveedorNombre: rel.proveedorNombre,
+        leadTimeDias: rel.leadTimeDias,
+        diasRevision: rel.diasRevision,
+        inventarioSeguridad,
+        puntoReorden,
+        stockObjetivo,
+        stockActual,
+        enTransito,
+        disponibleProyectado,
+        cantidadSugerida,
+        pedirYa: disponibleProyectado <= puntoReorden,
+        costoUnitarioReferencia: rel.costoUnitarioReferencia,
+      };
+    });
+    sugerenciasPorProducto.set(producto.id, sugerencias);
+  }
+
+  if (nuevosForecasts.length > 0) {
+    await prisma.finDemandForecast.createMany({ data: nuevosForecasts });
+  }
+
+  return { statsPorProducto, sugerenciasPorProducto };
+}
+
 export type Suggestion = {
   relacionId: string;
   proveedorId: string;
@@ -79,83 +249,6 @@ export type Suggestion = {
   costoUnitarioReferencia: number | null;
 };
 
-export async function computeSuggestionsForProduct(
-  productoId: string,
-  stats: DemandStats
-): Promise<Suggestion[]> {
-  const [relaciones, stockActual] = await Promise.all([
-    prisma.finProductoProveedor.findMany({
-      where: { productoId, activo: true },
-      include: { proveedor: true },
-    }),
-    computeSingleProductStock(productoId),
-  ]);
-
-  const sugerencias: Suggestion[] = [];
-  for (const rel of relaciones) {
-    const enTransitoAgg = await prisma.finPurchaseItem.aggregate({
-      where: { productoId, purchase: { proveedorId: rel.proveedorId, recibido: false } },
-      _sum: { cantidad: true },
-    });
-    const enTransito = enTransitoAgg._sum.cantidad ?? 0;
-
-    const inventarioSeguridad =
-      stats.diasConDatos >= 2 ? SERVICE_LEVEL_Z * stats.demandaDiariaDesv * Math.sqrt(rel.leadTimeDias) : 0;
-    const puntoReorden = stats.demandaDiariaProm * rel.leadTimeDias + inventarioSeguridad;
-    const stockObjetivo = stats.demandaDiariaProm * (rel.leadTimeDias + rel.diasRevision) + inventarioSeguridad;
-    const disponibleProyectado = stockActual + enTransito;
-    const cantidadSugerida = Math.max(0, Math.round(stockObjetivo - disponibleProyectado));
-
-    sugerencias.push({
-      relacionId: rel.id,
-      proveedorId: rel.proveedorId,
-      proveedorNombre: rel.proveedor.nombre,
-      leadTimeDias: rel.leadTimeDias,
-      diasRevision: rel.diasRevision,
-      inventarioSeguridad,
-      puntoReorden,
-      stockObjetivo,
-      stockActual,
-      enTransito,
-      disponibleProyectado,
-      cantidadSugerida,
-      pedirYa: disponibleProyectado <= puntoReorden,
-      costoUnitarioReferencia: rel.costoUnitarioReferencia,
-    });
-  }
-  return sugerencias;
-}
-
-/** Guarda una foto del pronóstico de hoy, una sola vez por día por producto. */
-export async function registrarForecastSiNecesario(productoId: string, stats: DemandStats) {
-  if (stats.diasConDatos < 2) return;
-
-  const hoy = todayColombia();
-  const existente = await prisma.finDemandForecast.findFirst({
-    where: { productoId, periodoInicio: hoy },
-  });
-  if (existente) return;
-
-  const relaciones = await prisma.finProductoProveedor.findMany({
-    where: { productoId, activo: true },
-    select: { diasRevision: true },
-  });
-  const dias = relaciones.length > 0 ? Math.min(...relaciones.map((r) => r.diasRevision)) : 7;
-  const periodoFin = addDays(hoy, dias);
-
-  await prisma.finDemandForecast.create({
-    data: {
-      productoId,
-      ventanaDias: 180,
-      demandaDiariaProm: stats.demandaDiariaProm,
-      demandaDiariaDesv: stats.demandaDiariaDesv,
-      periodoInicio: hoy,
-      periodoFin,
-      demandaPronosticada: stats.demandaDiariaProm * dias,
-    },
-  });
-}
-
 /** Rellena demandaReal de pronósticos cuyo período ya pasó. Se llama al cargar la página (sin cron). */
 export async function rellenarDemandaRealPendiente(company: Company) {
   const hoy = todayColombia();
@@ -163,7 +256,7 @@ export async function rellenarDemandaRealPendiente(company: Company) {
     where: { demandaReal: null, periodoFin: { lt: hoy }, producto: { company } },
   });
 
-  for (const f of pendientes) {
+  await mapWithConcurrency(pendientes, 4, async (f) => {
     const agg = await prisma.finSaleItem.aggregate({
       where: { productoId: f.productoId, sale: { fecha: { gte: f.periodoInicio, lte: f.periodoFin } } },
       _sum: { cantidad: true },
@@ -172,7 +265,7 @@ export async function rellenarDemandaRealPendiente(company: Company) {
       where: { id: f.id },
       data: { demandaReal: agg._sum.cantidad ?? 0 },
     });
-  }
+  });
 }
 
 export async function getForecastHistory(company: Company, take = 30) {
@@ -230,13 +323,14 @@ export async function computeGalponBalances(company: Company): Promise<GalponBal
 
   const { promedio: produccionDiariaProm, diasConRegistro } = await computeProduccionGalponDiaria();
 
-  const balances: GalponBalance[] = [];
-  for (const producto of productos) {
-    const stats = await computeDemandStats(producto.id);
+  const statsPorProducto = await mapWithConcurrency(productos, 4, (p) => computeDemandStats(p.id));
+
+  return productos.map((producto, i) => {
+    const stats = statsPorProducto[i];
     // La demanda está en unidades del producto (ej. cartones de 30); se convierte a
     // unidades del galpón (huevos sueltos) para comparar contra la producción.
     const demandaEnUnidadesGalpon = stats.demandaDiariaProm * producto.unidadesGalpon;
-    balances.push({
+    return {
       productoId: producto.id,
       productoNombre: producto.nombre,
       produccionDiariaProm,
@@ -244,7 +338,6 @@ export async function computeGalponBalances(company: Company): Promise<GalponBal
       demandaDiariaProm: demandaEnUnidadesGalpon,
       balance: produccionDiariaProm - demandaEnUnidadesGalpon,
       deficit: produccionDiariaProm < demandaEnUnidadesGalpon,
-    });
-  }
-  return balances;
+    };
+  });
 }

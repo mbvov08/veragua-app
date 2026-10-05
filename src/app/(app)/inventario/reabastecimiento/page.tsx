@@ -6,14 +6,10 @@ import { resolveCompanyParam, COMPANY_LABEL } from "@/lib/finanzas/queries";
 import { formatDateOnly } from "@/lib/date";
 import { prisma } from "@/lib/prisma";
 import {
-  computeDemandStats,
-  computeSuggestionsForProduct,
+  computeReabastecimientoBulk,
   computeGalponBalances,
-  registrarForecastSiNecesario,
   rellenarDemandaRealPendiente,
   getForecastHistory,
-  type DemandStats,
-  type Suggestion,
 } from "@/lib/inventario/reabastecimiento";
 import {
   crearRelacionProductoProveedor,
@@ -50,14 +46,19 @@ export default async function ReabastecimientoPage({
   const productosConRelacion = new Map<string, (typeof productos)[number]>();
   for (const r of relacionesActivas) productosConRelacion.set(r.productoId, r.producto);
 
-  const statsPorProducto = new Map<string, DemandStats>();
-  const sugerenciasPorProducto = new Map<string, Suggestion[]>();
-  for (const productoId of productosConRelacion.keys()) {
-    const stats = await computeDemandStats(productoId);
-    statsPorProducto.set(productoId, stats);
-    await registrarForecastSiNecesario(productoId, stats);
-    sugerenciasPorProducto.set(productoId, await computeSuggestionsForProduct(productoId, stats));
-  }
+  const { statsPorProducto, sugerenciasPorProducto } = await computeReabastecimientoBulk(
+    company,
+    [...productosConRelacion.values()],
+    relacionesActivas.map((r) => ({
+      id: r.id,
+      productoId: r.productoId,
+      proveedorId: r.proveedorId,
+      proveedorNombre: r.proveedor.nombre,
+      leadTimeDias: r.leadTimeDias,
+      diasRevision: r.diasRevision,
+      costoUnitarioReferencia: r.costoUnitarioReferencia,
+    }))
+  );
 
   // Agrupa sugerencias por proveedor, para el botón "Armar pedido a X".
   const porProveedor = new Map<string, { nombre: string; items: { productoId: string; nombre: string; cantidad: number }[] }>();
