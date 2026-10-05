@@ -4,11 +4,8 @@ import { useState } from "react";
 
 const METODOS = [
   { value: "Efectivo", emoji: "💵" },
-  { value: "Tarjeta", emoji: "💳" },
   { value: "Transferencia", emoji: "🏦" },
-  { value: "Nequi", emoji: "📱" },
-  { value: "Daviplata", emoji: "📲" },
-  { value: "Otro", emoji: "➕" },
+  { value: "Tarjeta", emoji: "💳" },
 ];
 
 export default function MetodoPagoPicker({ name = "metodoPago" }: { name?: string }) {
@@ -18,7 +15,7 @@ export default function MetodoPagoPicker({ name = "metodoPago" }: { name?: strin
     <div className="sm:col-span-2">
       <label className="label">Método de pago</label>
       <input type="hidden" name={name} value={metodo} />
-      <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+      <div className="grid grid-cols-3 gap-2">
         {METODOS.map((m) => (
           <button
             key={m.value}
