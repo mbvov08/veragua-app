@@ -8,7 +8,7 @@ import { resolveCompanyParam, COMPANY_LABEL } from "@/lib/finanzas/queries";
 import { formatCOP } from "@/lib/finanzas/format";
 import { formatDateOnly, formatDateShortEs, todayColombia } from "@/lib/date";
 import { prisma } from "@/lib/prisma";
-import { crearProveedor, registrarCompra, registrarPagoProveedor, marcarCompraRecibida } from "@/lib/actions/inventario-compras";
+import { crearProveedor, editarProveedor, registrarCompra, registrarPagoProveedor, marcarCompraRecibida } from "@/lib/actions/inventario-compras";
 
 export default async function ProveedoresPage({
   searchParams,
@@ -90,6 +90,54 @@ export default async function ProveedoresPage({
           </div>
         </form>
       </details>
+
+      <div className="card">
+        <h2 className="mb-3 text-sm font-semibold text-verde-800">Todos los proveedores ({proveedores.length})</h2>
+        {proveedores.length === 0 ? (
+          <p className="text-sm text-tierra-500">Todavía no hay proveedores registrados.</p>
+        ) : (
+          <div className="divide-y divide-verde-50">
+            {proveedores.map((p) => (
+              <details key={p.id} className="group py-1">
+                <summary className="flex cursor-pointer list-none items-center gap-3 rounded-lg px-1 py-2 hover:bg-verde-50/60">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-tierra-800">{p.nombre}</p>
+                    <p className="text-xs text-tierra-500">
+                      {p.contacto ? `${p.contacto}` : "Sin contacto"}
+                      {p.telefono ? ` · ${p.telefono}` : ""}
+                    </p>
+                  </div>
+                  {!p.telefono && <span className="badge bg-tierra-100 text-tierra-500">Sin teléfono</span>}
+                  <Icon name="chevron-right" className="h-4 w-4 shrink-0 text-tierra-400 transition-transform group-open:rotate-90" />
+                </summary>
+                <form
+                  action={editarProveedor.bind(null, p.id)}
+                  className="mt-2 grid gap-3 rounded-lg border border-verde-100 bg-verde-50/40 p-3 sm:grid-cols-3"
+                >
+                  <div>
+                    <label className="label">Nombre</label>
+                    <input id={`proveedorNombre-${p.id}`} name="nombre" required defaultValue={p.nombre} className="input" />
+                  </div>
+                  <div>
+                    <label className="label">Teléfono</label>
+                    <div className="flex items-center gap-2">
+                      <input id={`proveedorTelefono-${p.id}`} name="telefono" defaultValue={p.telefono ?? ""} className="input" />
+                      <ImportarContactoButton nombreInputId={`proveedorNombre-${p.id}`} telefonoInputId={`proveedorTelefono-${p.id}`} />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="label">Contacto</label>
+                    <input name="contacto" defaultValue={p.contacto ?? ""} className="input" />
+                  </div>
+                  <div className="sm:col-span-3">
+                    <SubmitButton className="btn-secondary">Guardar cambios</SubmitButton>
+                  </div>
+                </form>
+              </details>
+            ))}
+          </div>
+        )}
+      </div>
 
       <details className="card" open={productos.length > 0 && proveedores.length > 0}>
         <summary className="cursor-pointer text-sm font-semibold text-verde-800">Registrar compra</summary>

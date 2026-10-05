@@ -34,6 +34,20 @@ export async function crearProveedor(formData: FormData) {
   revalidateProveedores();
 }
 
+export async function editarProveedor(proveedorId: string, formData: FormData) {
+  await requireFinanzas();
+  const nombre = String(formData.get("nombre") ?? "").trim();
+  const telefono = String(formData.get("telefono") ?? "").trim() || null;
+  const contacto = String(formData.get("contacto") ?? "").trim() || null;
+  if (!nombre) throw new Error("El nombre del proveedor es obligatorio.");
+
+  const existing = await prisma.proveedor.findUnique({ where: { nombre } });
+  if (existing && existing.id !== proveedorId) throw new Error("Ya existe otro proveedor con ese nombre.");
+
+  await prisma.proveedor.update({ where: { id: proveedorId }, data: { nombre, telefono, contacto } });
+  revalidateProveedores();
+}
+
 export async function registrarCompra(formData: FormData) {
   const session = await requireFinanzas();
 

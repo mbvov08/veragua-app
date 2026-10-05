@@ -166,3 +166,33 @@ export async function registrarPagoCliente(formData: FormData) {
   revalidatePath("/finanzas/pyg");
   revalidatePath("/finanzas/canales");
 }
+
+export async function crearCliente(formData: FormData) {
+  await requireFinanzas();
+  const nombre = String(formData.get("nombre") ?? "").trim();
+  const telefono = String(formData.get("telefono") ?? "").trim() || null;
+  const direccion = String(formData.get("direccion") ?? "").trim();
+  const zona = String(formData.get("zona") ?? "LOCAL");
+  if (!nombre) throw new Error("El nombre del cliente es obligatorio.");
+
+  const existing = await prisma.cliente.findUnique({ where: { nombre } });
+  if (existing) throw new Error("Ya existe un cliente con ese nombre.");
+
+  await prisma.cliente.create({ data: { nombre, telefono, direccion, zona } });
+  revalidateVentas();
+}
+
+export async function editarCliente(clienteId: string, formData: FormData) {
+  await requireFinanzas();
+  const nombre = String(formData.get("nombre") ?? "").trim();
+  const telefono = String(formData.get("telefono") ?? "").trim() || null;
+  const direccion = String(formData.get("direccion") ?? "").trim();
+  const zona = String(formData.get("zona") ?? "LOCAL");
+  if (!nombre) throw new Error("El nombre del cliente es obligatorio.");
+
+  const existing = await prisma.cliente.findUnique({ where: { nombre } });
+  if (existing && existing.id !== clienteId) throw new Error("Ya existe otro cliente con ese nombre.");
+
+  await prisma.cliente.update({ where: { id: clienteId }, data: { nombre, telefono, direccion, zona } });
+  revalidateVentas();
+}
