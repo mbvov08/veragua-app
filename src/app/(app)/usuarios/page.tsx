@@ -4,8 +4,8 @@ import { createUser, toggleUserActive, toggleUserFinanzas, resetUserPassword } f
 import ConfirmButton from "@/components/ConfirmButton";
 
 const ROL_LABEL: Record<string, string> = {
-  ADMIN: "Administradora",
-  EMPLEADA: "Empleada (local)",
+  ADMIN: "Gerencia",
+  EMPLEADA: "Coordinadora de operaciones",
   GALPON: "Encargado(a) de galpón",
 };
 
@@ -38,9 +38,9 @@ export default async function UsuariosPage() {
           <div>
             <label className="label">Rol</label>
             <select name="role" className="input" defaultValue="EMPLEADA">
-              <option value="EMPLEADA">Empleada (local)</option>
+              <option value="EMPLEADA">Coordinadora de operaciones</option>
               <option value="GALPON">Encargado(a) de galpón</option>
-              <option value="ADMIN">Administradora</option>
+              <option value="ADMIN">Gerencia</option>
             </select>
           </div>
           <div className="sm:col-span-4">

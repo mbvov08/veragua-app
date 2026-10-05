@@ -37,8 +37,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const isGalpon = session.user.role === "GALPON";
   const puedeVerFinanzas = isAdmin || session.user.puedeVerFinanzas;
   const ROL_LABEL: Record<string, string> = {
-    ADMIN: "Administradora",
-    EMPLEADA: "Empleada",
+    ADMIN: "Gerencia",
+    EMPLEADA: "Coordinadora de operaciones",
     GALPON: "Encargado(a) de galpón",
   };
 

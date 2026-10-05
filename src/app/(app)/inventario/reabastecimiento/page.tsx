@@ -80,6 +80,18 @@ export default async function ReabastecimientoPage({
         <InventarioCompanyPicker current={company} />
       </div>
 
+      {proveedoresInsumos.length > 0 && (
+        <div className="card">
+          <h2 className="mb-3 text-sm font-semibold text-verde-800">Armar pedido</h2>
+          <ArmarPedidoWhatsApp
+            companyLabel={COMPANY_LABEL[company]}
+            proveedores={proveedoresInsumos.map((p) => ({ id: p.id, nombre: p.nombre, telefono: p.telefono }))}
+            productos={productos.map((p) => ({ id: p.id, nombre: p.nombre }))}
+            sugerenciasPorProveedor={sugerenciasPorProveedor}
+          />
+        </div>
+      )}
+
       <details className="card">
         <summary className="cursor-pointer text-sm font-semibold text-verde-800">Configurar proveedor y lead time</summary>
         {productos.length === 0 || proveedoresInsumos.length === 0 ? (
@@ -159,18 +171,6 @@ export default async function ReabastecimientoPage({
               ))}
             </tbody>
           </table>
-        </div>
-      )}
-
-      {proveedoresInsumos.length > 0 && (
-        <div className="card">
-          <h2 className="mb-3 text-sm font-semibold text-verde-800">Armar pedido</h2>
-          <ArmarPedidoWhatsApp
-            companyLabel={COMPANY_LABEL[company]}
-            proveedores={proveedoresInsumos.map((p) => ({ id: p.id, nombre: p.nombre, telefono: p.telefono }))}
-            productos={productos.map((p) => ({ id: p.id, nombre: p.nombre }))}
-            sugerenciasPorProveedor={sugerenciasPorProveedor}
-          />
         </div>
       )}
 
