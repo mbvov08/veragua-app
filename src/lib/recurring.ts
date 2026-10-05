@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { addDays, todayColombia, dayOfWeek } from "@/lib/date";
+import { ensureReabastecimientoAlertaGenerada } from "@/lib/inventario/reabastecimiento-alertas";
 
 const ORDER_HORIZON_DAYS = 21;
 const REMINDER_HORIZON_DAYS = 14;
@@ -86,5 +87,9 @@ export async function ensureRemindersGenerated() {
 }
 
 export async function ensureAllGenerated() {
-  await Promise.all([ensureRecurringOrdersGenerated(), ensureRemindersGenerated()]);
+  await Promise.all([
+    ensureRecurringOrdersGenerated(),
+    ensureRemindersGenerated(),
+    ensureReabastecimientoAlertaGenerada(),
+  ]);
 }

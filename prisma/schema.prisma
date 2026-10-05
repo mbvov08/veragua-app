@@ -325,6 +325,11 @@ model ReminderInstance {
   reminderRule   ReminderRule @relation(fields: [reminderRuleId], references: [id])
   fecha          DateTime // UTC-noon normalizado
   createdAt      DateTime @default(now())
+  // Mensaje calculado para esta instancia puntual (ej. reabastecimiento: qué productos
+  // tocan hoy), en vez del mensaje fijo de la regla. "" (string vacío, distinto de null)
+  // significa "ya se generó hoy pero no hay nada que avisar" — evita recalcular en cada
+  // carga de página sin mostrar una notificación vacía.
+  mensajeOverride String?
 
   dismissals ReminderDismissal[]
 

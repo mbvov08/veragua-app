@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useTransition } from "react";
 import { dismissReminderInstance } from "@/lib/actions/reminders";
 
@@ -8,6 +9,7 @@ export type ReminderItem = {
   titulo: string;
   mensaje: string | null;
   fechaLabel: string;
+  href?: string;
 };
 
 export default function NotificationBell({ items }: { items: ReminderItem[] }) {
@@ -56,7 +58,13 @@ export default function NotificationBell({ items }: { items: ReminderItem[] }) {
                   <div key={item.instanceId} className="border-b border-verde-50 px-4 py-3 last:border-0">
                     <div className="flex items-start justify-between gap-2">
                       <div>
-                        <p className="text-sm font-medium text-tierra-800">{item.titulo}</p>
+                        {item.href ? (
+                          <Link href={item.href} onClick={() => setOpen(false)} className="text-sm font-medium text-verde-700 underline-offset-2 hover:underline">
+                            {item.titulo}
+                          </Link>
+                        ) : (
+                          <p className="text-sm font-medium text-tierra-800">{item.titulo}</p>
+                        )}
                         {item.mensaje && (
                           <p className="mt-0.5 text-xs text-tierra-500">{item.mensaje}</p>
                         )}

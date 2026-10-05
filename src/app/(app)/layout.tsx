@@ -25,12 +25,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     include: { reminderRule: true, dismissals: { where: { userId: session.user.id } } },
   });
   const reminderItems: ReminderItem[] = instances
-    .filter((i) => i.dismissals.length === 0 && i.reminderRule.activo !== false)
+    .filter((i) => i.dismissals.length === 0 && i.reminderRule.activo !== false && i.mensajeOverride !== "")
     .map((i) => ({
       instanceId: i.id,
       titulo: i.reminderRule.titulo,
-      mensaje: i.reminderRule.mensaje,
+      mensaje: i.mensajeOverride ?? i.reminderRule.mensaje,
       fechaLabel: "Hoy",
+      href: i.mensajeOverride !== null ? "/inventario/reabastecimiento" : undefined,
     }));
 
   const isAdmin = session.user.role === "ADMIN";
