@@ -62,6 +62,18 @@ export default async function ClientesPage({
         <InventarioCompanyPicker current={company} />
       </div>
 
+      {clientesConSaldo.length > 0 && (
+        <div className="card flex items-center justify-between">
+          <div>
+            <p className="text-2xl font-semibold text-tierra-800">{formatCOP(totalSaldo)}</p>
+            <p className="text-sm text-tierra-500">{clientesConSaldo.length} cliente{clientesConSaldo.length === 1 ? "" : "s"}</p>
+          </div>
+          <span className="flex h-9 min-w-9 items-center justify-center rounded-full bg-dorado-100 px-2 text-sm font-semibold text-tierra-800">
+            {cuentas.length}
+          </span>
+        </div>
+      )}
+
       <div className="card">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-sm font-semibold text-verde-800">Saldo pendiente por cliente</h2>
