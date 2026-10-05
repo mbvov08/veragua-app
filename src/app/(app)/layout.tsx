@@ -55,55 +55,55 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       ]
     : [
         { items: [{ href: "/", label: "Inicio", icon: "home" }] },
-        {
-          label: "Gestiona tu negocio",
-          items: [
-            ...(puedeVerFinanzas
-              ? [
+        ...(puedeVerFinanzas
+          ? [
+              {
+                label: "Día a día",
+                items: [
+                  { href: "/inventario/ventas", label: "Ventas", icon: "venta" as const },
+                  { href: "/finanzas/movimientos", label: "Movimientos", icon: "movimientos" as const },
+                  { href: "/finanzas/caja", label: "Cierre de Caja", icon: "caja" as const },
+                  { href: "/pedidos", label: "Pedidos", icon: "pedidos" as const },
+                  { href: "/produccion", label: "Postura/Huevos", icon: "produccion" as const },
+                  { href: "/melcoch", label: "Melcoch", icon: "melcoch" as const },
+                  { href: "/inventario/reabastecimiento", label: "Reabastecimiento", icon: "reabastecimiento" as const },
+                  { href: "/compras", label: "Compras", icon: "compras" as const },
+                ],
+              },
+              {
+                label: "Gestión gerencial",
+                items: [
+                  { href: "/finanzas", label: "Resumen", icon: "finanzas" as const },
+                  { href: "/finanzas/pyg", label: "PyG", icon: "receipt" as const },
+                  { href: "/finanzas/estadisticas", label: "Estadísticas", icon: "estadisticas" as const },
+                  { href: "/finanzas/canales", label: "Canales", icon: "canales" as const },
+                  { href: "/inventario/clientes", label: "Cuentas por Cobrar", icon: "venta" as const },
+                  { href: "/inventario/proveedores", label: "Cuentas por Pagar", icon: "compras" as const },
+                  { href: "/inventario/productos", label: "Productos", icon: "inventario" as const },
                   {
-                    href: "/finanzas",
-                    label: "Finanzas",
-                    icon: "finanzas" as const,
+                    href: "/finanzas/ajustes/categorias",
+                    label: "Ajustes",
+                    icon: "tag" as const,
                     children: [
-                      { href: "/finanzas", label: "Resumen" },
-                      { href: "/finanzas/movimientos", label: "Movimientos" },
-                      { href: "/finanzas/pyg", label: "PyG" },
-                      { href: "/finanzas/estadisticas", label: "Estadísticas" },
-                      { href: "/finanzas/canales", label: "Canales" },
-                      { href: "/inventario/clientes", label: "Cuentas por Cobrar" },
-                      { href: "/inventario/proveedores", label: "Cuentas por Pagar" },
-                      { href: "/finanzas/caja", label: "Cierre de Caja" },
-                      { href: "/finanzas/ajustes/categorias", label: "Categorías" },
+                      { href: "/finanzas/ajustes/categorias", label: "Categorías (Finanzas)" },
+                      { href: "/inventario/ajustes/categorias", label: "Categorías (Inventario)" },
                       { href: "/finanzas/ajustes/canales", label: "Canales de venta" },
+                      { href: "/inventario/historial", label: "Historial de ajustes" },
                     ],
                   },
-                ]
-              : []),
-            ...(puedeVerFinanzas
-              ? [
-                  {
-                    href: "/inventario",
-                    label: "Inventario",
-                    icon: "inventario" as const,
-                    children: [
-                      { href: "/inventario", label: "Resumen" },
-                      { href: "/inventario/productos", label: "Productos" },
-                      { href: "/inventario/historial", label: "Historial" },
-                      { href: "/inventario/ventas", label: "Ventas" },
-                      { href: "/inventario/clientes", label: "Clientes (CxC)" },
-                      { href: "/inventario/proveedores", label: "Proveedores (CxP)" },
-                      { href: "/inventario/reabastecimiento", label: "Reabastecimiento" },
-                      { href: "/inventario/ajustes/categorias", label: "Categorías" },
-                    ],
-                  },
-                ]
-              : []),
-            { href: "/pedidos", label: "Pedidos", icon: "pedidos" as const },
-            { href: "/produccion", label: "Postura/Huevos", icon: "produccion" as const },
-            { href: "/melcoch", label: "Melcoch", icon: "melcoch" as const },
-            { href: "/compras", label: "Compras", icon: "compras" as const },
-          ],
-        },
+                ],
+              },
+            ]
+          : [
+              {
+                items: [
+                  { href: "/pedidos", label: "Pedidos", icon: "pedidos" as const },
+                  { href: "/produccion", label: "Postura/Huevos", icon: "produccion" as const },
+                  { href: "/melcoch", label: "Melcoch", icon: "melcoch" as const },
+                  { href: "/compras", label: "Compras", icon: "compras" as const },
+                ],
+              },
+            ]),
         {
           label: "Equipo",
           items: [

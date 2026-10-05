@@ -19,7 +19,14 @@ export type IconName =
   | "logout"
   | "chevron-right"
   | "receipt"
-  | "download";
+  | "download"
+  | "venta"
+  | "movimientos"
+  | "caja"
+  | "reabastecimiento"
+  | "estadisticas"
+  | "canales"
+  | "tag";
 
 const PATHS: Record<IconName, React.ReactNode> = {
   menu: <path d="M4 6h16M4 12h16M4 18h16" />,
@@ -109,6 +116,55 @@ const PATHS: Record<IconName, React.ReactNode> = {
       <path d="M12 4v11" />
       <path d="m7.5 11.5 4.5 4.5 4.5-4.5" />
       <path d="M5 19.5h14" />
+    </>
+  ),
+  venta: (
+    <>
+      <circle cx="8" cy="20" r="1.3" />
+      <circle cx="17" cy="20" r="1.3" />
+      <path d="M3 4h2l2.2 11.2a2 2 0 0 0 2 1.6h7.6a2 2 0 0 0 2-1.6L20.5 8H6" />
+    </>
+  ),
+  movimientos: (
+    <>
+      <path d="M4 7h13M17 7l-3-3M17 7l-3 3" />
+      <path d="M20 17H7M7 17l3-3M7 17l3 3" />
+    </>
+  ),
+  caja: (
+    <>
+      <rect x="3" y="10" width="18" height="10" rx="1.5" />
+      <path d="M3 10 6 4h12l3 6" />
+      <path d="M10 15h4" />
+    </>
+  ),
+  reabastecimiento: (
+    <>
+      <path d="M4 12a8 8 0 0 1 13.66-5.66L20 8" />
+      <path d="M20 4v4h-4" />
+      <path d="M20 12a8 8 0 0 1-13.66 5.66L4 16" />
+      <path d="M4 20v-4h4" />
+    </>
+  ),
+  estadisticas: (
+    <>
+      <path d="M4 20V4" />
+      <path d="M4 20h16" />
+      <path d="m7 15 4-4 3 3 5-6" />
+    </>
+  ),
+  canales: (
+    <>
+      <circle cx="6" cy="12" r="2.3" />
+      <circle cx="18" cy="6" r="2.3" />
+      <circle cx="18" cy="18" r="2.3" />
+      <path d="m8 11 8-3.5M8 13l8 3.5" />
+    </>
+  ),
+  tag: (
+    <>
+      <path d="M11.5 3.5H5a1.5 1.5 0 0 0-1.5 1.5v6.5a1.5 1.5 0 0 0 .44 1.06l9 9a1.5 1.5 0 0 0 2.12 0l6.5-6.5a1.5 1.5 0 0 0 0-2.12l-9-9a1.5 1.5 0 0 0-1.06-.44Z" />
+      <circle cx="8.3" cy="8.3" r="1.3" />
     </>
   ),
 };
