@@ -58,6 +58,7 @@ model User {
   finPagosClienteCreados     FinPagoCliente[]             @relation("FinPagoClienteCreadoPor")
   finPagosProveedorCreados   FinPagoProveedor[]           @relation("FinPagoProveedorCreadoPor")
   suscripcionesCreadas       Suscripcion[]                @relation("SuscripcionCreadaPor")
+  cajaCierresCreados         CajaCierre[]                 @relation("CajaCierreCreadoPor")
 }
 
 // Lista de referencia de productos que se venden, para agilizar la toma de pedidos.
@@ -471,6 +472,25 @@ model CajaMovimiento {
   createdAt      DateTime  @default(now())
 
   @@index([tipo, estado])
+}
+
+// Cierre de caja: cuenta el efectivo físico del local y lo compara contra lo que el
+// sistema espera (CajaSettings.baseInicial, o el saldoContado del cierre anterior, más
+// las ventas en efectivo menos los gastos pagados en efectivo desde ese cierre).
+model CajaCierre {
+  id               String   @id @default(cuid())
+  fecha            DateTime // día que se cierra (UTC-noon normalizado)
+  desde            DateTime // fecha/hora desde la que se calculó (el cierre anterior, o el inicio)
+  saldoAnterior    Float // base inicial o saldoContado del cierre anterior
+  ingresosEfectivo Float
+  egresosEfectivo  Float
+  saldoEsperado    Float // saldoAnterior + ingresosEfectivo - egresosEfectivo
+  saldoContado     Float // lo que se contó físicamente
+  diferencia       Float // saldoContado - saldoEsperado
+  observaciones    String?
+  creadoPorId      String
+  creadoPor        User     @relation("CajaCierreCreadoPor", fields: [creadoPorId], references: [id])
+  createdAt        DateTime @default(now())
 }
 
 // Línea Melcoch — Brownie de Milo. Ingredientes fijos con su cantidad por mezcla (receta).
