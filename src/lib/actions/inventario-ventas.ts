@@ -5,7 +5,21 @@ import { prisma } from "@/lib/prisma";
 import { dateOnlyToUTC } from "@/lib/date";
 import { requireFinanzas } from "@/lib/actions/finanzas";
 import { parseCompany, parseSaleItems, findDefaultCategory, registrarComisionBoldSiAplica } from "@/lib/inventario/shared";
-import { repartirPagoCliente, aplicarCreditoDisponibleCliente } from "@/lib/inventario/credito";
+import { repartirPagoCliente, aplicarCreditoDisponibleCliente, type AplicacionPago } from "@/lib/inventario/credito";
+
+/** "100% Abono — 2 Café 500gr; 34% Abono — 1 Brownie personal", igual al estilo que
+ * traían los datos históricos de Treinta, para que el pago se reconozca de un vistazo
+ * en Movimientos sin tener que abrir la factura. */
+function describirAbono(aplicaciones: AplicacionPago[], montoTotal: number): string {
+  if (aplicaciones.length === 0) return "Pago de cliente (crédito a favor, sin factura pendiente que cubrir)";
+  const partes = aplicaciones.map((a) => {
+    const pct = Math.round((a.montoAplicado / a.montoTotalCuenta) * 100);
+    return `${pct}% Abono — ${a.descripcionCuenta}`;
+  });
+  const aplicado = aplicaciones.reduce((s, a) => s + a.montoAplicado, 0);
+  if (aplicado < montoTotal) partes.push("resto queda como crédito a favor");
+  return partes.join("; ");
+}
 
 function revalidateVentas() {
   revalidatePath("/inventario");
@@ -159,7 +173,11 @@ export async function registrarPagoCliente(formData: FormData) {
       },
     });
 
-    await repartirPagoCliente(tx, pago.id, clienteId, monto);
+    const aplicaciones = await repartirPagoCliente(tx, pago.id, clienteId, monto);
+    await tx.finTransaction.update({
+      where: { id: transaction.id },
+      data: { descripcion: describirAbono(aplicaciones, monto) },
+    });
   }, { maxWait: 10000, timeout: 20000 });
 
   revalidateVentas();

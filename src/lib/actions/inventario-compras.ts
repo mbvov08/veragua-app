@@ -5,7 +5,19 @@ import { prisma } from "@/lib/prisma";
 import { dateOnlyToUTC } from "@/lib/date";
 import { requireFinanzas } from "@/lib/actions/finanzas";
 import { parseCompany, parsePurchaseItems, findDefaultCategory } from "@/lib/inventario/shared";
-import { repartirPagoProveedor, aplicarCreditoDisponibleProveedor } from "@/lib/inventario/credito";
+import { repartirPagoProveedor, aplicarCreditoDisponibleProveedor, type AplicacionPago } from "@/lib/inventario/credito";
+
+/** Mismo formato que describirAbono() en inventario-ventas.ts, para pagos a proveedores. */
+function describirAbono(aplicaciones: AplicacionPago[], montoTotal: number): string {
+  if (aplicaciones.length === 0) return "Pago a proveedor (crédito a favor, sin factura pendiente que cubrir)";
+  const partes = aplicaciones.map((a) => {
+    const pct = Math.round((a.montoAplicado / a.montoTotalCuenta) * 100);
+    return `${pct}% Abono — ${a.descripcionCuenta}`;
+  });
+  const aplicado = aplicaciones.reduce((s, a) => s + a.montoAplicado, 0);
+  if (aplicado < montoTotal) partes.push("resto queda como crédito a favor");
+  return partes.join("; ");
+}
 
 function revalidateProveedores() {
   revalidatePath("/inventario");
@@ -184,7 +196,11 @@ export async function registrarPagoProveedor(formData: FormData) {
       },
     });
 
-    await repartirPagoProveedor(tx, pago.id, proveedorId, monto);
+    const aplicaciones = await repartirPagoProveedor(tx, pago.id, proveedorId, monto);
+    await tx.finTransaction.update({
+      where: { id: transaction.id },
+      data: { descripcion: describirAbono(aplicaciones, monto) },
+    });
   }, { maxWait: 10000, timeout: 20000 });
 
   revalidateProveedores();

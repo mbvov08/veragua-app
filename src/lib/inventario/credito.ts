@@ -3,17 +3,28 @@ import type { Prisma } from "@prisma/client";
 
 type Tx = Prisma.TransactionClient;
 
+export type AplicacionPago = {
+  cuentaId: string;
+  montoAplicado: number;
+  montoTotalCuenta: number;
+  descripcionCuenta: string;
+};
+
 /**
  * Reparte un pago recién creado contra las cuentas abiertas de un cliente/proveedor,
  * de la más antigua a la más nueva, hasta agotar el pago o las cuentas. Lo que sobra
- * queda como crédito disponible (pago sin aplicar del todo).
+ * queda como crédito disponible (pago sin aplicar del todo). Devuelve el detalle de
+ * cada factura afectada, para armar una descripción legible del pago (ej. "100% Abono
+ * — 2 Café 500gr"), igual al estilo que ya traían los datos históricos de Treinta.
  */
-export async function repartirPagoCliente(tx: Tx, pagoId: string, clienteId: string, monto: number) {
+export async function repartirPagoCliente(tx: Tx, pagoId: string, clienteId: string, monto: number): Promise<AplicacionPago[]> {
   const cuentasAbiertas = await tx.finCuentaPorCobrar.findMany({
     where: { clienteId, saldo: { gt: 0 } },
+    include: { venta: { include: { items: { include: { producto: true } } } } },
     orderBy: { fecha: "asc" },
   });
 
+  const aplicaciones: AplicacionPago[] = [];
   let restante = monto;
   for (const cuenta of cuentasAbiertas) {
     if (restante <= 0) break;
@@ -26,16 +37,24 @@ export async function repartirPagoCliente(tx: Tx, pagoId: string, clienteId: str
       where: { id: cuenta.id },
       data: { saldo: cuenta.saldo - aplicar },
     });
+    const descripcionCuenta =
+      cuenta.venta && cuenta.venta.items.length > 0
+        ? cuenta.venta.items.map((it) => `${it.cantidad} ${it.producto.nombre}`).join(", ")
+        : cuenta.notas ?? "saldo pendiente";
+    aplicaciones.push({ cuentaId: cuenta.id, montoAplicado: aplicar, montoTotalCuenta: cuenta.montoTotal, descripcionCuenta });
     restante -= aplicar;
   }
+  return aplicaciones;
 }
 
-export async function repartirPagoProveedor(tx: Tx, pagoId: string, proveedorId: string, monto: number) {
+export async function repartirPagoProveedor(tx: Tx, pagoId: string, proveedorId: string, monto: number): Promise<AplicacionPago[]> {
   const cuentasAbiertas = await tx.finCuentaPorPagar.findMany({
     where: { proveedorId, saldo: { gt: 0 } },
+    include: { purchase: { include: { items: { include: { producto: true } } } } },
     orderBy: { fecha: "asc" },
   });
 
+  const aplicaciones: AplicacionPago[] = [];
   let restante = monto;
   for (const cuenta of cuentasAbiertas) {
     if (restante <= 0) break;
@@ -48,8 +67,14 @@ export async function repartirPagoProveedor(tx: Tx, pagoId: string, proveedorId:
       where: { id: cuenta.id },
       data: { saldo: cuenta.saldo - aplicar },
     });
+    const descripcionCuenta =
+      cuenta.purchase && cuenta.purchase.items.length > 0
+        ? cuenta.purchase.items.map((it) => `${it.cantidad} ${it.producto.nombre}`).join(", ")
+        : cuenta.notas ?? "saldo pendiente";
+    aplicaciones.push({ cuentaId: cuenta.id, montoAplicado: aplicar, montoTotalCuenta: cuenta.montoTotal, descripcionCuenta });
     restante -= aplicar;
   }
+  return aplicaciones;
 }
 
 /**
