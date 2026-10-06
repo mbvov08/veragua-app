@@ -23,7 +23,7 @@ export async function createUser(formData: FormData) {
 
   if (!name || !username || !password) throw new Error("Completa nombre, usuario y contraseña.");
   if (password.length < 6) throw new Error("La contraseña debe tener al menos 6 caracteres.");
-  if (!["ADMIN", "EMPLEADA", "GALPON"].includes(role)) throw new Error("Rol inválido.");
+  if (!["ADMIN", "EMPLEADA", "GALPON", "CONDUCTOR"].includes(role)) throw new Error("Rol inválido.");
 
   const existing = await prisma.user.findUnique({ where: { username } });
   if (existing) throw new Error("Ya existe un usuario con ese nombre de usuario.");

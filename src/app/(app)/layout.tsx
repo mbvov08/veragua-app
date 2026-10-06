@@ -36,11 +36,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   const isAdmin = session.user.role === "ADMIN";
   const isGalpon = session.user.role === "GALPON";
+  const isConductor = session.user.role === "CONDUCTOR";
   const puedeVerFinanzas = isAdmin || session.user.puedeVerFinanzas;
   const ROL_LABEL: Record<string, string> = {
     ADMIN: "Gerencia",
     EMPLEADA: "Coordinadora de operaciones",
     GALPON: "Encargado(a) de galpón",
+    CONDUCTOR: "Conductor",
   };
 
   const sections: NavSection[] = isGalpon
@@ -51,6 +53,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             { href: "/produccion", label: "Postura/Huevos", icon: "produccion" },
             { href: "/tareas", label: "Tareas", icon: "tareas" },
             { href: "/compras", label: "Compras", icon: "compras" },
+          ],
+        },
+      ]
+    : isConductor
+    ? [
+        {
+          items: [
+            { href: "/", label: "Inicio", icon: "home" },
+            { href: "/vehiculo", label: "Vehículo", icon: "vehiculo" },
           ],
         },
       ]

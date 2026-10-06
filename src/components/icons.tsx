@@ -26,7 +26,8 @@ export type IconName =
   | "reabastecimiento"
   | "estadisticas"
   | "canales"
-  | "tag";
+  | "tag"
+  | "vehiculo";
 
 const PATHS: Record<IconName, React.ReactNode> = {
   menu: <path d="M4 6h16M4 12h16M4 18h16" />,
@@ -165,6 +166,13 @@ const PATHS: Record<IconName, React.ReactNode> = {
     <>
       <path d="M11.5 3.5H5a1.5 1.5 0 0 0-1.5 1.5v6.5a1.5 1.5 0 0 0 .44 1.06l9 9a1.5 1.5 0 0 0 2.12 0l6.5-6.5a1.5 1.5 0 0 0 0-2.12l-9-9a1.5 1.5 0 0 0-1.06-.44Z" />
       <circle cx="8.3" cy="8.3" r="1.3" />
+    </>
+  ),
+  vehiculo: (
+    <>
+      <path d="M3 16V8a1 1 0 0 1 1-1h9v9M3 16h1M3 16h10M13 16h2M13 7l3 3h5v6h-2M21 10v6" />
+      <circle cx="7" cy="17" r="1.8" />
+      <circle cx="17.5" cy="17" r="1.8" />
     </>
   ),
 };

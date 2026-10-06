@@ -6,6 +6,10 @@ const ADMIN_ONLY_PREFIXES = ["/nomina", "/personal/historial", "/usuarios"];
 // El encargado del galpón solo necesita el inicio, su producción, sus tareas y la lista de compras.
 const GALPON_ALLOWED_PREFIXES = ["/", "/produccion", "/tareas", "/compras"];
 
+// El conductor solo necesita el inicio y el módulo Vehículo (incluida la ruta que sirve
+// sus fotos/archivos privados).
+const CONDUCTOR_ALLOWED_PREFIXES = ["/", "/vehiculo", "/api/vehiculo"];
+
 export default auth((req) => {
   const { pathname } = req.nextUrl;
   const isLoggedIn = !!req.auth;
@@ -42,6 +46,14 @@ export default auth((req) => {
     isLoggedIn &&
     req.auth?.user.role === "GALPON" &&
     !GALPON_ALLOWED_PREFIXES.some((p) => (p === "/" ? pathname === "/" : pathname.startsWith(p)))
+  ) {
+    return NextResponse.redirect(new URL("/", req.nextUrl.origin));
+  }
+
+  if (
+    isLoggedIn &&
+    req.auth?.user.role === "CONDUCTOR" &&
+    !CONDUCTOR_ALLOWED_PREFIXES.some((p) => (p === "/" ? pathname === "/" : pathname.startsWith(p)))
   ) {
     return NextResponse.redirect(new URL("/", req.nextUrl.origin));
   }

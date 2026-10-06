@@ -7,6 +7,7 @@ const ROL_LABEL: Record<string, string> = {
   ADMIN: "Gerencia",
   EMPLEADA: "Coordinadora de operaciones",
   GALPON: "Encargado(a) de galpón",
+  CONDUCTOR: "Conductor",
 };
 
 export default async function UsuariosPage() {
@@ -40,6 +41,7 @@ export default async function UsuariosPage() {
             <select name="role" className="input" defaultValue="EMPLEADA">
               <option value="EMPLEADA">Coordinadora de operaciones</option>
               <option value="GALPON">Encargado(a) de galpón</option>
+              <option value="CONDUCTOR">Conductor</option>
               <option value="ADMIN">Gerencia</option>
             </select>
           </div>
