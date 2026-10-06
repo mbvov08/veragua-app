@@ -28,6 +28,29 @@ function revalidateVentas() {
   revalidatePath("/inventario/cuentas-por-cobrar");
 }
 
+/** Elimina una venta fiada que se registró por error (ej. duplicada) y que todavía no
+ * tiene ningún abono aplicado — por eso no toca Movimientos/caja, solo revierte el
+ * stock que esa venta había descontado y borra la cuenta por cobrar. Si ya tiene un
+ * abono aplicado, no se puede eliminar así: primero hay que anular ese pago en
+ * Movimientos (que le devuelve el saldo a la cuenta) y luego eliminarla. */
+export async function eliminarVentaPendiente(cuentaId: string) {
+  await requireFinanzas();
+
+  await prisma.$transaction(async (tx) => {
+    const cuenta = await tx.finCuentaPorCobrar.findUniqueOrThrow({ where: { id: cuentaId } });
+    if (!cuenta.ventaId) throw new Error("Esta cuenta no tiene una venta asociada.");
+    if (cuenta.saldo !== cuenta.montoTotal) {
+      throw new Error("Esta factura ya tiene abonos aplicados — anula el pago en Movimientos antes de eliminarla.");
+    }
+
+    await tx.finCuentaPorCobrar.delete({ where: { id: cuentaId } });
+    await tx.finSaleItem.deleteMany({ where: { saleId: cuenta.ventaId } });
+    await tx.finSale.delete({ where: { id: cuenta.ventaId } });
+  });
+
+  revalidateVentas();
+}
+
 /** Mismo patrón que upsertCliente() en lib/actions/orders.ts: solo nombre es obligatorio aquí. */
 async function upsertClienteMinimo(nombre: string) {
   return prisma.cliente.upsert({

@@ -1,7 +1,7 @@
-import InventarioCompanyPicker from "@/components/inventario/CompanyPicker";
+import CompanyPicker from "@/components/finanzas/CompanyPicker";
 import SubmitButton from "@/components/SubmitButton";
 import { Icon } from "@/components/icons";
-import { resolveCompanyParam, COMPANY_LABEL } from "@/lib/finanzas/queries";
+import { resolveCompanyParam, COMPANY_LABEL, CONSOLIDATED } from "@/lib/finanzas/queries";
 import { formatCOP } from "@/lib/finanzas/format";
 import { formatDateOnly, todayColombia } from "@/lib/date";
 import { prisma } from "@/lib/prisma";
@@ -13,13 +13,15 @@ export default async function CuentasPorPagarPage({
   searchParams: Promise<{ company?: string }>;
 }) {
   const params = await searchParams;
-  const selection = resolveCompanyParam(params.company);
-  const company = selection.company ?? "VERAGUA";
+  // Por defecto se ve todo junto (Veragua + Melcoch) — ver la nota en
+  // cuentas-por-cobrar/page.tsx: un mismo proveedor que surte a las dos empresas no debe
+  // quedar repartido en dos páginas separadas.
+  const selection = resolveCompanyParam(params.company ?? CONSOLIDATED);
 
   const [proveedores, cuentas] = await Promise.all([
     prisma.proveedor.findMany({ orderBy: { nombre: "asc" } }),
     prisma.finCuentaPorPagar.findMany({
-      where: { company, saldo: { gt: 0 } },
+      where: { company: { in: selection.targets }, saldo: { gt: 0 } },
       include: { proveedor: true },
       orderBy: { fecha: "asc" },
     }),
@@ -27,17 +29,23 @@ export default async function CuentasPorPagarPage({
 
   const saldoPorProveedor = new Map<string, number>();
   const facturasPorProveedor = new Map<string, number>();
+  const companiasPorProveedor = new Map<string, Set<string>>();
   for (const c of cuentas) {
     saldoPorProveedor.set(c.proveedorId, (saldoPorProveedor.get(c.proveedorId) ?? 0) + c.saldo);
     facturasPorProveedor.set(c.proveedorId, (facturasPorProveedor.get(c.proveedorId) ?? 0) + 1);
+    const set = companiasPorProveedor.get(c.proveedorId) ?? new Set<string>();
+    set.add(c.company);
+    companiasPorProveedor.set(c.proveedorId, set);
   }
   const totalSaldoProveedores = [...saldoPorProveedor.values()].reduce((s, v) => s + v, 0);
 
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-lg font-semibold text-verde-800">Cuentas por Pagar — {COMPANY_LABEL[company]}</h1>
-        <InventarioCompanyPicker current={company} />
+        <h1 className="text-lg font-semibold text-verde-800">
+          Cuentas por Pagar — {selection.isConsolidated ? "Veragua + Melcoch" : COMPANY_LABEL[selection.company!]}
+        </h1>
+        <CompanyPicker current={params.company ?? CONSOLIDATED} />
       </div>
 
       {totalSaldoProveedores > 0 && (
@@ -69,6 +77,7 @@ export default async function CuentasPorPagarPage({
               .filter((p) => (saldoPorProveedor.get(p.id) ?? 0) > 0)
               .map((p) => {
                 const facturas = facturasPorProveedor.get(p.id) ?? 0;
+                const companias = [...(companiasPorProveedor.get(p.id) ?? [])];
                 return (
                   <details key={p.id} className="group py-1">
                     <summary className="flex cursor-pointer list-none items-center gap-3 rounded-lg px-1 py-2 hover:bg-verde-50/60">
@@ -86,7 +95,18 @@ export default async function CuentasPorPagarPage({
                     <div className="mt-2 rounded-lg border border-verde-100 bg-verde-50/40 p-3">
                       <form action={registrarPagoProveedor} className="flex flex-wrap items-end gap-2">
                         <input type="hidden" name="proveedorId" value={p.id} />
-                        <input type="hidden" name="company" value={company} />
+                        {companias.length > 1 ? (
+                          <div>
+                            <label className="label">Empresa (a cuál se registra el gasto)</label>
+                            <select name="company" required defaultValue={companias[0]} className="input">
+                              {companias.map((comp) => (
+                                <option key={comp} value={comp}>{COMPANY_LABEL[comp as "VERAGUA" | "MELCOCH"]}</option>
+                              ))}
+                            </select>
+                          </div>
+                        ) : (
+                          <input type="hidden" name="company" value={companias[0]} />
+                        )}
                         <div>
                           <label className="label">Monto pagado</label>
                           <input type="number" name="monto" min="0" step="1" required className="input w-32" />

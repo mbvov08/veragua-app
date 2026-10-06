@@ -1,11 +1,12 @@
-import InventarioCompanyPicker from "@/components/inventario/CompanyPicker";
+import CompanyPicker from "@/components/finanzas/CompanyPicker";
 import SubmitButton from "@/components/SubmitButton";
+import ConfirmButton from "@/components/ConfirmButton";
 import { Icon } from "@/components/icons";
-import { resolveCompanyParam, COMPANY_LABEL } from "@/lib/finanzas/queries";
+import { resolveCompanyParam, COMPANY_LABEL, CONSOLIDATED } from "@/lib/finanzas/queries";
 import { formatCOP } from "@/lib/finanzas/format";
 import { formatDateOnly, formatDateShortEs, todayColombia } from "@/lib/date";
 import { prisma } from "@/lib/prisma";
-import { registrarPagoCliente } from "@/lib/actions/inventario-ventas";
+import { registrarPagoCliente, eliminarVentaPendiente } from "@/lib/actions/inventario-ventas";
 
 export default async function CuentasPorCobrarPage({
   searchParams,
@@ -13,11 +14,13 @@ export default async function CuentasPorCobrarPage({
   searchParams: Promise<{ company?: string }>;
 }) {
   const params = await searchParams;
-  const selection = resolveCompanyParam(params.company);
-  const company = selection.company ?? "VERAGUA";
+  // Por defecto se ve todo junto (Veragua + Melcoch) — si no, un mismo cliente que debe
+  // en las dos empresas aparece repetido en páginas separadas y es fácil pensar que un
+  // cobro no quedó registrado cuando en realidad está en la otra empresa.
+  const selection = resolveCompanyParam(params.company ?? CONSOLIDATED);
 
   const cuentas = await prisma.finCuentaPorCobrar.findMany({
-    where: { company, saldo: { gt: 0 } },
+    where: { company: { in: selection.targets }, saldo: { gt: 0 } },
     include: { cliente: true, venta: { include: { items: { include: { producto: true } } } } },
     orderBy: { fecha: "asc" },
   });
@@ -64,8 +67,10 @@ export default async function CuentasPorCobrarPage({
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-lg font-semibold text-verde-800">Cuentas por Cobrar — {COMPANY_LABEL[company]}</h1>
-        <InventarioCompanyPicker current={company} />
+        <h1 className="text-lg font-semibold text-verde-800">
+          Cuentas por Cobrar — {selection.isConsolidated ? "Veragua + Melcoch" : COMPANY_LABEL[selection.company!]}
+        </h1>
+        <CompanyPicker current={params.company ?? CONSOLIDATED} />
       </div>
 
       {clientesConSaldo.length > 0 && (
@@ -91,7 +96,9 @@ export default async function CuentasPorCobrarPage({
           <p className="text-sm text-tierra-500">Ningún cliente te debe nada ahora mismo.</p>
         ) : (
           <div className="divide-y divide-verde-50">
-            {clientesConSaldo.map((c) => (
+            {clientesConSaldo.map((c) => {
+              const companias = [...new Set(c.facturas.map((f) => f.company))];
+              return (
               <details key={c.id} className="group py-1">
                 <summary className="flex cursor-pointer list-none items-center gap-3 rounded-lg px-1 py-2 hover:bg-verde-50/60">
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-dorado-100 text-sm font-semibold text-tierra-800">
@@ -125,7 +132,12 @@ export default async function CuentasPorCobrarPage({
                     {c.facturas.map((f) => (
                       <div key={f.id} className="flex items-center justify-between gap-2 border-b border-verde-100 pb-2 text-sm last:border-0 last:pb-0">
                         <div className="min-w-0">
-                          <p className="truncate text-tierra-800">{describirCuenta(f)}</p>
+                          <p className="truncate text-tierra-800">
+                            {describirCuenta(f)}
+                            {companias.length > 1 && (
+                              <span className="badge ml-2 bg-tierra-100 text-tierra-600">{COMPANY_LABEL[f.company as "VERAGUA" | "MELCOCH"]}</span>
+                            )}
+                          </p>
                           <p className="text-xs text-tierra-500">{formatDateOnly(f.fecha)}</p>
                         </div>
                         <div className="flex shrink-0 items-center gap-2">
@@ -140,6 +152,15 @@ export default async function CuentasPorCobrarPage({
                               Comprobante
                             </a>
                           )}
+                          {f.saldo === f.montoTotal && (
+                            <ConfirmButton
+                              action={eliminarVentaPendiente.bind(null, f.id)}
+                              confirmMessage="¿Eliminar esta factura? Se borra la venta y se le devuelve el stock a los productos. Úsalo solo si se registró por error (ej. duplicada) — esto no se puede deshacer."
+                              className="chip-danger"
+                            >
+                              Eliminar
+                            </ConfirmButton>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -147,7 +168,18 @@ export default async function CuentasPorCobrarPage({
 
                   <form action={registrarPagoCliente} className="flex flex-wrap items-end gap-2">
                     <input type="hidden" name="clienteId" value={c.id} />
-                    <input type="hidden" name="company" value={company} />
+                    {companias.length > 1 ? (
+                      <div>
+                        <label className="label">Empresa (a cuál se registra el ingreso)</label>
+                        <select name="company" required defaultValue={companias[0]} className="input">
+                          {companias.map((comp) => (
+                            <option key={comp} value={comp}>{COMPANY_LABEL[comp as "VERAGUA" | "MELCOCH"]}</option>
+                          ))}
+                        </select>
+                      </div>
+                    ) : (
+                      <input type="hidden" name="company" value={companias[0]} />
+                    )}
                     <div>
                       <label className="label">Monto pagado</label>
                       <input type="number" name="monto" min="0" step="1" required className="input w-32" />
@@ -181,7 +213,8 @@ export default async function CuentasPorCobrarPage({
                   </div>
                 </div>
               </details>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
