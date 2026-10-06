@@ -117,6 +117,7 @@ async function createTransactionConProductos(
   revalidatePath("/inventario");
   revalidatePath("/inventario/ventas");
   revalidatePath("/inventario/clientes");
+  revalidatePath("/inventario/cuentas-por-cobrar");
   revalidateFinanzas();
 }
 

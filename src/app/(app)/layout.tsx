@@ -78,8 +78,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                   { href: "/finanzas/pyg", label: "PyG", icon: "receipt" as const },
                   { href: "/finanzas/estadisticas", label: "Estadísticas", icon: "estadisticas" as const },
                   { href: "/finanzas/canales", label: "Canales", icon: "canales" as const },
-                  { href: "/inventario/clientes", label: "Cuentas por Cobrar", icon: "venta" as const },
-                  { href: "/inventario/proveedores", label: "Cuentas por Pagar", icon: "compras" as const },
+                  { href: "/inventario/clientes", label: "Clientes", icon: "venta" as const },
+                  { href: "/inventario/cuentas-por-cobrar", label: "Cuentas por Cobrar", icon: "receipt" as const },
+                  { href: "/inventario/proveedores", label: "Proveedores", icon: "compras" as const },
+                  { href: "/inventario/cuentas-por-pagar", label: "Cuentas por Pagar", icon: "receipt" as const },
                   { href: "/inventario/productos", label: "Productos", icon: "inventario" as const },
                   {
                     href: "/finanzas/ajustes/categorias",

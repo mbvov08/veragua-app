@@ -10,6 +10,7 @@ import { repartirPagoProveedor, aplicarCreditoDisponibleProveedor } from "@/lib/
 function revalidateProveedores() {
   revalidatePath("/inventario");
   revalidatePath("/inventario/proveedores");
+  revalidatePath("/inventario/cuentas-por-pagar");
 }
 
 export async function upsertProveedor(nombre: string, telefono?: string | null, contacto?: string | null) {

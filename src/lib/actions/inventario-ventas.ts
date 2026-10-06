@@ -11,6 +11,7 @@ function revalidateVentas() {
   revalidatePath("/inventario");
   revalidatePath("/inventario/ventas");
   revalidatePath("/inventario/clientes");
+  revalidatePath("/inventario/cuentas-por-cobrar");
 }
 
 /** Mismo patrón que upsertCliente() en lib/actions/orders.ts: solo nombre es obligatorio aquí. */
