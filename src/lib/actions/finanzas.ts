@@ -210,13 +210,48 @@ export async function updateTransaction(transactionId: string, formData: FormDat
   revalidateFinanzas();
 }
 
+/**
+ * Anular un pago (de cliente o proveedor) no solo debe dejar de contar la plata — también
+ * tiene que devolverle el saldo a las facturas que ese pago había cubierto, si no, quedan
+ * marcadas como pagadas aunque el pago que las cubrió ya no existe.
+ */
 export async function voidTransaction(transactionId: string) {
   const session = await requireFinanzas();
-  await prisma.finTransaction.update({
-    where: { id: transactionId },
-    data: { anulado: true, anuladoAt: new Date(), anuladoPorId: session.user.id },
-  });
+
+  await prisma.$transaction(async (tx) => {
+    const transaction = await tx.finTransaction.findUniqueOrThrow({
+      where: { id: transactionId },
+      include: {
+        pagoCliente: { include: { aplicaciones: true } },
+        pagoProveedor: { include: { aplicaciones: true } },
+      },
+    });
+
+    if (transaction.pagoCliente) {
+      for (const ap of transaction.pagoCliente.aplicaciones) {
+        const cuenta = await tx.finCuentaPorCobrar.findUniqueOrThrow({ where: { id: ap.cuentaId } });
+        await tx.finCuentaPorCobrar.update({ where: { id: ap.cuentaId }, data: { saldo: cuenta.saldo + ap.montoAplicado } });
+      }
+      await tx.finPagoClienteAplicacion.deleteMany({ where: { pagoId: transaction.pagoCliente.id } });
+    }
+
+    if (transaction.pagoProveedor) {
+      for (const ap of transaction.pagoProveedor.aplicaciones) {
+        const cuenta = await tx.finCuentaPorPagar.findUniqueOrThrow({ where: { id: ap.cuentaId } });
+        await tx.finCuentaPorPagar.update({ where: { id: ap.cuentaId }, data: { saldo: cuenta.saldo + ap.montoAplicado } });
+      }
+      await tx.finPagoProveedorAplicacion.deleteMany({ where: { pagoId: transaction.pagoProveedor.id } });
+    }
+
+    await tx.finTransaction.update({
+      where: { id: transactionId },
+      data: { anulado: true, anuladoAt: new Date(), anuladoPorId: session.user.id },
+    });
+  }, { maxWait: 10000, timeout: 20000 });
+
   revalidateFinanzas();
+  revalidatePath("/inventario/cuentas-por-cobrar");
+  revalidatePath("/inventario/cuentas-por-pagar");
 }
 
 export async function createCategory(formData: FormData) {
