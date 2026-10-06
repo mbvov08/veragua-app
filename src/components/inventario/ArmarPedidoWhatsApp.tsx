@@ -20,11 +20,13 @@ export default function ArmarPedidoWhatsApp({
   proveedores,
   productos,
   sugerenciasPorProveedor,
+  stockPorProducto,
 }: {
   companyLabel: string;
   proveedores: Proveedor[];
   productos: Producto[];
   sugerenciasPorProveedor: Record<string, { productoId: string; nombre: string; cantidad: number }[]>;
+  stockPorProducto: Record<string, number>;
 }) {
   const proveedorInicial =
     proveedores.find((p) => (sugerenciasPorProveedor[p.id]?.length ?? 0) > 0)?.id ?? proveedores[0]?.id ?? "";
@@ -111,6 +113,7 @@ export default function ArmarPedidoWhatsApp({
             <thead>
               <tr className="text-left text-xs text-tierra-500">
                 <th className="pb-1">Producto</th>
+                <th className="pb-1">Disponible</th>
                 <th className="pb-1">Cantidad</th>
                 <th></th>
               </tr>
@@ -119,6 +122,7 @@ export default function ArmarPedidoWhatsApp({
               {items.map((it) => (
                 <tr key={it.productoId}>
                   <td className="py-1 pr-2">{it.nombre}</td>
+                  <td className="py-1 pr-2 text-tierra-500">{stockPorProducto[it.productoId] ?? "—"}</td>
                   <td className="py-1 pr-2">
                     <input
                       value={it.cantidad}
@@ -155,7 +159,7 @@ export default function ArmarPedidoWhatsApp({
                 onClick={() => agregar(p)}
                 className="rounded-full border border-verde-200 bg-verde-50 px-3 py-1 text-xs text-tierra-700 hover:bg-verde-100"
               >
-                {p.nombre}
+                {p.nombre} <span className="text-tierra-400">(disp. {stockPorProducto[p.id] ?? "—"})</span>
               </button>
             ))}
           </div>

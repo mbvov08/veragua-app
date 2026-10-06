@@ -11,6 +11,7 @@ import {
   rellenarDemandaRealPendiente,
   getForecastHistory,
 } from "@/lib/inventario/reabastecimiento";
+import { computeProductStocks } from "@/lib/inventario/stock";
 import {
   crearRelacionProductoProveedor,
   toggleRelacionProductoProveedorActiva,
@@ -40,7 +41,9 @@ export default async function ReabastecimientoPage({
     getForecastHistory(company, 20),
   ]);
 
-  const galponBalances = await computeGalponBalances(company);
+  const [galponBalances, stocks] = await Promise.all([computeGalponBalances(company), computeProductStocks(company)]);
+  const stockPorProducto: Record<string, number> = {};
+  for (const s of stocks) stockPorProducto[s.id] = s.stock;
   const proveedoresInsumos = proveedores.filter((p) => p.tipo === "insumos");
 
   const relacionesActivas = relaciones.filter((r) => r.activo);
@@ -88,6 +91,7 @@ export default async function ReabastecimientoPage({
             proveedores={proveedoresInsumos.map((p) => ({ id: p.id, nombre: p.nombre, telefono: p.telefono }))}
             productos={productos.map((p) => ({ id: p.id, nombre: p.nombre }))}
             sugerenciasPorProveedor={sugerenciasPorProveedor}
+            stockPorProducto={stockPorProducto}
           />
         </div>
       )}
