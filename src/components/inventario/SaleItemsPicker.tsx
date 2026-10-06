@@ -20,11 +20,14 @@ export default function ItemsPicker({
   priceFieldName,
   priceLabel = "Precio unitario",
   initialItems = [],
+  whatsapp,
 }: {
   productos: Producto[];
   priceFieldName: "precioUnitario" | "costoUnitario";
   priceLabel?: string;
   initialItems?: Item[];
+  /** Si se da, muestra un botón para enviarle al cliente el resumen de su pedido por WhatsApp. */
+  whatsapp?: { nombre: string; telefono: string | null; companyLabel: string };
 }) {
   const [items, setItems] = useState<Item[]>(initialItems);
   const [query, setQuery] = useState("");
@@ -54,6 +57,19 @@ export default function ItemsPicker({
   }
 
   const total = items.reduce((sum, it) => sum + (Number(it.cantidad) || 0) * (Number(it.precio) || 0), 0);
+
+  const whatsappHref = useMemo(() => {
+    if (!whatsapp) return "";
+    const primerNombre = whatsapp.nombre.trim().split(" ")[0];
+    const lineas = items
+      .filter((it) => (Number(it.cantidad) || 0) > 0)
+      .map((it) => `- ${it.cantidad} x ${it.nombre}: ${formatCOP((Number(it.cantidad) || 0) * (Number(it.precio) || 0))}`)
+      .join("\n");
+    const mensaje = `Hola${primerNombre ? ` ${primerNombre}` : ""}! Te escribimos de ${whatsapp.companyLabel}. Estos son los productos que elegiste:\n${lineas}\n\nTotal de tu compra: ${formatCOP(total)}\n\nQuedamos atentos al comprobante de pago para confirmar tu pedido. ¡Gracias!`;
+    const digitos = whatsapp.telefono?.replace(/\D/g, "") ?? "";
+    const numero = digitos ? (digitos.startsWith("57") ? digitos : `57${digitos}`) : "";
+    return `https://wa.me/${numero}?text=${encodeURIComponent(mensaje)}`;
+  }, [whatsapp, items, total]);
 
   return (
     <div className="sm:col-span-2 space-y-3">
@@ -100,7 +116,21 @@ export default function ItemsPicker({
               ))}
             </tbody>
           </table>
-          <p className="mt-2 text-right text-sm font-semibold text-verde-800">Total: {formatCOP(total)}</p>
+          <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+            {whatsapp ? (
+              <a href={whatsappHref} target="_blank" rel="noreferrer" className="chip-edit">
+                Enviar resumen por WhatsApp
+              </a>
+            ) : (
+              <span />
+            )}
+            <p className="text-right text-sm font-semibold text-verde-800">Total: {formatCOP(total)}</p>
+          </div>
+          {whatsapp && !whatsapp.telefono && (
+            <p className="mt-1 text-xs text-tierra-400">
+              Sin teléfono registrado — el mensaje se abrirá en WhatsApp para que elijas el contacto a mano.
+            </p>
+          )}
         </div>
       )}
 

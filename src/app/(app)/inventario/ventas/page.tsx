@@ -40,6 +40,7 @@ export default async function VentasPage({
         ) : (
           <NuevaVentaForm
             company={company}
+            companyLabel={COMPANY_LABEL[company]}
             canales={canales}
             clientes={clientes}
             productos={productos.map((p) => ({ id: p.id, nombre: p.nombre, precioDefault: p.precio, categoria: p.categoria.nombre }))}

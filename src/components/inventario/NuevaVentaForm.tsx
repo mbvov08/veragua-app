@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import ItemsPicker from "@/components/inventario/SaleItemsPicker";
 import EstadoPagoToggle from "@/components/finanzas/EstadoPagoToggle";
 import MetodoPagoPicker from "@/components/finanzas/MetodoPagoPicker";
@@ -10,15 +10,17 @@ import { registrarVenta } from "@/lib/actions/inventario-ventas";
 
 type Producto = { id: string; nombre: string; precioDefault: number; categoria: string };
 type Canal = { id: string; nombre: string };
-type Cliente = { id: string; nombre: string };
+type Cliente = { id: string; nombre: string; telefono: string | null };
 
 export default function NuevaVentaForm({
   company,
+  companyLabel,
   canales,
   clientes,
   productos,
 }: {
   company: string;
+  companyLabel: string;
   canales: Canal[];
   clientes: Cliente[];
   productos: Producto[];
@@ -27,6 +29,8 @@ export default function NuevaVentaForm({
     await registrarVenta(formData);
     return prevKey + 1;
   }, 0);
+  const [clienteNombre, setClienteNombre] = useState("");
+  const clienteSeleccionado = clientes.find((c) => c.nombre.trim().toLowerCase() === clienteNombre.trim().toLowerCase());
 
   return (
     <form key={resetKey} action={action} className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -34,7 +38,12 @@ export default function NuevaVentaForm({
 
       <EstadoPagoToggle />
 
-      <ItemsPicker productos={productos} priceFieldName="precioUnitario" priceLabel="Precio unitario" />
+      <ItemsPicker
+        productos={productos}
+        priceFieldName="precioUnitario"
+        priceLabel="Precio unitario"
+        whatsapp={{ nombre: clienteNombre, telefono: clienteSeleccionado?.telefono ?? null, companyLabel }}
+      />
 
       <MetodoPagoPicker />
 
@@ -53,7 +62,14 @@ export default function NuevaVentaForm({
       </div>
       <div className="sm:col-span-2">
         <label className="label">Cliente</label>
-        <input name="clienteNombre" list="clientes-existentes" className="input" placeholder="Nombre del cliente" />
+        <input
+          name="clienteNombre"
+          list="clientes-existentes"
+          className="input"
+          placeholder="Nombre del cliente"
+          value={clienteNombre}
+          onChange={(e) => setClienteNombre(e.target.value)}
+        />
         <datalist id="clientes-existentes">
           {clientes.map((c) => (
             <option key={c.id} value={c.nombre} />
