@@ -19,7 +19,10 @@ export default async function CajaPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-lg font-semibold text-verde-800">Cierre de Caja — Veragua</h1>
+      <h1 className="text-lg font-semibold text-verde-800">Cierre de Caja</h1>
+      <p className="-mt-4 text-xs text-tierra-500">
+        Incluye el efectivo de Veragua y Melcoch juntos — comparten la misma caja física.
+      </p>
 
       <div className="card space-y-3">
         <div>

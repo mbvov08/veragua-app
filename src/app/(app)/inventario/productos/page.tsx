@@ -70,6 +70,7 @@ function ProductEditForm({ s, categorias }: { s: ProductStock; categorias: FinPr
 }
 
 function ProductActions({ s }: { s: ProductStock }) {
+  const esProductoDeHuevo = s.categoriaNombre.startsWith("Huevos");
   return (
     <div className="flex flex-wrap items-center justify-end gap-2">
       {s.comparaConGalpon ? (
@@ -80,7 +81,7 @@ function ProductActions({ s }: { s: ProductStock }) {
         >
           Vinculado al galpón (1 = {s.unidadesGalpon} huevo{s.unidadesGalpon === 1 ? "" : "s"})
         </ConfirmButton>
-      ) : (
+      ) : esProductoDeHuevo ? (
         <form action={vincularConGalpon} className="flex items-center gap-1">
           <input type="hidden" name="productId" value={s.id} />
           <span className="text-xs text-tierra-500">1 unidad =</span>
@@ -88,7 +89,7 @@ function ProductActions({ s }: { s: ProductStock }) {
           <span className="text-xs text-tierra-500">huevos</span>
           <button type="submit" className="chip-neutral">Vincular a galpón</button>
         </form>
-      )}
+      ) : null}
       <ConfirmButton
         action={toggleProductActivo.bind(null, s.id, !s.activo)}
         confirmMessage={s.activo ? "¿Desactivar este producto?" : "¿Reactivar este producto?"}

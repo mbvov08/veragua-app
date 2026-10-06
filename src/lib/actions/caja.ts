@@ -30,9 +30,10 @@ export async function getSaldoEsperadoCaja(): Promise<SaldoEsperadoCaja> {
   // inicial representa lo que hay hoy, y solo se suman los movimientos de HOY en adelante.
   const desde = ultimo?.fecha ?? new Date(todayColombia().getTime() - 1);
 
+  // Sin filtro de company: Veragua y Melcoch comparten la misma caja física en el local,
+  // así que un gasto en efectivo de cualquiera de las dos sale del mismo efectivo contado.
   const tx = await prisma.finTransaction.findMany({
     where: {
-      company: "VERAGUA",
       anulado: false,
       metodoPago: "Efectivo",
       fecha: { gt: desde },
