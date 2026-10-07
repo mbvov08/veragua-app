@@ -66,6 +66,7 @@ model User {
   vehiculoRecibosSubidos      VehiculoRecibo[]           @relation("VehiculoReciboSubidoPor")
   vehiculoDaniosComoConductor VehiculoDanioFinanciero[]  @relation("VehiculoDanioConductor")
   vehiculoDaniosCreados       VehiculoDanioFinanciero[]  @relation("VehiculoDanioCreadoPor")
+  vehiculoParadasCompletadas  VehiculoParada[]           @relation("VehiculoParadaCompletadaPor")
 }
 
 // Lista de referencia de productos que se venden, para agilizar la toma de pedidos.
@@ -1050,12 +1051,31 @@ model VehiculoSalida {
   danios       VehiculoDanioFinanciero[]
   archivos     VehiculoArchivo[]          @relation("ArchivoDeSalida")
   pedidos      Order[]
+  paradas      VehiculoParada[]
 
   createdAt DateTime @default(now())
 
   @@index([conductorId, checkoutAt])
   @@index([vehiculoId, checkinAt])
   @@index([checkoutAt])
+}
+
+// Checklist de la ruta (paradas que no son pedidos de cliente — ej. dejar insumos o
+// recoger producción en una parada intermedia) — una fila por línea del campo "Ruta /
+// paradas" del acta de entrega, para que el conductor la pueda ir marcando.
+model VehiculoParada {
+  id              String         @id @default(cuid())
+  salidaId        String
+  salida          VehiculoSalida @relation(fields: [salidaId], references: [id])
+  orden           Int
+  titulo          String
+  completado      Boolean        @default(false)
+  completadoAt    DateTime?
+  completadoPorId String?
+  completadoPor   User?          @relation("VehiculoParadaCompletadaPor", fields: [completadoPorId], references: [id])
+  createdAt       DateTime       @default(now())
+
+  @@index([salidaId, orden])
 }
 
 // Tabla única para todo archivo privado del módulo (fotos, firmas, recibos, remisión

@@ -185,14 +185,20 @@ export default function ActaEntregaForm({ vehiculos, conductores }: { vehiculos:
                 </select>
               </div>
               <div className="sm:col-span-2">
-                <label className="label">Ruta / paradas (si toca varias zonas, descríbelas aquí)</label>
+                <label className="label">Ruta / paradas — una por línea, cada una queda como un ítem marcable</label>
                 <textarea
                   value={draft.destino}
                   onChange={(e) => set("destino", e.target.value)}
-                  rows={2}
+                  rows={5}
                   className="input"
-                  placeholder="Ej. Manizales → Alcalá (dejar concentrado, recoger huevos y pollo) → Local (dejar huevos/lácteos/arepas, recoger pedidos Pereira y Manizales) → Pereira → Manizales"
+                  placeholder={
+                    "Ej.:\nAlcalá: dejar concentrado de gallinas\nAlcalá: recoger huevos y un pollo (nevera de icopor)\nLocal: dejar huevos azules, lácteos y arepas\nLocal: recoger pedidos de ruta Pereira y Manizales\nEntregar en Pereira\nEntregar en Manizales"
+                  }
                 />
+                <p className="mt-1 text-xs text-tierra-400">
+                  Cada línea se convierte en un checklist que el conductor puede ir marcando. Los pedidos
+                  de Pedidos (Pereira/Manizales de hoy) ya aparecen aparte, no hace falta repetirlos aquí.
+                </p>
               </div>
             </>
           )}

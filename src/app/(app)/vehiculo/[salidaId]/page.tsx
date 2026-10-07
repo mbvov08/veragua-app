@@ -6,7 +6,7 @@ import { formatDateShortEs, formatTimeCo } from "@/lib/date";
 import { ANGULOS, PUNTOS_EVALUACION, EQUIPAMIENTO_ITEMS, NOVEDAD_TIPOS } from "@/lib/vehiculo/constants";
 import { comparePuntos } from "@/lib/vehiculo/comparacion";
 import { actualizarNotasAdminSalida, registrarDanioFinanciero, actualizarEstadoDanio } from "@/lib/actions/vehiculo";
-import { listarPedidosDelDia } from "@/lib/actions/vehiculo-entregas";
+import { listarPedidosDelDia, toggleParadaCompletada } from "@/lib/actions/vehiculo-entregas";
 import { ESTADO_DANIO } from "@/lib/vehiculo/constants";
 import SubmitButton from "@/components/SubmitButton";
 import AgregarReciboForm from "@/components/vehiculo/AgregarReciboForm";
@@ -35,6 +35,7 @@ export default async function VehiculoSalidaDetallePage({ params }: { params: Pr
       novedades: true,
       recibos: { include: { archivo: true } },
       danios: true,
+      paradas: { orderBy: { orden: "asc" } },
     },
   });
   if (!salidaCompleta) notFound();
@@ -229,6 +230,35 @@ export default async function VehiculoSalidaDetallePage({ params }: { params: Pr
             ))}
           </div>
           {puedeAutoservicio && <AgregarReciboForm salidaId={salidaId} />}
+        </div>
+      )}
+
+      {salidaCompleta.paradas.length > 0 && (
+        <div className="card space-y-2">
+          <h2 className="text-sm font-semibold text-verde-800">Checklist de la ruta</h2>
+          <div className="space-y-1">
+            {salidaCompleta.paradas.map((p) => (
+              <form
+                key={p.id}
+                action={toggleParadaCompletada.bind(null, p.id, !p.completado)}
+                className="flex items-center gap-2 rounded-lg border border-verde-100 px-2 py-1.5"
+              >
+                <button
+                  type="submit"
+                  disabled={!puedeAutoservicio}
+                  className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border text-xs ${
+                    p.completado ? "border-verde-500 bg-verde-500 text-white" : "border-tierra-300 bg-white"
+                  }`}
+                  aria-label={p.completado ? "Marcar como pendiente" : "Marcar como hecho"}
+                >
+                  {p.completado ? "✓" : ""}
+                </button>
+                <span className={`text-sm ${p.completado ? "text-tierra-400 line-through" : "text-tierra-800"}`}>
+                  {p.titulo}
+                </span>
+              </form>
+            ))}
+          </div>
         </div>
       )}
 

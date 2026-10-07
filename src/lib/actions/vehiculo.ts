@@ -116,6 +116,11 @@ export async function crearSalida(formData: FormData) {
   const vehiculo = await prisma.vehiculo.findUniqueOrThrow({ where: { id: vehiculoId } });
   if (vehiculo.salidaAbiertaId) throw new Error("Este vehículo ya tiene una salida abierta.");
 
+  // Cada línea de "Ruta / paradas" se vuelve un ítem de checklist marcable — así el
+  // conductor ve la ruta compleja (ej. dejar/recoger en paradas intermedias que no son
+  // pedidos de cliente) como algo que puede ir tachando, no solo como texto suelto.
+  const lineasParadas = (destino ?? "").split("\n").map((l) => l.trim()).filter(Boolean);
+
   // Las subidas a Blob son lentas (red) — se hacen fuera de la transacción de BD para
   // no dejarla abierta esperando. Si algo falla después, los archivos quedan
   // huérfanos (sin salidaId) pero no hay inconsistencia visible para el usuario.
@@ -166,6 +171,9 @@ export async function crearSalida(formData: FormData) {
               const ev = evaluaciones.find((e) => e.punto === p.value)!;
               return { momento: "ENTREGA", punto: p.value, estado: ev.estado, nota: ev.nota.trim() || null };
             }),
+          },
+          paradas: {
+            create: lineasParadas.map((titulo, i) => ({ orden: i, titulo })),
           },
           equipamiento: {
             create: EQUIPAMIENTO_ITEMS.map((it) => {

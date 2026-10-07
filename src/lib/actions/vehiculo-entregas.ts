@@ -65,3 +65,23 @@ export async function marcarPedidoEntregadoConductor(orderId: string, salidaId: 
   revalidatePath(`/vehiculo/${salidaId}`);
   revalidatePath("/pedidos");
 }
+
+/** El checklist de paradas (lo que no es un pedido de cliente — dejar/recoger insumos
+ * en una parada intermedia) lo puede marcar el mismo conductor o el staff. */
+export async function toggleParadaCompletada(paradaId: string, completado: boolean) {
+  const session = await requireVehiculoAccess();
+  const parada = await prisma.vehiculoParada.findUniqueOrThrow({ where: { id: paradaId } });
+  const salida = await requireOwnSalida(session, parada.salidaId);
+  if (salida.checkinAt) throw new Error("Esta salida ya está cerrada.");
+
+  await prisma.vehiculoParada.update({
+    where: { id: paradaId },
+    data: {
+      completado,
+      completadoAt: completado ? new Date() : null,
+      completadoPorId: completado ? session.user.id : null,
+    },
+  });
+
+  revalidatePath(`/vehiculo/${parada.salidaId}`);
+}
