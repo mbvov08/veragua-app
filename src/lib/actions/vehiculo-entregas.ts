@@ -6,18 +6,20 @@ import { todayColombia } from "@/lib/date";
 import { requireVehiculoAccess, requireOwnSalida } from "@/lib/vehiculo/access";
 import { putPrivateVehiculoBlob } from "@/lib/vehiculo/blob";
 
-/** Pedidos del día que calzan con la ruta de esta salida — nunca precios (Order/
- * OrderItem/Producto no tienen columna de precio, así que no hay riesgo de filtrarlos
- * por construcción), y nunca pedidos de otra zona o de otro día. */
+/** Pedidos del día — nunca precios (Order/OrderItem/Producto no tienen columna de
+ * precio, así que no hay riesgo de filtrarlos por construcción), y nunca pedidos de
+ * otro día. No se filtra por zona: una misma ruta puede tocar varias zonas en un solo
+ * viaje (ej. Manizales → Alcalá → Local → Pereira), así que se muestran todos los
+ * pedidos de hoy que no estén ya tomados por otra salida — el conductor/staff ve la
+ * zona de cada uno para saber en qué parada entregarlo. */
 export async function listarPedidosDelDia(salidaId: string) {
   const session = await requireVehiculoAccess();
   const salida = await requireOwnSalida(session, salidaId);
-  if (salida.tipoUso !== "RUTA_EMPRESA" || !salida.zona) return [];
+  if (salida.tipoUso !== "RUTA_EMPRESA") return [];
 
   const hoy = todayColombia();
   return prisma.order.findMany({
     where: {
-      zona: salida.zona,
       fechaEntrega: hoy,
       OR: [{ vehiculoSalidaId: null }, { vehiculoSalidaId: salidaId }],
     },
@@ -26,12 +28,13 @@ export async function listarPedidosDelDia(salidaId: string) {
       cliente: true,
       direccion: true,
       telefono: true,
+      zona: true,
       notas: true,
       entregado: true,
       entregadoAt: true,
       items: { select: { cantidad: true, producto: { select: { nombre: true } } } },
     },
-    orderBy: [{ cliente: "asc" }],
+    orderBy: [{ zona: "asc" }, { cliente: "asc" }],
   });
 }
 
@@ -42,7 +45,7 @@ export async function marcarPedidoEntregadoConductor(orderId: string, salidaId: 
 
   const order = await prisma.order.findUniqueOrThrow({ where: { id: orderId } });
   const hoy = todayColombia();
-  if (order.zona !== salida.zona || order.fechaEntrega.getTime() !== hoy.getTime()) {
+  if (order.fechaEntrega.getTime() !== hoy.getTime()) {
     throw new Error("Este pedido no corresponde a la ruta de hoy.");
   }
 

@@ -77,7 +77,8 @@ export function validarActaEntrega(draft: ActaEntregaDraft): string[] {
   if (!draft.vehiculoId) faltas.push("Vehículo");
   if (!draft.conductorId) faltas.push("Conductor");
   if (!draft.tipoUso) faltas.push("Tipo de uso");
-  if (draft.tipoUso === "RUTA_EMPRESA" && !draft.zona) faltas.push("Zona de la ruta");
+  // La zona ya no es obligatoria: una ruta puede tocar varias zonas en un mismo viaje
+  // (ver el campo "Ruta / paradas" de texto libre en el formulario).
 
   faltas.push(
     ...validarComun({

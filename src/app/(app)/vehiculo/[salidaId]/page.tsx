@@ -239,7 +239,9 @@ export default async function VehiculoSalidaDetallePage({ params }: { params: Pr
             {pedidosDelDia.map((p) => (
               <div key={p.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-tierra-800">{p.cliente}</p>
+                  <p className="text-sm font-medium text-tierra-800">
+                    {p.cliente} <span className="badge bg-tierra-100 text-tierra-600">{p.zona}</span>
+                  </p>
                   <p className="text-xs text-tierra-500">{p.direccion}{p.telefono && ` · ${p.telefono}`}</p>
                   <p className="text-xs text-tierra-500">
                     {p.items.map((it) => `${it.cantidad ?? ""} ${it.producto.nombre}`).join(", ")}

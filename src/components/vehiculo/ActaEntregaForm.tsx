@@ -174,15 +174,27 @@ export default function ActaEntregaForm({ vehiculos, conductores }: { vehiculos:
             </select>
           </div>
           {draft.tipoUso === "RUTA_EMPRESA" && (
-            <div>
-              <label className="label">Zona</label>
-              <select value={draft.zona} onChange={(e) => set("zona", e.target.value)} className="input">
-                <option value="">Selecciona...</option>
-                <option value="LOCAL">Local</option>
-                <option value="PEREIRA">Ruta Pereira</option>
-                <option value="MANIZALES">Ruta Manizales</option>
-              </select>
-            </div>
+            <>
+              <div>
+                <label className="label">Zona principal (opcional)</label>
+                <select value={draft.zona} onChange={(e) => set("zona", e.target.value)} className="input">
+                  <option value="">Varias zonas / no aplica</option>
+                  <option value="LOCAL">Local</option>
+                  <option value="PEREIRA">Ruta Pereira</option>
+                  <option value="MANIZALES">Ruta Manizales</option>
+                </select>
+              </div>
+              <div className="sm:col-span-2">
+                <label className="label">Ruta / paradas (si toca varias zonas, descríbelas aquí)</label>
+                <textarea
+                  value={draft.destino}
+                  onChange={(e) => set("destino", e.target.value)}
+                  rows={2}
+                  className="input"
+                  placeholder="Ej. Manizales → Alcalá (dejar concentrado, recoger huevos y pollo) → Local (dejar huevos/lácteos/arepas, recoger pedidos Pereira y Manizales) → Pereira → Manizales"
+                />
+              </div>
+            </>
           )}
           {draft.tipoUso === "ALQUILER" && (
             <div>
