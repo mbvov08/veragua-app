@@ -24,14 +24,25 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     where: { fecha: today },
     include: { reminderRule: true, dismissals: { where: { userId: session.user.id } } },
   });
+  // Mapa por título de regla en vez de un solo href fijo, ahora que hay más de un
+  // origen de alertas condicionales (reabastecimiento, vehículo).
+  const HREF_POR_TITULO: Record<string, string> = {
+    "📦 Reabastecimiento": "/inventario/reabastecimiento",
+    "🚐 Salida abierta": "/vehiculo",
+    "🚐 Devolución con novedades": "/vehiculo",
+    "🚐 Documentos del vehículo": "/vehiculo/ajustes",
+  };
   const reminderItems: ReminderItem[] = instances
     .filter((i) => i.dismissals.length === 0 && i.reminderRule.activo !== false && i.mensajeOverride !== "")
+    // Las alertas de vehículo nombran conductores y salidas de otros — son para staff,
+    // no para que un conductor vea el movimiento de los demás.
+    .filter((i) => !i.reminderRule.titulo.startsWith("🚐") || session.user.role === "ADMIN" || session.user.role === "EMPLEADA")
     .map((i) => ({
       instanceId: i.id,
       titulo: i.reminderRule.titulo,
       mensaje: i.mensajeOverride ?? i.reminderRule.mensaje,
       fechaLabel: "Hoy",
-      href: i.mensajeOverride !== null ? "/inventario/reabastecimiento" : undefined,
+      href: i.mensajeOverride !== null ? HREF_POR_TITULO[i.reminderRule.titulo] : undefined,
     }));
 
   const isAdmin = session.user.role === "ADMIN";

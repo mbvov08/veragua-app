@@ -1,6 +1,11 @@
 import { prisma } from "@/lib/prisma";
 import { addDays, todayColombia, dayOfWeek } from "@/lib/date";
 import { ensureReabastecimientoAlertaGenerada } from "@/lib/inventario/reabastecimiento-alertas";
+import {
+  ensureSalidaAbiertaAlertaGenerada,
+  ensureSalidaNovedadAlertaGenerada,
+  ensureDocumentoVencimientoAlertaGenerada,
+} from "@/lib/vehiculo/vehiculo-alertas";
 
 const ORDER_HORIZON_DAYS = 21;
 const REMINDER_HORIZON_DAYS = 14;
@@ -91,5 +96,8 @@ export async function ensureAllGenerated() {
     ensureRecurringOrdersGenerated(),
     ensureRemindersGenerated(),
     ensureReabastecimientoAlertaGenerada(),
+    ensureSalidaAbiertaAlertaGenerada(),
+    ensureSalidaNovedadAlertaGenerada(),
+    ensureDocumentoVencimientoAlertaGenerada(),
   ]);
 }

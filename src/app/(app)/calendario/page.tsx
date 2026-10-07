@@ -33,8 +33,9 @@ export default async function CalendarioPage({
   const gridStart = addDays(firstOfMonth, gridStartOffset);
   const gridEndOffset = dayOfWeek(lastOfMonth) === 0 ? 0 : 7 - dayOfWeek(lastOfMonth);
   const gridEnd = addDays(lastOfMonth, gridEndOffset);
+  const today = todayColombia();
 
-  const [orders, tasks, reminders] = await Promise.all([
+  const [orders, tasks, reminders, salidas] = await Promise.all([
     prisma.order.findMany({ where: { fechaEntrega: { gte: gridStart, lte: gridEnd } } }),
     prisma.task.findMany({
       where: { fechaLimite: { gte: gridStart, lte: gridEnd } },
@@ -43,6 +44,10 @@ export default async function CalendarioPage({
     prisma.reminderInstance.findMany({
       where: { fecha: { gte: gridStart, lte: gridEnd } },
       include: { reminderRule: true },
+    }),
+    prisma.vehiculoSalida.findMany({
+      where: { checkoutAt: { lte: gridEnd }, OR: [{ checkinAt: null }, { checkinAt: { gte: gridStart } }] },
+      include: { vehiculo: true, conductor: true },
     }),
   ]);
 
@@ -70,11 +75,24 @@ export default async function CalendarioPage({
       color: "bg-yellow-100 text-yellow-800",
     });
   }
+  // Las salidas son el único caso de rango de fechas (checkout→checkin) — se itera un
+  // día a la vez en vez de un solo push por registro como los demás orígenes.
+  for (const s of salidas) {
+    const desde = s.checkoutAt > gridStart ? s.checkoutAt : gridStart;
+    const hastaReal = s.checkinAt ?? today;
+    const hasta = hastaReal < gridEnd ? hastaReal : gridEnd;
+    const esRuta = s.tipoUso === "RUTA_EMPRESA";
+    for (let d = desde; d <= hasta; d = addDays(d, 1)) {
+      push(formatDateOnly(d), {
+        label: `🚐 ${esRuta ? "Ruta" : "Alquiler"} ${s.vehiculo.placa} (${s.conductor.name})`,
+        color: esRuta ? "bg-blue-100 text-blue-800" : "bg-purple-100 text-purple-800",
+      });
+    }
+  }
 
   const days: Date[] = [];
   for (let d = gridStart; d <= gridEnd; d = addDays(d, 1)) days.push(d);
 
-  const today = todayColombia();
   const prevMonth = `${monthIndex === 0 ? year - 1 : year}-${String(monthIndex === 0 ? 12 : monthIndex).padStart(2, "0")}`;
   const nextMonth = `${monthIndex === 11 ? year + 1 : year}-${String(monthIndex === 11 ? 1 : monthIndex + 2).padStart(2, "0")}`;
 
