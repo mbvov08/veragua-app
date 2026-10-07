@@ -12,64 +12,71 @@ datasource db {
 }
 
 model User {
-  id           String   @id @default(cuid())
-  username     String   @unique
-  name         String
-  passwordHash String
-  role         String // "ADMIN" | "EMPLEADA" | "GALPON"
-  activo       Boolean  @default(true)
-  createdAt    DateTime @default(now())
+  id               String   @id @default(cuid())
+  username         String   @unique
+  name             String
+  passwordHash     String
+  role             String // "ADMIN" | "EMPLEADA" | "GALPON"
+  activo           Boolean  @default(true)
+  createdAt        DateTime @default(now())
   // Acceso al módulo Finanzas sin necesidad de ser ADMIN (ej. Daniela).
-  puedeVerFinanzas Boolean @default(false)
+  puedeVerFinanzas Boolean  @default(false)
 
-  timeEntries        TimeEntry[]
-  ordersCreated      Order[]              @relation("OrderCreatedBy")
-  recurringRules     RecurringOrderRule[] @relation("RecurringRuleCreatedBy")
-  tasksAssigned      Task[]               @relation("TaskAssignee")
-  tasksCreated       Task[]               @relation("TaskCreatedBy")
-  reminderRules      ReminderRule[]       @relation("ReminderRuleCreatedBy")
-  reminderDismissals ReminderDismissal[]
-  payrollSlips       PayrollSlip[]
-  liquidaciones      Liquidacion[]
-  primaPagos         PrimaPago[]
-  cesantiasConsignaciones CesantiasConsignacion[]
-  employeeProfile    EmployeeProfile?
-  registrosGalpon    RegistroGalpon[]
-  recepcionesLocal   RecepcionLocal[]     @relation("RecepcionRegistradaPor")
-  pagosGalpon        PagoGalpon[]
-  listasCompras      ListaCompras[]
-  cajaMovimientosCreados  CajaMovimiento[] @relation("CajaCreadoPor")
-  cajaMovimientosAprobados CajaMovimiento[] @relation("CajaAprobadoPor")
-  melcochProduccionesCreadas MelcochProduccionDiaria[] @relation("MelcochProduccionCreadaPor")
-  melcochComprasCreadas      MelcochCompraIngrediente[] @relation("MelcochCompraCreadaPor")
-  melcochAjustesCreados      MelcochAjusteInventario[]  @relation("MelcochAjusteCreadoPor")
-  productosCreados           Producto[]                 @relation("ProductoCreadoPor")
-  finTransactionsCreadas     FinTransaction[]            @relation("FinTransactionCreadaPor")
-  finTransactionsAnuladas    FinTransaction[]            @relation("FinTransactionAnuladaPor")
-  finImportBatches           FinImportBatch[]            @relation("FinImportBatchImportadoPor")
-  finCategoriasCreadas       FinCategory[]                @relation("FinCategoryCreadaPor")
-  pushSubscriptions          PushSubscription[]
-  finProductosCreados        FinProduct[]                 @relation("FinProductCreadoPor")
-  finInventoryAjustesCreados FinInventoryAdjustment[]     @relation("FinInventoryAdjustmentCreadoPor")
-  finComprasCreadas          FinPurchase[]                @relation("FinPurchaseCreadoPor")
-  finVentasCreadas           FinSale[]                    @relation("FinSaleCreadoPor")
-  finCxCCreadas              FinCuentaPorCobrar[]         @relation("FinCxCCreadoPor")
-  finCxPCreadas              FinCuentaPorPagar[]          @relation("FinCxPCreadoPor")
-  finPagosClienteCreados     FinPagoCliente[]             @relation("FinPagoClienteCreadoPor")
-  finPagosProveedorCreados   FinPagoProveedor[]           @relation("FinPagoProveedorCreadoPor")
-  suscripcionesCreadas       Suscripcion[]                @relation("SuscripcionCreadaPor")
-  cajaCierresCreados         CajaCierre[]                 @relation("CajaCierreCreadoPor")
+  timeEntries                 TimeEntry[]
+  ordersCreated               Order[]                    @relation("OrderCreatedBy")
+  recurringRules              RecurringOrderRule[]       @relation("RecurringRuleCreatedBy")
+  tasksAssigned               Task[]                     @relation("TaskAssignee")
+  tasksCreated                Task[]                     @relation("TaskCreatedBy")
+  reminderRules               ReminderRule[]             @relation("ReminderRuleCreatedBy")
+  reminderDismissals          ReminderDismissal[]
+  payrollSlips                PayrollSlip[]
+  liquidaciones               Liquidacion[]
+  primaPagos                  PrimaPago[]
+  cesantiasConsignaciones     CesantiasConsignacion[]
+  employeeProfile             EmployeeProfile?
+  registrosGalpon             RegistroGalpon[]
+  recepcionesLocal            RecepcionLocal[]           @relation("RecepcionRegistradaPor")
+  pagosGalpon                 PagoGalpon[]
+  listasCompras               ListaCompras[]
+  cajaMovimientosCreados      CajaMovimiento[]           @relation("CajaCreadoPor")
+  cajaMovimientosAprobados    CajaMovimiento[]           @relation("CajaAprobadoPor")
+  melcochProduccionesCreadas  MelcochProduccionDiaria[]  @relation("MelcochProduccionCreadaPor")
+  melcochComprasCreadas       MelcochCompraIngrediente[] @relation("MelcochCompraCreadaPor")
+  melcochAjustesCreados       MelcochAjusteInventario[]  @relation("MelcochAjusteCreadoPor")
+  productosCreados            Producto[]                 @relation("ProductoCreadoPor")
+  finTransactionsCreadas      FinTransaction[]           @relation("FinTransactionCreadaPor")
+  finTransactionsAnuladas     FinTransaction[]           @relation("FinTransactionAnuladaPor")
+  finImportBatches            FinImportBatch[]           @relation("FinImportBatchImportadoPor")
+  finCategoriasCreadas        FinCategory[]              @relation("FinCategoryCreadaPor")
+  pushSubscriptions           PushSubscription[]
+  finProductosCreados         FinProduct[]               @relation("FinProductCreadoPor")
+  finInventoryAjustesCreados  FinInventoryAdjustment[]   @relation("FinInventoryAdjustmentCreadoPor")
+  finComprasCreadas           FinPurchase[]              @relation("FinPurchaseCreadoPor")
+  finVentasCreadas            FinSale[]                  @relation("FinSaleCreadoPor")
+  finCxCCreadas               FinCuentaPorCobrar[]       @relation("FinCxCCreadoPor")
+  finCxPCreadas               FinCuentaPorPagar[]        @relation("FinCxPCreadoPor")
+  finPagosClienteCreados      FinPagoCliente[]           @relation("FinPagoClienteCreadoPor")
+  finPagosProveedorCreados    FinPagoProveedor[]         @relation("FinPagoProveedorCreadoPor")
+  suscripcionesCreadas        Suscripcion[]              @relation("SuscripcionCreadaPor")
+  cajaCierresCreados          CajaCierre[]               @relation("CajaCierreCreadoPor")
+  vehiculoSalidasConductor    VehiculoSalida[]           @relation("VehiculoSalidaConductor")
+  vehiculoSalidasCheckoutPor  VehiculoSalida[]           @relation("VehiculoCheckoutPor")
+  vehiculoSalidasCheckinPor   VehiculoSalida[]           @relation("VehiculoCheckinPor")
+  vehiculoArchivosSubidos     VehiculoArchivo[]          @relation("VehiculoArchivoSubidoPor")
+  vehiculoRecibosSubidos      VehiculoRecibo[]           @relation("VehiculoReciboSubidoPor")
+  vehiculoDaniosComoConductor VehiculoDanioFinanciero[]  @relation("VehiculoDanioConductor")
+  vehiculoDaniosCreados       VehiculoDanioFinanciero[]  @relation("VehiculoDanioCreadoPor")
 }
 
 // Lista de referencia de productos que se venden, para agilizar la toma de pedidos.
 // No lleva inventario ni cantidades, solo el nombre.
 model Producto {
-  id          String      @id @default(cuid())
-  nombre      String      @unique
-  categoria   String      @default("Otros")
+  id          String                   @id @default(cuid())
+  nombre      String                   @unique
+  categoria   String                   @default("Otros")
   creadoPorId String
-  creadoPor   User        @relation("ProductoCreadoPor", fields: [creadoPorId], references: [id])
-  createdAt   DateTime    @default(now())
+  creadoPor   User                     @relation("ProductoCreadoPor", fields: [creadoPorId], references: [id])
+  createdAt   DateTime                 @default(now())
   ordenados   OrderItem[]
   reglaItems  RecurringOrderRuleItem[]
 }
@@ -83,48 +90,48 @@ model RutaSettings {
 
 // Datos laborales del empleado usados para nómina y liquidación
 model EmployeeProfile {
-  id                   String   @id @default(cuid())
-  userId               String   @unique
-  user                 User     @relation(fields: [userId], references: [id])
-  cedula               String?
-  salarioBase          Float    @default(0)
-  fechaIngreso         DateTime
-  auxTransporte        Boolean  @default(true)
+  id                  String   @id @default(cuid())
+  userId              String   @unique
+  user                User     @relation(fields: [userId], references: [id])
+  cedula              String?
+  salarioBase         Float    @default(0)
+  fechaIngreso        DateTime
+  auxTransporte       Boolean  @default(true)
   // Extra fijo que se paga cada quincena por fuera del salario (ej. domicilios),
   // no constitutivo de salario: no se le calcula salud/pensión.
-  extraQuincenal       Float    @default(0)
-  extraQuincenalLabel  String   @default("Domicilios")
-  updatedAt            DateTime @updatedAt
+  extraQuincenal      Float    @default(0)
+  extraQuincenalLabel String   @default("Domicilios")
+  updatedAt           DateTime @updatedAt
 }
 
 // Ajustes generales de nómina (SMLMV, auxilio de transporte, porcentajes de ley)
 model PayrollSettings {
-  id                    String   @id @default("singleton")
-  smlmv                 Float
-  auxilioTransporte     Float
-  porcentajeSalud       Float    @default(0.04)
-  porcentajePension     Float    @default(0.04)
-  horasSemanaLegal      Float    @default(42)
+  id                     String   @id @default("singleton")
+  smlmv                  Float
+  auxilioTransporte      Float
+  porcentajeSalud        Float    @default(0.04)
+  porcentajePension      Float    @default(0.04)
+  horasSemanaLegal       Float    @default(42)
   // Divisor de horas mensuales para el valor de la hora ordinaria (referencia oficial vigente: 220).
-  divisorHorasMensual   Float    @default(220)
-  topeAuxTransporteSmlmv Float   @default(2)
+  divisorHorasMensual    Float    @default(220)
+  topeAuxTransporteSmlmv Float    @default(2)
   // Pago por cubeta (30 huevos) en buen estado, para el encargado del galpón.
-  valorCubetaGalpon     Float    @default(1000)
-  huevosPorCubeta       Int      @default(30)
-  updatedAt             DateTime @updatedAt
+  valorCubetaGalpon      Float    @default(1000)
+  huevosPorCubeta        Int      @default(30)
+  updatedAt              DateTime @updatedAt
 }
 
 // Registro diario del encargado del galpón: cuántos huevos produjo y cuántos salieron rotos.
 model RegistroGalpon {
-  id             String   @id @default(cuid())
-  userId         String
-  user           User     @relation(fields: [userId], references: [id])
-  fecha          DateTime // UTC-noon normalizado
+  id               String   @id @default(cuid())
+  userId           String
+  user             User     @relation(fields: [userId], references: [id])
+  fecha            DateTime // UTC-noon normalizado
   huevosProducidos Int
-  huevosRotos    Int      @default(0)
-  observaciones  String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  huevosRotos      Int      @default(0)
+  observaciones    String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   @@unique([userId, fecha])
   @@index([fecha])
@@ -132,52 +139,52 @@ model RegistroGalpon {
 
 // Registro diario de cuántos huevos ingresaron efectivamente al local (lo entrega Daniela/admin).
 model RecepcionLocal {
-  id             String   @id @default(cuid())
-  fecha          DateTime @unique // UTC-noon normalizado
+  id               String   @id @default(cuid())
+  fecha            DateTime @unique // UTC-noon normalizado
   cantidadRecibida Int
-  observaciones  String?
-  registradoPorId String
-  registradoPor  User     @relation("RecepcionRegistradaPor", fields: [registradoPorId], references: [id])
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  observaciones    String?
+  registradoPorId  String
+  registradoPor    User     @relation("RecepcionRegistradaPor", fields: [registradoPorId], references: [id])
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   @@index([fecha])
 }
 
 // Pago al encargado del galpón por producción, cruzando su registro con lo recibido en el local.
 model PagoGalpon {
-  id                 String   @id @default(cuid())
-  userId             String
-  user               User     @relation(fields: [userId], references: [id])
-  periodStart        DateTime
-  periodEnd          DateTime
-  huevosProducidos   Int
-  huevosRotos        Int
+  id                   String   @id @default(cuid())
+  userId               String
+  user                 User     @relation(fields: [userId], references: [id])
+  periodStart          DateTime
+  periodEnd            DateTime
+  huevosProducidos     Int
+  huevosRotos          Int
   huevosRecibidosLocal Int
-  huevosVerificados  Int
-  cubetas            Float
-  valorCubeta        Float
-  totalPagar         Float
-  detalleJson        String
-  generadoPorId      String
-  generatedAt        DateTime @default(now())
+  huevosVerificados    Int
+  cubetas              Float
+  valorCubeta          Float
+  totalPagar           Float
+  detalleJson          String
+  generadoPorId        String
+  generatedAt          DateTime @default(now())
 
   @@index([userId, periodStart])
 }
 
 model TimeEntry {
-  id        String    @id @default(cuid())
-  userId    String
-  user      User      @relation(fields: [userId], references: [id])
-  workDate  DateTime // día lógico (UTC-noon normalizado)
-  clockIn   DateTime
-  clockOut  DateTime?
-  notas     String?
+  id                  String    @id @default(cuid())
+  userId              String
+  user                User      @relation(fields: [userId], references: [id])
+  workDate            DateTime // día lógico (UTC-noon normalizado)
+  clockIn             DateTime
+  clockOut            DateTime?
+  notas               String?
   // Si la salida fue después de la jornada ordinaria, motivo y justificación obligatorios.
   motivoSalidaTardia  String? // "CARGA_TRABAJO" | "INGRESO_TARDE_COMPENSO" | "ALMUERZO_EXTENDIDO" | "COMPROMISO_PERSONAL" | "OTRO"
   esJustificable      Boolean? // autoevaluación de quien marca la salida
   justificacionSalida String?
-  createdAt DateTime  @default(now())
+  createdAt           DateTime  @default(now())
 
   @@unique([userId, workDate])
   @@index([userId, workDate])
@@ -194,31 +201,39 @@ model Cliente {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  ventas          FinSale[]
+  ventas           FinSale[]
   cuentasPorCobrar FinCuentaPorCobrar[]
-  pagos           FinPagoCliente[]
-  suscripciones   Suscripcion[]
+  pagos            FinPagoCliente[]
+  suscripciones    Suscripcion[]
 }
 
 model Order {
-  id              String    @id @default(cuid())
+  id              String              @id @default(cuid())
   cliente         String
   direccion       String
   telefono        String?
   zona            String // "LOCAL" | "PEREIRA" | "MANIZALES"
   fechaEntrega    DateTime // UTC-noon normalizado
-  entregado       Boolean   @default(false)
+  entregado       Boolean             @default(false)
   entregadoAt     DateTime?
   notas           String?
   items           OrderItem[]
   recurringRuleId String?
   recurringRule   RecurringOrderRule? @relation(fields: [recurringRuleId], references: [id])
   creadoPorId     String
-  creadoPor       User      @relation("OrderCreatedBy", fields: [creadoPorId], references: [id])
-  createdAt       DateTime  @default(now())
+  creadoPor       User                @relation("OrderCreatedBy", fields: [creadoPorId], references: [id])
+  createdAt       DateTime            @default(now())
+
+  // Cuando un conductor marca el pedido como entregado desde el módulo Vehículo:
+  // qué salida lo entregó, y la foto de la remisión firmada.
+  vehiculoSalidaId String?
+  vehiculoSalida   VehiculoSalida?  @relation(fields: [vehiculoSalidaId], references: [id])
+  entregaArchivoId String?
+  entregaArchivo   VehiculoArchivo? @relation(fields: [entregaArchivoId], references: [id])
 
   @@unique([recurringRuleId, fechaEntrega])
   @@index([zona, fechaEntrega])
+  @@index([vehiculoSalidaId])
 }
 
 // Producto pedido dentro de un pedido puntual. Sin inventario: solo referencia qué y cuánto se pidió.
@@ -233,20 +248,20 @@ model OrderItem {
 }
 
 model RecurringOrderRule {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   cliente     String
   direccion   String
   telefono    String?
   zona        String
   diaSemana   Int // 0=domingo .. 6=sábado
   notas       String?
-  activo      Boolean  @default(true)
+  activo      Boolean   @default(true)
   // Si no es null, no se generan pedidos con fechaEntrega posterior a esta fecha
   // (se usa para suscripciones mensuales: la entrega recurrente para cuando vence).
   fechaFin    DateTime?
   creadoPorId String
-  creadoPor   User     @relation("RecurringRuleCreatedBy", fields: [creadoPorId], references: [id])
-  createdAt   DateTime @default(now())
+  creadoPor   User      @relation("RecurringRuleCreatedBy", fields: [creadoPorId], references: [id])
+  createdAt   DateTime  @default(now())
 
   orders        Order[]
   items         RecurringOrderRuleItem[]
@@ -256,13 +271,13 @@ model RecurringOrderRule {
 // Plantilla de productos que se copia a cada pedido generado por la regla recurrente,
 // para no tener que volver a escribirlos cada semana (ej. los productos de una suscripción).
 model RecurringOrderRuleItem {
-  id                String             @id @default(cuid())
-  recurringRuleId   String
-  recurringRule     RecurringOrderRule @relation(fields: [recurringRuleId], references: [id])
-  productoId        String
-  producto          Producto           @relation(fields: [productoId], references: [id])
-  cantidad          String?
-  createdAt         DateTime           @default(now())
+  id              String             @id @default(cuid())
+  recurringRuleId String
+  recurringRule   RecurringOrderRule @relation(fields: [recurringRuleId], references: [id])
+  productoId      String
+  producto        Producto           @relation(fields: [productoId], references: [id])
+  cantidad        String?
+  createdAt       DateTime           @default(now())
 }
 
 // Suscripción mensual: el cliente paga por adelantado y recibe entregas recurrentes
@@ -320,11 +335,11 @@ model ReminderRule {
 }
 
 model ReminderInstance {
-  id             String   @id @default(cuid())
-  reminderRuleId String
-  reminderRule   ReminderRule @relation(fields: [reminderRuleId], references: [id])
-  fecha          DateTime // UTC-noon normalizado
-  createdAt      DateTime @default(now())
+  id              String       @id @default(cuid())
+  reminderRuleId  String
+  reminderRule    ReminderRule @relation(fields: [reminderRuleId], references: [id])
+  fecha           DateTime // UTC-noon normalizado
+  createdAt       DateTime     @default(now())
   // Mensaje calculado para esta instancia puntual (ej. reabastecimiento: qué productos
   // tocan hoy), en vez del mensaje fijo de la regla. "" (string vacío, distinto de null)
   // significa "ya se generó hoy pero no hay nada que avisar" — evita recalcular en cada
@@ -349,55 +364,55 @@ model ReminderDismissal {
 }
 
 model PayrollSlip {
-  id               String   @id @default(cuid())
-  userId           String
-  user             User     @relation(fields: [userId], references: [id])
-  periodStart      DateTime
-  periodEnd        DateTime
-  salarioBase      Float
-  diasTrabajados   Float
-  horasOrdinarias  Float
-  horasExtraDiu    Float
-  horasExtraNoc    Float
-  valorExtraDiu    Float
-  valorExtraNoc    Float
+  id                        String   @id @default(cuid())
+  userId                    String
+  user                      User     @relation(fields: [userId], references: [id])
+  periodStart               DateTime
+  periodEnd                 DateTime
+  salarioBase               Float
+  diasTrabajados            Float
+  horasOrdinarias           Float
+  horasExtraDiu             Float
+  horasExtraNoc             Float
+  valorExtraDiu             Float
+  valorExtraNoc             Float
   // Horas extra según la autoevaluación al marcar salida tardía.
-  horasJustificadas   Float @default(0)
-  horasNoJustificadas Float @default(0)
-  extraFijo        Float    @default(0)
-  extraFijoLabel   String?
-  auxTransporte    Float
-  totalDevengado   Float
-  saludDeduccion   Float
-  pensionDeduccion Float
-  totalDeducciones Float
+  horasJustificadas         Float    @default(0)
+  horasNoJustificadas       Float    @default(0)
+  extraFijo                 Float    @default(0)
+  extraFijoLabel            String?
+  auxTransporte             Float
+  totalDevengado            Float
+  saludDeduccion            Float
+  pensionDeduccion          Float
+  totalDeducciones          Float
   // Descuento por faltante/pérdida asumida por la empleada (pactado en su contrato). Manual, con concepto.
-  descuentoFaltante        Float @default(0)
+  descuentoFaltante         Float    @default(0)
   descuentoFaltanteConcepto String?
-  netoPagar        Float
-  detalleJson      String
-  generadoPorId    String
-  generatedAt      DateTime @default(now())
+  netoPagar                 Float
+  detalleJson               String
+  generadoPorId             String
+  generatedAt               DateTime @default(now())
 
   @@index([userId, periodStart])
 }
 
 model Liquidacion {
-  id                  String   @id @default(cuid())
-  userId              String
-  user                User     @relation(fields: [userId], references: [id])
-  fechaIngreso        DateTime
-  fechaRetiro         DateTime
-  salarioBase         Float
-  diasLaborados       Int
-  cesantias           Float
-  interesesCesantias  Float
-  prima               Float
-  vacaciones          Float
-  totalLiquidacion    Float
-  detalleJson         String
-  generadoPorId       String
-  generatedAt         DateTime @default(now())
+  id                 String   @id @default(cuid())
+  userId             String
+  user               User     @relation(fields: [userId], references: [id])
+  fechaIngreso       DateTime
+  fechaRetiro        DateTime
+  salarioBase        Float
+  diasLaborados      Int
+  cesantias          Float
+  interesesCesantias Float
+  prima              Float
+  vacaciones         Float
+  totalLiquidacion   Float
+  detalleJson        String
+  generadoPorId      String
+  generatedAt        DateTime @default(now())
 }
 
 // Prima de servicios: por ley se paga dos veces al año (30 de junio y 20 de diciembre)
@@ -422,17 +437,17 @@ model PrimaPago {
 
 // Cálculo informativo de cuánto consignar al fondo de cesantías antes del 14 de febrero.
 model CesantiasConsignacion {
-  id                 String   @id @default(cuid())
-  userId             String
-  user               User     @relation(fields: [userId], references: [id])
-  anio               Int
-  salarioBase        Float
-  diasBase           Int
-  valorCesantias     Float
-  valorIntereses     Float
-  detalleJson        String
-  generadoPorId      String
-  generatedAt        DateTime @default(now())
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id])
+  anio           Int
+  salarioBase    Float
+  diasBase       Int
+  valorCesantias Float
+  valorIntereses Float
+  detalleJson    String
+  generadoPorId  String
+  generatedAt    DateTime @default(now())
 
   @@unique([userId, anio])
 }
@@ -440,15 +455,15 @@ model CesantiasConsignacion {
 // Lista de compras/insumos pendientes, separada por área (galpón o local).
 // Cada área solo ve y crea lo suyo; la administradora ve ambas.
 model ListaCompras {
-  id           String    @id @default(cuid())
-  item         String
-  cantidad     String?
-  categoria    String // "GALPON" | "LOCAL"
-  comprado     Boolean   @default(false)
-  compradoAt   DateTime?
-  creadoPorId  String
-  creadoPor    User      @relation(fields: [creadoPorId], references: [id])
-  createdAt    DateTime  @default(now())
+  id          String    @id @default(cuid())
+  item        String
+  cantidad    String?
+  categoria   String // "GALPON" | "LOCAL"
+  comprado    Boolean   @default(false)
+  compradoAt  DateTime?
+  creadoPorId String
+  creadoPor   User      @relation(fields: [creadoPorId], references: [id])
+  createdAt   DateTime  @default(now())
 
   @@index([categoria, comprado])
 }
@@ -463,18 +478,18 @@ model CajaSettings {
 // Movimientos de caja (efectivo). Los egresos deben ser aprobados por la administradora
 // antes de contar contra el saldo; los ingresos (base/reposición) los registra ella directamente.
 model CajaMovimiento {
-  id             String    @id @default(cuid())
-  tipo           String // "INGRESO" | "EGRESO"
-  monto          Float
-  categoria      String? // solo para egresos
-  estado         String    @default("APROBADO") // "PENDIENTE" | "APROBADO" | "RECHAZADO"
-  observaciones  String?
-  fecha          DateTime // UTC-noon normalizado
-  creadoPorId    String
-  creadoPor      User      @relation("CajaCreadoPor", fields: [creadoPorId], references: [id])
-  aprobadoPorId  String?
-  aprobadoPor    User?     @relation("CajaAprobadoPor", fields: [aprobadoPorId], references: [id])
-  createdAt      DateTime  @default(now())
+  id            String   @id @default(cuid())
+  tipo          String // "INGRESO" | "EGRESO"
+  monto         Float
+  categoria     String? // solo para egresos
+  estado        String   @default("APROBADO") // "PENDIENTE" | "APROBADO" | "RECHAZADO"
+  observaciones String?
+  fecha         DateTime // UTC-noon normalizado
+  creadoPorId   String
+  creadoPor     User     @relation("CajaCreadoPor", fields: [creadoPorId], references: [id])
+  aprobadoPorId String?
+  aprobadoPor   User?    @relation("CajaAprobadoPor", fields: [aprobadoPorId], references: [id])
+  createdAt     DateTime @default(now())
 
   @@index([tipo, estado])
 }
@@ -500,13 +515,13 @@ model CajaCierre {
 
 // Línea Melcoch — Brownie de Milo. Ingredientes fijos con su cantidad por mezcla (receta).
 model MelcochIngrediente {
-  id                String   @id @default(cuid())
-  nombre            String   @unique
+  id                String @id @default(cuid())
+  nombre            String @unique
   unidad            String // "g" | "unidad"
   cantidadPorMezcla Float
 
-  compras  MelcochCompraIngrediente[]
-  ajustes  MelcochAjusteInventario[]
+  compras MelcochCompraIngrediente[]
+  ajustes MelcochAjusteInventario[]
 }
 
 // Producción diaria: cuántas mezclas se hicieron (consume ingredientes automáticamente)
@@ -525,30 +540,30 @@ model MelcochProduccionDiaria {
 
 // Compras/reposición de un ingrediente (incluye el inventario inicial, como primera compra).
 model MelcochCompraIngrediente {
-  id             String             @id @default(cuid())
-  ingredienteId  String
-  ingrediente    MelcochIngrediente @relation(fields: [ingredienteId], references: [id])
-  cantidad       Float
-  fecha          DateTime
-  observaciones  String?
-  creadoPorId    String
-  creadoPor      User               @relation("MelcochCompraCreadaPor", fields: [creadoPorId], references: [id])
-  createdAt      DateTime           @default(now())
+  id            String             @id @default(cuid())
+  ingredienteId String
+  ingrediente   MelcochIngrediente @relation(fields: [ingredienteId], references: [id])
+  cantidad      Float
+  fecha         DateTime
+  observaciones String?
+  creadoPorId   String
+  creadoPor     User               @relation("MelcochCompraCreadaPor", fields: [creadoPorId], references: [id])
+  createdAt     DateTime           @default(now())
 }
 
 // Conteo físico sorpresa (solo administradora): ajusta el saldo teórico al real y deja
 // registrada la diferencia (merma o sobrante) para ese ingrediente.
 model MelcochAjusteInventario {
-  id             String             @id @default(cuid())
-  ingredienteId  String
-  ingrediente    MelcochIngrediente @relation(fields: [ingredienteId], references: [id])
-  teoricoAntes   Float
-  contado        Float
-  diferencia     Float
-  fecha          DateTime
-  creadoPorId    String
-  creadoPor      User               @relation("MelcochAjusteCreadoPor", fields: [creadoPorId], references: [id])
-  createdAt      DateTime           @default(now())
+  id            String             @id @default(cuid())
+  ingredienteId String
+  ingrediente   MelcochIngrediente @relation(fields: [ingredienteId], references: [id])
+  teoricoAntes  Float
+  contado       Float
+  diferencia    Float
+  fecha         DateTime
+  creadoPorId   String
+  creadoPor     User               @relation("MelcochAjusteCreadoPor", fields: [creadoPorId], references: [id])
+  createdAt     DateTime           @default(now())
 }
 
 // ============================================================
@@ -574,18 +589,18 @@ model FinChannel {
 // Categorías estilo NIIF/PUC colombiano, simplificadas para uso gerencial.
 // company null = compartida entre Veragua y Melcoch (el seed por defecto).
 model FinCategory {
-  id                 String   @id @default(cuid())
-  company            String?
-  parentId           String?
-  parent             FinCategory?  @relation("FinCategoryParent", fields: [parentId], references: [id])
-  children           FinCategory[] @relation("FinCategoryParent")
-  codigo             String
-  nombre             String
-  tipo               String // ingreso_operacional | ingreso_no_operacional | costo_venta | gasto_admin | gasto_ventas | gasto_no_operacional | impuesto
-  atribuibleACanal   Boolean  @default(true)
-  creadoPorId        String?
-  creadoPor          User?    @relation("FinCategoryCreadaPor", fields: [creadoPorId], references: [id])
-  createdAt          DateTime @default(now())
+  id               String        @id @default(cuid())
+  company          String?
+  parentId         String?
+  parent           FinCategory?  @relation("FinCategoryParent", fields: [parentId], references: [id])
+  children         FinCategory[] @relation("FinCategoryParent")
+  codigo           String
+  nombre           String
+  tipo             String // ingreso_operacional | ingreso_no_operacional | costo_venta | gasto_admin | gasto_ventas | gasto_no_operacional | impuesto
+  atribuibleACanal Boolean       @default(true)
+  creadoPorId      String?
+  creadoPor        User?         @relation("FinCategoryCreadaPor", fields: [creadoPorId], references: [id])
+  createdAt        DateTime      @default(now())
 
   transacciones FinTransaction[]
 
@@ -609,34 +624,34 @@ model FinImportBatch {
 
 // El corazón del módulo: cada ingreso y egreso de Veragua y Melcoch.
 model FinTransaction {
-  id               String    @id @default(cuid()) // en la migración inicial se reusan los UUID del ERP
-  company          String // "VERAGUA" | "MELCOCH"
-  tipo             String // "income" | "expense"
-  fecha            DateTime // día calendario, mediodía UTC (dateOnlyToUTC)
-  monto            Float
-  categoriaId      String
-  categoria        FinCategory @relation(fields: [categoriaId], references: [id])
-  canalId          String?
-  canal            FinChannel? @relation(fields: [canalId], references: [id])
-  metodoPago       String?
-  descripcion      String?
-  contraparte      String?
-  fuente           String    @default("manual") // "manual" | "import"
-  importBatchId    String?
-  importBatch      FinImportBatch? @relation(fields: [importBatchId], references: [id])
-  esReembolso      Boolean   @default(false)
+  id            String          @id @default(cuid()) // en la migración inicial se reusan los UUID del ERP
+  company       String // "VERAGUA" | "MELCOCH"
+  tipo          String // "income" | "expense"
+  fecha         DateTime // día calendario, mediodía UTC (dateOnlyToUTC)
+  monto         Float
+  categoriaId   String
+  categoria     FinCategory     @relation(fields: [categoriaId], references: [id])
+  canalId       String?
+  canal         FinChannel?     @relation(fields: [canalId], references: [id])
+  metodoPago    String?
+  descripcion   String?
+  contraparte   String?
+  fuente        String          @default("manual") // "manual" | "import"
+  importBatchId String?
+  importBatch   FinImportBatch? @relation(fields: [importBatchId], references: [id])
+  esReembolso   Boolean         @default(false)
   // Gasto administrativo fijo compartido entre Veragua y Melcoch (ej. arriendo, nómina
   // administrativa). Se guarda con company="VERAGUA" como ancla, pero el PyG de cada
   // empresa reparte el monto según el % de ventas de ESE mes — ver getPnlRows().
-  esCompartido     Boolean   @default(false)
-  anulado          Boolean   @default(false)
-  anuladoAt        DateTime?
-  anuladoPorId     String?
-  anuladoPor       User?     @relation("FinTransactionAnuladaPor", fields: [anuladoPorId], references: [id])
-  creadoPorId      String
-  creadoPor        User      @relation("FinTransactionCreadaPor", fields: [creadoPorId], references: [id])
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  esCompartido  Boolean         @default(false)
+  anulado       Boolean         @default(false)
+  anuladoAt     DateTime?
+  anuladoPorId  String?
+  anuladoPor    User?           @relation("FinTransactionAnuladaPor", fields: [anuladoPorId], references: [id])
+  creadoPorId   String
+  creadoPor     User            @relation("FinTransactionCreadaPor", fields: [creadoPorId], references: [id])
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
 
   compra        FinPurchase?
   venta         FinSale?
@@ -681,35 +696,35 @@ model FinProductCategory {
 // El stock no se guarda: se calcula igual que computeStocks() de Melcoch
 // (compras - ventas + ajustes de conteo). Ver src/lib/inventario/stock.ts.
 model FinProduct {
-  id                String             @id @default(cuid())
-  company           String
-  categoriaId       String
-  categoria         FinProductCategory @relation(fields: [categoriaId], references: [id])
-  nombre            String
-  descripcion       String?
-  precio            Float
-  imagenUrl         String?
-  activo            Boolean            @default(true)
+  id               String             @id @default(cuid())
+  company          String
+  categoriaId      String
+  categoria        FinProductCategory @relation(fields: [categoriaId], references: [id])
+  nombre           String
+  descripcion      String?
+  precio           Float
+  imagenUrl        String?
+  activo           Boolean            @default(true)
   // Agrupa variantes de un mismo producto (ej. "Gelato Premium", "Huevos Marrones").
   // Si es null, el producto se muestra suelto (sin agrupar), como hasta ahora.
-  grupo             String?
+  grupo            String?
   // Etiqueta corta de la variante dentro del grupo (ej. "Pistacho Sicilia", "X30").
   // Solo se usa para mostrar cuando `grupo` no es null.
-  nombreVariante    String?
+  nombreVariante   String?
   // Producto sin inventario físico (ej. domicilio, café preparado al momento): no se
   // calcula ni se muestra stock, y no entra en las sugerencias de Reabastecimiento.
-  esServicio        Boolean            @default(false)
+  esServicio       Boolean            @default(false)
   // Se produce internamente (ej. huevos rojos del galpón): compara la producción
   // registrada en RegistroGalpon contra la demanda en vez de sugerir compras.
-  comparaConGalpon  Boolean            @default(false)
+  comparaConGalpon Boolean            @default(false)
   // Cuántas unidades del galpón (huevos sueltos) representa 1 unidad de este producto
   // (ej. "Huevos Marrones X30" = 30, "Huevo colorado unidad" = 1). Solo importa si
   // comparaConGalpon = true.
-  unidadesGalpon    Int                @default(1)
-  creadoPorId       String
-  creadoPor         User               @relation("FinProductCreadoPor", fields: [creadoPorId], references: [id])
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
+  unidadesGalpon   Int                @default(1)
+  creadoPorId      String
+  creadoPor        User               @relation("FinProductCreadoPor", fields: [creadoPorId], references: [id])
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
 
   comprasItems FinPurchaseItem[]
   ventasItems  FinSaleItem[]
@@ -722,18 +737,18 @@ model FinProduct {
 
 // Conteo físico / corrección de inventario, igual patrón que MelcochAjusteInventario.
 model FinInventoryAdjustment {
-  id            String     @id @default(cuid())
-  productoId    String
-  producto      FinProduct @relation(fields: [productoId], references: [id])
-  teoricoAntes  Float
-  contado       Float
-  diferencia    Float
+  id           String     @id @default(cuid())
+  productoId   String
+  producto     FinProduct @relation(fields: [productoId], references: [id])
+  teoricoAntes Float
+  contado      Float
+  diferencia   Float
   // Por qué se ajustó (solo en ajustes manuales; los de migración/compensación quedan null).
-  motivo        String?
-  fecha         DateTime
-  creadoPorId   String
-  creadoPor     User       @relation("FinInventoryAdjustmentCreadoPor", fields: [creadoPorId], references: [id])
-  createdAt     DateTime   @default(now())
+  motivo       String?
+  fecha        DateTime
+  creadoPorId  String
+  creadoPor    User       @relation("FinInventoryAdjustmentCreadoPor", fields: [creadoPorId], references: [id])
+  createdAt    DateTime   @default(now())
 }
 
 model Proveedor {
@@ -963,4 +978,206 @@ model FinDemandForecast {
   demandaReal         Float? // se rellena cuando el período ya pasó
 
   @@index([productoId, periodoFin])
+}
+
+// ===== Módulo Vehículo: control de salidas del furgón + rol conductor =====
+
+model Vehiculo {
+  id                             String    @id @default(cuid())
+  placa                          String    @unique
+  marca                          String?
+  modelo                         String?
+  color                          String?
+  soatVenceAt                    DateTime?
+  revisionTecnicoMecanicaVenceAt DateTime?
+  activo                         Boolean   @default(true)
+  createdAt                      DateTime  @default(now())
+
+  // Autorreferencia nullable a la salida actualmente abierta — mecanismo real para
+  // "solo una salida abierta por vehículo" (crearSalida/cerrarSalida la leen/escriben
+  // dentro de una transacción). Reforzado además con un índice único parcial a nivel
+  // de base de datos (ver migración).
+  salidaAbiertaId String?         @unique
+  salidaAbierta   VehiculoSalida? @relation("VehiculoAbierta", fields: [salidaAbiertaId], references: [id])
+
+  salidas VehiculoSalida[] @relation("VehiculoDeSalida")
+}
+
+model VehiculoSalida {
+  id          String   @id @default(cuid())
+  vehiculoId  String
+  vehiculo    Vehiculo @relation("VehiculoDeSalida", fields: [vehiculoId], references: [id])
+  conductorId String
+  conductor   User     @relation("VehiculoSalidaConductor", fields: [conductorId], references: [id])
+  tipoUso     String // "RUTA_EMPRESA" | "ALQUILER"
+  zona        String? // "LOCAL" | "PEREIRA" | "MANIZALES", solo si tipoUso = RUTA_EMPRESA
+  destino     String?
+
+  checkoutAt              DateTime         @default(now())
+  checkoutPorId           String
+  checkoutPor             User             @relation("VehiculoCheckoutPor", fields: [checkoutPorId], references: [id])
+  checkoutKm              Int
+  checkoutCombustible     String // "RESERVA" | "1/4" | "1/2" | "3/4" | "LLENO"
+  observacionesEntrega    String?
+  firmaConductorEntregaId String?          @unique
+  firmaConductorEntrega   VehiculoArchivo? @relation("FirmaConductorEntrega", fields: [firmaConductorEntregaId], references: [id])
+  firmaRepEntregaId       String?          @unique
+  firmaRepEntrega         VehiculoArchivo? @relation("FirmaRepEntrega", fields: [firmaRepEntregaId], references: [id])
+
+  checkinAt                  DateTime?
+  checkinPorId               String?
+  checkinPor                 User?            @relation("VehiculoCheckinPor", fields: [checkinPorId], references: [id])
+  checkinKm                  Int?
+  checkinCombustible         String?
+  observacionesDevolucion    String?
+  firmaConductorDevolucionId String?          @unique
+  firmaConductorDevolucion   VehiculoArchivo? @relation("FirmaConductorDevolucion", fields: [firmaConductorDevolucionId], references: [id])
+  firmaRepDevolucionId       String?          @unique
+  firmaRepDevolucion         VehiculoArchivo? @relation("FirmaRepDevolucion", fields: [firmaRepDevolucionId], references: [id])
+
+  // Se marca al guardar la acta de devolución — después de esto el registro es de
+  // solo lectura salvo notasAdmin, que solo puede editar un admin.
+  lockedAt   DateTime?
+  notasAdmin String?
+
+  vehiculoAbierto Vehiculo? @relation("VehiculoAbierta")
+
+  fotos        VehiculoFoto[]
+  evaluaciones VehiculoEvaluacionPunto[]
+  equipamiento VehiculoEquipamientoItem[]
+  novedades    VehiculoNovedad[]
+  recibos      VehiculoRecibo[]
+  danios       VehiculoDanioFinanciero[]
+  archivos     VehiculoArchivo[]          @relation("ArchivoDeSalida")
+  pedidos      Order[]
+
+  createdAt DateTime @default(now())
+
+  @@index([conductorId, checkoutAt])
+  @@index([vehiculoId, checkinAt])
+  @@index([checkoutAt])
+}
+
+// Tabla única para todo archivo privado del módulo (fotos, firmas, recibos, remisión
+// firmada) — normaliza el acceso detrás de una sola ruta que valida sesión + ownership
+// antes de servir el contenido (ver src/app/api/vehiculo/archivo/[archivoId]).
+model VehiculoArchivo {
+  id           String          @id @default(cuid())
+  blobPathname String
+  contentType  String
+  // Denormalizado aquí (no resuelto solo vía join) para que la ruta que sirve el
+  // archivo pueda chequear ownership con una sola consulta.
+  salidaId     String?
+  salida       VehiculoSalida? @relation("ArchivoDeSalida", fields: [salidaId], references: [id])
+  subidoPorId  String
+  subidoPor    User            @relation("VehiculoArchivoSubidoPor", fields: [subidoPorId], references: [id])
+  createdAt    DateTime        @default(now())
+
+  foto                       VehiculoFoto?
+  recibo                     VehiculoRecibo?
+  firmaConductorEntregaDe    VehiculoSalida? @relation("FirmaConductorEntrega")
+  firmaRepEntregaDe          VehiculoSalida? @relation("FirmaRepEntrega")
+  firmaConductorDevolucionDe VehiculoSalida? @relation("FirmaConductorDevolucion")
+  firmaRepDevolucionDe       VehiculoSalida? @relation("FirmaRepDevolucion")
+  entregaDe                  Order[]
+}
+
+// Las 7 fotos de ángulo fijo, necesarias en entrega Y devolución (comparación lado a
+// lado). Ángulos en src/lib/vehiculo/constants.ts.
+model VehiculoFoto {
+  id        String          @id @default(cuid())
+  salidaId  String
+  salida    VehiculoSalida  @relation(fields: [salidaId], references: [id])
+  momento   String // "ENTREGA" | "DEVOLUCION"
+  angulo    String
+  archivoId String          @unique
+  archivo   VehiculoArchivo @relation(fields: [archivoId], references: [id])
+  createdAt DateTime        @default(now())
+
+  @@unique([salidaId, momento, angulo])
+}
+
+// Los 8 puntos de evaluación, también en ambos momentos. Puntos en constants.ts.
+model VehiculoEvaluacionPunto {
+  id        String         @id @default(cuid())
+  salidaId  String
+  salida    VehiculoSalida @relation(fields: [salidaId], references: [id])
+  momento   String
+  punto     String
+  estado    String // "BUENO" | "REGULAR" | "MALO"
+  nota      String? // obligatoria en el server action si estado != "BUENO"
+  createdAt DateTime       @default(now())
+
+  @@unique([salidaId, momento, punto])
+}
+
+// Checklist sí/no de dotación, también en ambos momentos. Items en constants.ts.
+model VehiculoEquipamientoItem {
+  id        String         @id @default(cuid())
+  salidaId  String
+  salida    VehiculoSalida @relation(fields: [salidaId], references: [id])
+  momento   String
+  item      String
+  presente  Boolean
+  createdAt DateTime       @default(now())
+
+  @@unique([salidaId, momento, item])
+}
+
+// Solo devolución — exactamente 2 filas posibles por salida.
+model VehiculoNovedad {
+  id        String         @id @default(cuid())
+  salidaId  String
+  salida    VehiculoSalida @relation(fields: [salidaId], references: [id])
+  tipo      String // "DANOS_NUEVOS" | "COMPARENDOS_INCIDENTES"
+  marcado   Boolean        @default(false)
+  detalle   String? // obligatorio en el server action si marcado = true
+  createdAt DateTime       @default(now())
+
+  @@unique([salidaId, tipo])
+}
+
+// Recibos de tanqueo/peaje — se cargan incrementalmente durante el viaje, incluso por
+// el conductor desde su celular.
+model VehiculoRecibo {
+  id            String          @id @default(cuid())
+  salidaId      String
+  salida        VehiculoSalida  @relation(fields: [salidaId], references: [id])
+  tipo          String // "COMBUSTIBLE" | "PEAJE"
+  valor         Int
+  galonesOLugar String?
+  archivoId     String          @unique
+  archivo       VehiculoArchivo @relation(fields: [archivoId], references: [id])
+  subidoPorId   String
+  subidoPor     User            @relation("VehiculoReciboSubidoPor", fields: [subidoPorId], references: [id])
+  createdAt     DateTime        @default(now())
+
+  @@index([salidaId])
+}
+
+// Ledger de daños/multas — lo registra un admin a mano desde el detalle de la salida.
+model VehiculoDanioFinanciero {
+  id          String         @id @default(cuid())
+  salidaId    String
+  salida      VehiculoSalida @relation(fields: [salidaId], references: [id])
+  // Denormalizado para las consultas mensuales por conductor.
+  conductorId String
+  conductor   User           @relation("VehiculoDanioConductor", fields: [conductorId], references: [id])
+  valor       Int
+  concepto    String
+  estado      String // "PENDIENTE" | "DESCONTADO" | "PAGADO"
+  creadoPorId String
+  creadoPor   User           @relation("VehiculoDanioCreadoPor", fields: [creadoPorId], references: [id])
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([conductorId, createdAt])
+}
+
+// Singleton, mismo patrón que CajaSettings.
+model VehiculoSettings {
+  id                  String   @id @default("singleton")
+  valorPorRuta        Int      @default(0)
+  canonDiarioAlquiler Int      @default(0)
+  updatedAt           DateTime @updatedAt
 }

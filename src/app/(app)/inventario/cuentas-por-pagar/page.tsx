@@ -1,4 +1,5 @@
 import CompanyPicker from "@/components/finanzas/CompanyPicker";
+import MetodoPagoPicker from "@/components/finanzas/MetodoPagoPicker";
 import SubmitButton from "@/components/SubmitButton";
 import { Icon } from "@/components/icons";
 import { resolveCompanyParam, COMPANY_LABEL, CONSOLIDATED } from "@/lib/finanzas/queries";
@@ -115,10 +116,7 @@ export default async function CuentasPorPagarPage({
                           <label className="label">Fecha</label>
                           <input type="date" name="fecha" required defaultValue={formatDateOnly(todayColombia())} className="input" />
                         </div>
-                        <div>
-                          <label className="label">Método (opcional)</label>
-                          <input name="metodoPago" className="input w-32" />
-                        </div>
+                        <MetodoPagoPicker metodos={["Efectivo", "Transferencia"]} />
                         <SubmitButton className="btn-secondary">Registrar pago</SubmitButton>
                       </form>
                       <a

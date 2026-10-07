@@ -80,6 +80,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                   { href: "/melcoch", label: "Melcoch", icon: "melcoch" as const },
                   { href: "/inventario/reabastecimiento", label: "Reabastecimiento", icon: "reabastecimiento" as const },
                   { href: "/compras", label: "Compras", icon: "compras" as const },
+                  { href: "/vehiculo", label: "Vehículo", icon: "vehiculo" as const },
                 ],
               },
               {
@@ -103,6 +104,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                       { href: "/inventario/ajustes/categorias", label: "Categorías (Inventario)" },
                       { href: "/finanzas/ajustes/canales", label: "Canales de venta" },
                       { href: "/inventario/historial", label: "Historial de ajustes" },
+                      { href: "/vehiculo/ajustes", label: "Flota de vehículos" },
                     ],
                   },
                 ],
@@ -115,6 +117,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                   { href: "/produccion", label: "Postura/Huevos", icon: "produccion" as const },
                   { href: "/melcoch", label: "Melcoch", icon: "melcoch" as const },
                   { href: "/compras", label: "Compras", icon: "compras" as const },
+                  { href: "/vehiculo", label: "Vehículo", icon: "vehiculo" as const },
                 ],
               },
             ]),
