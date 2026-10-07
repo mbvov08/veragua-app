@@ -309,3 +309,28 @@ export async function actualizarNotasAdminSalida(salidaId: string, formData: For
   await prisma.vehiculoSalida.update({ where: { id: salidaId }, data: { notasAdmin } });
   revalidatePath(`/vehiculo/${salidaId}`);
 }
+
+export async function registrarDanioFinanciero(salidaId: string, formData: FormData) {
+  const session = await requireVehiculoAdmin();
+
+  const valor = Number(formData.get("valor"));
+  const concepto = String(formData.get("concepto") ?? "").trim();
+  if (!(valor > 0)) throw new Error("El valor debe ser mayor a cero.");
+  if (!concepto) throw new Error("Describe el concepto del daño o multa.");
+
+  const salida = await prisma.vehiculoSalida.findUniqueOrThrow({ where: { id: salidaId } });
+  await prisma.vehiculoDanioFinanciero.create({
+    data: { salidaId, conductorId: salida.conductorId, valor, concepto, estado: "PENDIENTE", creadoPorId: session.user.id },
+  });
+
+  revalidatePath(`/vehiculo/${salidaId}`);
+  revalidatePath("/vehiculo/resumen");
+}
+
+export async function actualizarEstadoDanio(danioId: string, estado: string) {
+  await requireVehiculoAdmin();
+  if (!["PENDIENTE", "DESCONTADO", "PAGADO"].includes(estado)) throw new Error("Estado inválido.");
+  const danio = await prisma.vehiculoDanioFinanciero.update({ where: { id: danioId }, data: { estado } });
+  revalidatePath(`/vehiculo/${danio.salidaId}`);
+  revalidatePath("/vehiculo/resumen");
+}

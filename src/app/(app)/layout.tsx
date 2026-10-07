@@ -106,6 +106,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                   { href: "/inventario/proveedores", label: "Proveedores", icon: "compras" as const },
                   { href: "/inventario/cuentas-por-pagar", label: "Cuentas por Pagar", icon: "receipt" as const },
                   { href: "/inventario/productos", label: "Productos", icon: "inventario" as const },
+                  { href: "/vehiculo/resumen", label: "Resumen Vehículo", icon: "vehiculo" as const },
                   {
                     href: "/finanzas/ajustes/categorias",
                     label: "Ajustes",

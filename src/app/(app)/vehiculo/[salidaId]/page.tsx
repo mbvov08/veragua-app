@@ -5,8 +5,9 @@ import { requireVehiculoAccess, requireOwnSalida } from "@/lib/vehiculo/access";
 import { formatDateShortEs, formatTimeCo } from "@/lib/date";
 import { ANGULOS, PUNTOS_EVALUACION, EQUIPAMIENTO_ITEMS, NOVEDAD_TIPOS } from "@/lib/vehiculo/constants";
 import { comparePuntos } from "@/lib/vehiculo/comparacion";
-import { actualizarNotasAdminSalida } from "@/lib/actions/vehiculo";
+import { actualizarNotasAdminSalida, registrarDanioFinanciero, actualizarEstadoDanio } from "@/lib/actions/vehiculo";
 import { listarPedidosDelDia } from "@/lib/actions/vehiculo-entregas";
+import { ESTADO_DANIO } from "@/lib/vehiculo/constants";
 import SubmitButton from "@/components/SubmitButton";
 import AgregarReciboForm from "@/components/vehiculo/AgregarReciboForm";
 import MarcarEntregadoForm from "@/components/vehiculo/MarcarEntregadoForm";
@@ -254,6 +255,48 @@ export default async function VehiculoSalidaDetallePage({ params }: { params: Pr
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {salidaCompleta.checkinAt && session.user.role === "ADMIN" && (
+        <div className="card space-y-2">
+          <h2 className="text-sm font-semibold text-verde-800">Daños y multas</h2>
+          {salidaCompleta.danios.length > 0 && (
+            <div className="space-y-1">
+              {salidaCompleta.danios.map((d) => (
+                <div key={d.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-verde-100 px-2 py-1 text-sm">
+                  <span className="text-tierra-700">
+                    ${d.valor.toLocaleString("es-CO")} — {d.concepto}
+                  </span>
+                  <div className="flex gap-1">
+                    {ESTADO_DANIO.map((e) => (
+                      <form key={e.value} action={actualizarEstadoDanio.bind(null, d.id, e.value)}>
+                        <button
+                          type="submit"
+                          className={`rounded-lg border px-2 py-0.5 text-xs ${
+                            d.estado === e.value ? "border-verde-400 bg-verde-50 text-verde-800" : "border-verde-100 text-tierra-500"
+                          }`}
+                        >
+                          {e.label}
+                        </button>
+                      </form>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          <form action={registrarDanioFinanciero.bind(null, salidaId)} className="flex flex-wrap items-end gap-2">
+            <div>
+              <label className="label">Valor</label>
+              <input type="number" name="valor" min="0" required className="input w-32" />
+            </div>
+            <div className="flex-1">
+              <label className="label">Concepto</label>
+              <input name="concepto" required className="input" placeholder="ej. Rayón puerta lateral" />
+            </div>
+            <SubmitButton className="btn-secondary">Registrar</SubmitButton>
+          </form>
         </div>
       )}
 
