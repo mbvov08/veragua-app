@@ -5,8 +5,15 @@ import { prisma } from "@/lib/prisma";
 import { dateOnlyToUTC } from "@/lib/date";
 import { requireVehiculoAdmin, requireVehiculoStaff } from "@/lib/vehiculo/access";
 import { putPrivateVehiculoBlob } from "@/lib/vehiculo/blob";
-import { ANGULOS, PUNTOS_EVALUACION, EQUIPAMIENTO_ITEMS } from "@/lib/vehiculo/constants";
-import { validarActaEntrega, type FotoDraft, type EvaluacionDraft, type EquipoDraft } from "@/lib/vehiculo/validacion";
+import { ANGULOS, PUNTOS_EVALUACION, EQUIPAMIENTO_ITEMS, NOVEDAD_TIPOS } from "@/lib/vehiculo/constants";
+import {
+  validarActaEntrega,
+  validarActaDevolucion,
+  type FotoDraft,
+  type EvaluacionDraft,
+  type EquipoDraft,
+  type NovedadDraft,
+} from "@/lib/vehiculo/validacion";
 
 function revalidateVehiculo() {
   revalidatePath("/vehiculo");
@@ -183,4 +190,122 @@ export async function crearSalida(formData: FormData) {
 
   revalidateVehiculo();
   return { id: salida.id };
+}
+
+export async function cerrarSalida(salidaId: string, formData: FormData) {
+  const session = await requireVehiculoStaff();
+
+  const salidaActual = await prisma.vehiculoSalida.findUniqueOrThrow({ where: { id: salidaId } });
+  if (salidaActual.checkinAt) throw new Error("Esta salida ya fue cerrada.");
+
+  const checkinKm = Number(formData.get("checkinKm"));
+  const checkinCombustible = String(formData.get("checkinCombustible") ?? "");
+  const observacionesDevolucion = String(formData.get("observacionesDevolucion") ?? "").trim() || null;
+  const evaluaciones = JSON.parse(String(formData.get("evaluacionesJson") ?? "[]")) as EvaluacionDraft[];
+  const equipamiento = JSON.parse(String(formData.get("equipamientoJson") ?? "[]")) as EquipoDraft[];
+  const novedades = JSON.parse(String(formData.get("novedadesJson") ?? "[]")) as NovedadDraft[];
+  const firmaConductorFile = formData.get("firmaConductor") as File | null;
+  const firmaRepFile = formData.get("firmaRep") as File | null;
+
+  const fotos: FotoDraft[] = ANGULOS.map((a) => {
+    const file = formData.get(`foto__${a.value}`) as File | null;
+    return { angulo: a.value, blob: file && file.size > 0 ? file : null };
+  });
+
+  const faltas = validarActaDevolucion(
+    {
+      checkinKm: String(checkinKm || ""),
+      checkinCombustible,
+      fotos,
+      evaluaciones,
+      equipamiento,
+      novedades,
+      firmaConductorVacia: !firmaConductorFile || firmaConductorFile.size === 0,
+      firmaRepVacia: !firmaRepFile || firmaRepFile.size === 0,
+    },
+    salidaActual.checkoutKm
+  );
+  if (faltas.length > 0) throw new Error("Falta completar: " + faltas.join("; "));
+
+  const archivoIds: Record<string, string> = {};
+  for (const f of fotos) {
+    const blob = await putPrivateVehiculoBlob(`vehiculo/${crypto.randomUUID()}-${f.angulo}.jpg`, f.blob!);
+    const archivo = await prisma.vehiculoArchivo.create({
+      data: { blobPathname: blob.pathname, contentType: blob.contentType, subidoPorId: session.user.id, salidaId },
+    });
+    archivoIds[`foto_${f.angulo}`] = archivo.id;
+  }
+  const blobFirmaConductor = await putPrivateVehiculoBlob(`vehiculo/${crypto.randomUUID()}-firma-conductor-dev.png`, firmaConductorFile!);
+  const archivoFirmaConductor = await prisma.vehiculoArchivo.create({
+    data: { blobPathname: blobFirmaConductor.pathname, contentType: blobFirmaConductor.contentType, subidoPorId: session.user.id, salidaId },
+  });
+  const blobFirmaRep = await putPrivateVehiculoBlob(`vehiculo/${crypto.randomUUID()}-firma-rep-dev.png`, firmaRepFile!);
+  const archivoFirmaRep = await prisma.vehiculoArchivo.create({
+    data: { blobPathname: blobFirmaRep.pathname, contentType: blobFirmaRep.contentType, subidoPorId: session.user.id, salidaId },
+  });
+
+  await prisma.$transaction(
+    async (tx) => {
+      const salidaDentroTx = await tx.vehiculoSalida.findUniqueOrThrow({ where: { id: salidaId } });
+      if (salidaDentroTx.checkinAt) throw new Error("Esta salida ya fue cerrada.");
+      if (checkinKm < salidaDentroTx.checkoutKm) {
+        throw new Error(`El kilometraje de devolución no puede ser menor al de entrega (${salidaDentroTx.checkoutKm}).`);
+      }
+
+      await tx.vehiculoSalida.update({
+        where: { id: salidaId },
+        data: {
+          checkinAt: new Date(),
+          checkinPorId: session.user.id,
+          checkinKm,
+          checkinCombustible,
+          observacionesDevolucion,
+          firmaConductorDevolucionId: archivoFirmaConductor.id,
+          firmaRepDevolucionId: archivoFirmaRep.id,
+          lockedAt: new Date(),
+          fotos: {
+            create: ANGULOS.map((a) => ({
+              momento: "DEVOLUCION",
+              angulo: a.value,
+              archivoId: archivoIds[`foto_${a.value}`],
+            })),
+          },
+          evaluaciones: {
+            create: PUNTOS_EVALUACION.map((p) => {
+              const ev = evaluaciones.find((e) => e.punto === p.value)!;
+              return { momento: "DEVOLUCION", punto: p.value, estado: ev.estado, nota: ev.nota.trim() || null };
+            }),
+          },
+          equipamiento: {
+            create: EQUIPAMIENTO_ITEMS.map((it) => {
+              const eq = equipamiento.find((e) => e.item === it.value)!;
+              return { momento: "DEVOLUCION", item: it.value, presente: Boolean(eq.presente) };
+            }),
+          },
+          novedades: {
+            create: NOVEDAD_TIPOS.map((n) => {
+              const nov = novedades.find((x) => x.tipo === n.value)!;
+              return { tipo: n.value, marcado: Boolean(nov.marcado), detalle: nov.detalle.trim() || null };
+            }),
+          },
+        },
+      });
+
+      await tx.vehiculo.update({ where: { id: salidaDentroTx.vehiculoId }, data: { salidaAbiertaId: null } });
+    },
+    { maxWait: 10000, timeout: 20000 }
+  );
+
+  revalidateVehiculo();
+  revalidatePath(`/vehiculo/${salidaId}`);
+  return { id: salidaId };
+}
+
+/** Solo un admin puede agregar notas a una salida ya cerrada (el resto del registro
+ * queda de solo lectura una vez bloqueado). */
+export async function actualizarNotasAdminSalida(salidaId: string, formData: FormData) {
+  await requireVehiculoAdmin();
+  const notasAdmin = String(formData.get("notasAdmin") ?? "").trim() || null;
+  await prisma.vehiculoSalida.update({ where: { id: salidaId }, data: { notasAdmin } });
+  revalidatePath(`/vehiculo/${salidaId}`);
 }
