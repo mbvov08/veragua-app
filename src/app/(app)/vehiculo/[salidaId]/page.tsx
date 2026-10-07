@@ -6,7 +6,10 @@ import { formatDateShortEs, formatTimeCo } from "@/lib/date";
 import { ANGULOS, PUNTOS_EVALUACION, EQUIPAMIENTO_ITEMS, NOVEDAD_TIPOS } from "@/lib/vehiculo/constants";
 import { comparePuntos } from "@/lib/vehiculo/comparacion";
 import { actualizarNotasAdminSalida } from "@/lib/actions/vehiculo";
+import { listarPedidosDelDia } from "@/lib/actions/vehiculo-entregas";
 import SubmitButton from "@/components/SubmitButton";
+import AgregarReciboForm from "@/components/vehiculo/AgregarReciboForm";
+import MarcarEntregadoForm from "@/components/vehiculo/MarcarEntregadoForm";
 
 export default async function VehiculoSalidaDetallePage({ params }: { params: Promise<{ salidaId: string }> }) {
   const session = await requireVehiculoAccess();
@@ -36,6 +39,10 @@ export default async function VehiculoSalidaDetallePage({ params }: { params: Pr
   if (!salidaCompleta) notFound();
 
   const isStaff = session.user.role === "ADMIN" || session.user.role === "EMPLEADA";
+  const esConductorDueno = session.user.role === "CONDUCTOR" && salidaCompleta.conductorId === session.user.id;
+  const puedeAutoservicio = (isStaff || esConductorDueno) && !salidaCompleta.checkinAt;
+  const pedidosDelDia =
+    salidaCompleta.tipoUso === "RUTA_EMPRESA" ? await listarPedidosDelDia(salidaId) : [];
   const fotosEntrega = salidaCompleta.fotos.filter((f) => f.momento === "ENTREGA");
   const fotosDevolucion = salidaCompleta.fotos.filter((f) => f.momento === "DEVOLUCION");
   const evalEntrega = salidaCompleta.evaluaciones.filter((e) => e.momento === "ENTREGA");
@@ -206,7 +213,7 @@ export default async function VehiculoSalidaDetallePage({ params }: { params: Pr
         </div>
       )}
 
-      {salidaCompleta.recibos.length > 0 && (
+      {(salidaCompleta.recibos.length > 0 || puedeAutoservicio) && (
         <div className="card space-y-2">
           <h2 className="text-sm font-semibold text-verde-800">Recibos</h2>
           <div className="space-y-1">
@@ -218,6 +225,33 @@ export default async function VehiculoSalidaDetallePage({ params }: { params: Pr
                   ver recibo
                 </a>
               </p>
+            ))}
+          </div>
+          {puedeAutoservicio && <AgregarReciboForm salidaId={salidaId} />}
+        </div>
+      )}
+
+      {salidaCompleta.tipoUso === "RUTA_EMPRESA" && pedidosDelDia.length > 0 && (
+        <div className="card space-y-2">
+          <h2 className="text-sm font-semibold text-verde-800">Pedidos del día</h2>
+          <div className="divide-y divide-verde-50">
+            {pedidosDelDia.map((p) => (
+              <div key={p.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-tierra-800">{p.cliente}</p>
+                  <p className="text-xs text-tierra-500">{p.direccion}{p.telefono && ` · ${p.telefono}`}</p>
+                  <p className="text-xs text-tierra-500">
+                    {p.items.map((it) => `${it.cantidad ?? ""} ${it.producto.nombre}`).join(", ")}
+                  </p>
+                </div>
+                {p.entregado ? (
+                  <span className="badge bg-verde-100 text-verde-700">Entregado</span>
+                ) : puedeAutoservicio ? (
+                  <MarcarEntregadoForm orderId={p.id} salidaId={salidaId} />
+                ) : (
+                  <span className="badge bg-tierra-100 text-tierra-500">Pendiente</span>
+                )}
+              </div>
             ))}
           </div>
         </div>
