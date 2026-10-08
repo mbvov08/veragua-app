@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useActaDraft } from "@/components/vehiculo/useActaDraft";
 import PhotoCaptureField from "@/components/vehiculo/PhotoCaptureField";
@@ -16,9 +16,22 @@ import {
 } from "@/lib/vehiculo/constants";
 import { validarActaEntrega, type FotoDraft, type EvaluacionDraft, type EquipoDraft } from "@/lib/vehiculo/validacion";
 import { crearSalida } from "@/lib/actions/vehiculo";
+import { listarPedidosPendientesPorFecha } from "@/lib/actions/vehiculo-entregas";
 
 type Vehiculo = { id: string; placa: string };
 type Conductor = { id: string; name: string };
+type PedidoPendiente = {
+  id: string;
+  cliente: string;
+  direccion: string;
+  zona: string;
+  items: { cantidad: string | null; producto: { nombre: string } }[];
+};
+
+function hoyISO(): string {
+  const d = new Date();
+  return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+}
 
 type Draft = {
   vehiculoId: string;
@@ -31,6 +44,8 @@ type Draft = {
   observacionesEntrega: string;
   evaluaciones: EvaluacionDraft[];
   equipamiento: EquipoDraft[];
+  fechaRuta: string;
+  pedidoIds: string[];
 };
 
 function draftInicial(vehiculos: Vehiculo[]): Draft {
@@ -45,6 +60,8 @@ function draftInicial(vehiculos: Vehiculo[]): Draft {
     observacionesEntrega: "",
     evaluaciones: PUNTOS_EVALUACION.map((p) => ({ punto: p.value, estado: "", nota: "" })),
     equipamiento: EQUIPAMIENTO_ITEMS.map((it) => ({ item: it.value, presente: null })),
+    fechaRuta: hoyISO(),
+    pedidoIds: [],
   };
 }
 
@@ -62,6 +79,25 @@ export default function ActaEntregaForm({ vehiculos, conductores }: { vehiculos:
   const [firmaRepVacia, setFirmaRepVacia] = useState(true);
   const firmaConductorRef = useRef<SignaturePadHandle>(null);
   const firmaRepRef = useRef<SignaturePadHandle>(null);
+  const [pedidosDisponibles, setPedidosDisponibles] = useState<PedidoPendiente[]>([]);
+  const [cargandoPedidos, setCargandoPedidos] = useState(false);
+
+  useEffect(() => {
+    if (draft.tipoUso !== "RUTA_EMPRESA" || !draft.fechaRuta) return;
+    let cancelado = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setCargandoPedidos(true);
+    listarPedidosPendientesPorFecha(draft.fechaRuta)
+      .then((pedidos) => {
+        if (!cancelado) setPedidosDisponibles(pedidos);
+      })
+      .finally(() => {
+        if (!cancelado) setCargandoPedidos(false);
+      });
+    return () => {
+      cancelado = true;
+    };
+  }, [draft.tipoUso, draft.fechaRuta]);
 
   const fotosDraft: FotoDraft[] = useMemo(
     () => ANGULOS.map((a) => ({ angulo: a.value, blob: fotos[a.value] ?? null })),
@@ -112,6 +148,7 @@ export default function ActaEntregaForm({ vehiculos, conductores }: { vehiculos:
       formData.set("observacionesEntrega", draft.observacionesEntrega);
       formData.set("evaluacionesJson", JSON.stringify(draft.evaluaciones));
       formData.set("equipamientoJson", JSON.stringify(draft.equipamiento));
+      formData.set("pedidoIdsJson", JSON.stringify(draft.pedidoIds));
       for (const a of ANGULOS) {
         const blob = fotos[a.value];
         if (blob) formData.set(`foto__${a.value}`, blob, `${a.value}.jpg`);
@@ -196,8 +233,56 @@ export default function ActaEntregaForm({ vehiculos, conductores }: { vehiculos:
                   }
                 />
                 <p className="mt-1 text-xs text-tierra-400">
-                  Cada línea se convierte en un checklist que el conductor puede ir marcando. Los pedidos
-                  de Pedidos (Pereira/Manizales de hoy) ya aparecen aparte, no hace falta repetirlos aquí.
+                  Cada línea se convierte en un checklist que el conductor puede ir marcando.
+                </p>
+              </div>
+              <div className="sm:col-span-2">
+                <label className="label">Pedidos a incluir en esta ruta</label>
+                <input
+                  type="date"
+                  value={draft.fechaRuta}
+                  onChange={(e) => set("fechaRuta", e.target.value)}
+                  className="input mb-2 w-44"
+                />
+                {cargandoPedidos ? (
+                  <p className="text-xs text-tierra-400">Buscando pedidos pendientes...</p>
+                ) : pedidosDisponibles.length === 0 ? (
+                  <p className="text-xs text-tierra-400">No hay pedidos pendientes sin asignar para esa fecha.</p>
+                ) : (
+                  <div className="max-h-64 space-y-1 overflow-y-auto rounded-lg border border-verde-100 bg-white p-2">
+                    {pedidosDisponibles.map((p) => {
+                      const seleccionado = draft.pedidoIds.includes(p.id);
+                      return (
+                        <label key={p.id} className="flex items-start gap-2 rounded-lg px-1 py-1 text-xs hover:bg-verde-50/60">
+                          <input
+                            type="checkbox"
+                            checked={seleccionado}
+                            onChange={() =>
+                              set(
+                                "pedidoIds",
+                                seleccionado ? draft.pedidoIds.filter((id) => id !== p.id) : [...draft.pedidoIds, p.id]
+                              )
+                            }
+                            className="mt-0.5 h-4 w-4"
+                          />
+                          <span>
+                            <span className="font-medium text-tierra-800">{p.cliente}</span>{" "}
+                            <span className="badge bg-tierra-100 text-tierra-600">{p.zona}</span>
+                            <br />
+                            <span className="text-tierra-500">{p.direccion}</span>
+                            <br />
+                            <span className="text-tierra-400">
+                              {p.items.map((it) => `${it.cantidad ?? ""} ${it.producto.nombre}`).join(", ")}
+                            </span>
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
+                <p className="mt-1 text-xs text-tierra-400">
+                  Los que marques quedan asignados a esta salida desde ya. Si llegan pedidos nuevos después,
+                  el conductor igual los va a ver en su panel el día de la ruta.
                 </p>
               </div>
             </>

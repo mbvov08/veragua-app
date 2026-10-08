@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { todayColombia } from "@/lib/date";
-import { requireVehiculoAccess, requireOwnSalida } from "@/lib/vehiculo/access";
+import { dateOnlyToUTC } from "@/lib/date";
+import { requireVehiculoAccess, requireOwnSalida, requireVehiculoStaff } from "@/lib/vehiculo/access";
 import { putPrivateVehiculoBlob } from "@/lib/vehiculo/blob";
 
 /** Pedidos del día — nunca precios (Order/OrderItem/Producto no tienen columna de
@@ -33,6 +34,28 @@ export async function listarPedidosDelDia(salidaId: string) {
       notas: true,
       entregado: true,
       entregadoAt: true,
+      items: { select: { cantidad: true, producto: { select: { nombre: true } } } },
+    },
+    orderBy: [{ zona: "asc" }, { cliente: "asc" }],
+  });
+}
+
+/** Para planear la ruta con anticipación (antes de que el conductor esté presente con
+ * el vehículo): lista los pedidos pendientes de una fecha cualquiera, para elegir cuáles
+ * va a llevar esa salida. Se usa en /vehiculo/nueva, independiente de cuándo se termine
+ * de guardar el acta (el borrador local ya deja seguir después). */
+export async function listarPedidosPendientesPorFecha(fechaStr: string) {
+  await requireVehiculoStaff();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(fechaStr)) return [];
+
+  const fecha = dateOnlyToUTC(fechaStr);
+  return prisma.order.findMany({
+    where: { fechaEntrega: fecha, entregaTercero: null, entregado: false, vehiculoSalidaId: null },
+    select: {
+      id: true,
+      cliente: true,
+      direccion: true,
+      zona: true,
       items: { select: { cantidad: true, producto: { select: { nombre: true } } } },
     },
     orderBy: [{ zona: "asc" }, { cliente: "asc" }],

@@ -90,6 +90,7 @@ export async function crearSalida(formData: FormData) {
   const observacionesEntrega = String(formData.get("observacionesEntrega") ?? "").trim() || null;
   const evaluaciones = JSON.parse(String(formData.get("evaluacionesJson") ?? "[]")) as EvaluacionDraft[];
   const equipamiento = JSON.parse(String(formData.get("equipamientoJson") ?? "[]")) as EquipoDraft[];
+  const pedidoIds = JSON.parse(String(formData.get("pedidoIdsJson") ?? "[]")) as string[];
   const firmaConductorFile = formData.get("firmaConductor") as File | null;
   const firmaRepFile = formData.get("firmaRep") as File | null;
 
@@ -190,6 +191,15 @@ export async function crearSalida(formData: FormData) {
       });
 
       await tx.vehiculo.update({ where: { id: vehiculoId }, data: { salidaAbiertaId: nuevaSalida.id } });
+
+      // Pedidos elegidos al planear la ruta (no necesariamente todos los de hoy — puede
+      // haber más que lleguen después, esos los sigue viendo listarPedidosDelDia).
+      if (pedidoIds.length > 0) {
+        await tx.order.updateMany({
+          where: { id: { in: pedidoIds }, vehiculoSalidaId: null },
+          data: { vehiculoSalidaId: nuevaSalida.id },
+        });
+      }
 
       return nuevaSalida;
     },
