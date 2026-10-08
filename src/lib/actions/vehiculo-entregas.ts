@@ -21,6 +21,7 @@ export async function listarPedidosDelDia(salidaId: string) {
   return prisma.order.findMany({
     where: {
       fechaEntrega: hoy,
+      entregaTercero: null,
       OR: [{ vehiculoSalidaId: null }, { vehiculoSalidaId: salidaId }],
     },
     select: {

@@ -31,6 +31,7 @@ export async function ensureRecurringOrdersGenerated() {
     notas: string | null;
     recurringRuleId: string;
     creadoPorId: string;
+    entregaTercero: string | null;
   };
   const candidatesByRule = new Map<string, Candidate[]>();
   for (const rule of rules) {
@@ -47,6 +48,7 @@ export async function ensureRecurringOrdersGenerated() {
         notas: rule.notas,
         recurringRuleId: rule.id,
         creadoPorId: rule.creadoPorId,
+        entregaTercero: rule.entregaTercero,
       }))
     );
   }

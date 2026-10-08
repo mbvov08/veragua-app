@@ -232,6 +232,12 @@ model Order {
   entregaArchivoId String?
   entregaArchivo   VehiculoArchivo? @relation(fields: [entregaArchivoId], references: [id])
 
+  // Si no es null, el pedido lo entrega un tercero (ej. "Hato Azul") directamente al
+  // cliente — se cobró/vendió con nosotros, pero no sale de nuestro inventario ni lo
+  // reparte nuestro vehículo. Por eso no debe aparecer en "Pedidos del día" del módulo
+  // Vehículo, solo queda visible en Calendario y como referencia aquí.
+  entregaTercero String?
+
   @@unique([recurringRuleId, fechaEntrega])
   @@index([zona, fechaEntrega])
   @@index([vehiculoSalidaId])
@@ -249,20 +255,23 @@ model OrderItem {
 }
 
 model RecurringOrderRule {
-  id          String    @id @default(cuid())
-  cliente     String
-  direccion   String
-  telefono    String?
-  zona        String
-  diaSemana   Int // 0=domingo .. 6=sábado
-  notas       String?
-  activo      Boolean   @default(true)
+  id             String    @id @default(cuid())
+  cliente        String
+  direccion      String
+  telefono       String?
+  zona           String
+  diaSemana      Int // 0=domingo .. 6=sábado
+  notas          String?
+  activo         Boolean   @default(true)
   // Si no es null, no se generan pedidos con fechaEntrega posterior a esta fecha
   // (se usa para suscripciones mensuales: la entrega recurrente para cuando vence).
-  fechaFin    DateTime?
-  creadoPorId String
-  creadoPor   User      @relation("RecurringRuleCreatedBy", fields: [creadoPorId], references: [id])
-  createdAt   DateTime  @default(now())
+  fechaFin       DateTime?
+  // Igual que Order.entregaTercero: si no es null, cada pedido que genere esta regla
+  // recurrente lo entrega ese tercero, no nuestro inventario/vehículo.
+  entregaTercero String?
+  creadoPorId    String
+  creadoPor      User      @relation("RecurringRuleCreatedBy", fields: [creadoPorId], references: [id])
+  createdAt      DateTime  @default(now())
 
   orders        Order[]
   items         RecurringOrderRuleItem[]
