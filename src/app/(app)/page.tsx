@@ -21,6 +21,7 @@ export default async function DashboardPage() {
   if (!session?.user) return null;
   const isAdmin = session.user.role === "ADMIN";
   const isGalpon = session.user.role === "GALPON";
+  const isConductor = session.user.role === "CONDUCTOR";
   const today = todayColombia();
 
   if (isGalpon) {
@@ -73,6 +74,10 @@ export default async function DashboardPage() {
     prisma.order.findMany({
       where: {
         OR: [{ fechaEntrega: today }, { entregado: false, fechaEntrega: { lt: today } }],
+        // El conductor solo ve los pedidos de su propia ruta del día, no los de toda
+        // la empresa — eso se resuelve igual que en el módulo Vehículo: solo pedidos
+        // ligados a una salida donde él es el conductor.
+        ...(isConductor ? { vehiculoSalida: { conductorId: session.user.id } } : {}),
       },
       orderBy: [{ fechaEntrega: "asc" }, { zona: "asc" }],
     }),
@@ -132,7 +137,7 @@ export default async function DashboardPage() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        {!isAdmin && (
+        {!isAdmin && !isConductor && (
           <ClockWidget
             status={clockStatus}
             clockInLabel={clockInLabel}
@@ -160,8 +165,12 @@ export default async function DashboardPage() {
 
         <div className="card">
           <div className="mb-2 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-verde-800">Entregas de hoy y atrasadas</h2>
-            <Link href="/pedidos" className="text-xs text-verde-700 underline">Ver todos</Link>
+            <h2 className="text-sm font-semibold text-verde-800">
+              {isConductor ? "Mis entregas de hoy" : "Entregas de hoy y atrasadas"}
+            </h2>
+            <Link href={isConductor ? "/vehiculo" : "/pedidos"} className="text-xs text-verde-700 underline">
+              Ver todos
+            </Link>
           </div>
           {ordersToday.length === 0 ? (
             <p className="text-sm text-tierra-500">No hay pedidos programados para hoy.</p>
