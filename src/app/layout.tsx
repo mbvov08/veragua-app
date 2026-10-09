@@ -1,6 +1,10 @@
 import type { Metadata, Viewport } from "next";
+import { Cormorant_Garamond } from "next/font/google";
 import "./globals.css";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
+
+// Serif fina y espaciada, parecida a la del logo, para los títulos de cada página.
+const titulo = Cormorant_Garamond({ subsets: ["latin"], weight: ["500", "600"], variable: "--font-titulo" });
 
 export const metadata: Metadata = {
   title: "Veragua — Operaciones",
@@ -26,7 +30,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es" className="h-full antialiased">
+    <html lang="es" className={`${titulo.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col bg-background text-foreground">
         {children}
         <ServiceWorkerRegister />

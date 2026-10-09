@@ -72,6 +72,20 @@
   --color-dorado-600: var(--color-dorado-600);
 }
 
+/* Títulos de página: serif elegante como la del logo, más grandes. */
+main h1 {
+  font-family: var(--font-titulo), Georgia, "Times New Roman", serif;
+  font-size: 2.4rem;
+  font-weight: 500;
+  line-height: 1.1;
+  letter-spacing: 0.02em;
+}
+@media (max-width: 640px) {
+  main h1 {
+    font-size: 1.9rem;
+  }
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
