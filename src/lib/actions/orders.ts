@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { dateOnlyToUTC, dayOfWeek } from "@/lib/date";
+import { sincronizarInventarioPorEntrega } from "@/lib/pedidos/inventario";
 
 type OrderItemInput = { productoId: string; cantidad: string | null };
 
@@ -163,6 +164,7 @@ export async function toggleDelivered(orderId: string, entregado: boolean) {
     where: { id: orderId },
     data: { entregado, entregadoAt: entregado ? new Date() : null },
   });
+  await sincronizarInventarioPorEntrega(orderId, entregado, session.user.id);
 
   revalidatePath("/pedidos");
   revalidatePath("/pedidos/pereira");
@@ -174,6 +176,8 @@ export async function deleteOrder(orderId: string) {
   const session = await auth();
   if (!session?.user) throw new Error("No autenticado");
 
+  // Si era de una suscripción y ya había descontado stock al entregarse, se devuelve.
+  await prisma.finInventoryAdjustment.deleteMany({ where: { pedidoId: orderId } });
   await prisma.orderItem.deleteMany({ where: { orderId } });
   await prisma.order.delete({ where: { id: orderId } });
   revalidatePath("/pedidos");

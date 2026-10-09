@@ -2,17 +2,61 @@ import InventarioCompanyPicker from "@/components/inventario/CompanyPicker";
 import NuevaVentaForm from "@/components/inventario/NuevaVentaForm";
 import { resolveCompanyParam, COMPANY_LABEL, getChannels } from "@/lib/finanzas/queries";
 import { formatCOP } from "@/lib/finanzas/format";
-import { formatDateShortEs } from "@/lib/date";
+import { formatDateOnly, formatDateShortEs } from "@/lib/date";
 import { prisma } from "@/lib/prisma";
+import { resolverItemsPedido } from "@/lib/pedidos/inventario";
 
 export default async function VentasPage({
   searchParams,
 }: {
-  searchParams: Promise<{ company?: string }>;
+  searchParams: Promise<{ company?: string; pedidoId?: string }>;
 }) {
   const params = await searchParams;
   const selection = resolveCompanyParam(params.company);
   const company = selection.company ?? "VERAGUA";
+
+  // Viene del botón "Crear venta" de un pedido: se precarga cliente, fecha y productos
+  // (los de esta empresa — un pedido puede mezclar Veragua y Melcoch, y cada venta es de
+  // una sola empresa).
+  let pedido: {
+    id: string;
+    cliente: string;
+    fecha: string;
+    items: { productoId: string; nombre: string; cantidad: string; precio: string }[];
+    avisos: { texto: string; href?: string }[];
+    yaRegistrada: boolean;
+  } | null = null;
+  if (params.pedidoId) {
+    const order = await prisma.order.findUnique({
+      where: { id: params.pedidoId },
+      include: { items: { include: { producto: true } } },
+    });
+    if (order) {
+      const { resueltos, sinMatch } = await resolverItemsPedido(order.items);
+      const avisos: { texto: string; href?: string }[] = [];
+      const deOtra = resueltos.filter((r) => r.company !== company);
+      if (deOtra.length > 0) {
+        const otra = deOtra[0].company as "VERAGUA" | "MELCOCH";
+        avisos.push({
+          texto: `Este pedido también tiene productos de ${COMPANY_LABEL[otra]} (${deOtra.map((r) => r.nombre).join(", ")}) — se registran en una venta aparte de esa empresa.`,
+          href: `/inventario/ventas?company=${otra}&pedidoId=${order.id}`,
+        });
+      }
+      if (sinMatch.length > 0) {
+        avisos.push({ texto: `Sin equivalente en Inventario (no descuentan stock): ${sinMatch.join(", ")}.` });
+      }
+      pedido = {
+        id: order.id,
+        cliente: order.cliente,
+        fecha: formatDateOnly(order.fechaEntrega),
+        items: resueltos
+          .filter((r) => r.company === company)
+          .map((r) => ({ productoId: r.finProductId, nombre: r.nombre, cantidad: String(r.cantidad), precio: String(r.precio) })),
+        avisos,
+        yaRegistrada: (await prisma.finSale.count({ where: { pedidoId: order.id, company } })) > 0,
+      };
+    }
+  }
 
   const [productos, canales, clientes, ventas] = await Promise.all([
     prisma.finProduct.findMany({ where: { company, activo: true }, include: { categoria: true }, orderBy: { nombre: "asc" } }),
@@ -33,7 +77,7 @@ export default async function VentasPage({
         <InventarioCompanyPicker current={company} />
       </div>
 
-      <details className="card" open={productos.length > 0}>
+      <details className="card" open={productos.length > 0 || !!pedido}>
         <summary className="cursor-pointer text-sm font-semibold text-verde-800">Nueva venta</summary>
         {productos.length === 0 ? (
           <p className="mt-3 text-sm text-tierra-500">Primero crea productos en la pestaña Productos.</p>
@@ -44,6 +88,7 @@ export default async function VentasPage({
             canales={canales}
             clientes={clientes}
             productos={productos.map((p) => ({ id: p.id, nombre: p.nombre, precioDefault: p.precio, categoria: p.categoria.nombre }))}
+            pedido={pedido}
           />
         )}
       </details>

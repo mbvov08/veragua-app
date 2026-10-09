@@ -763,9 +763,15 @@ model FinInventoryAdjustment {
   // Por qué se ajustó (solo en ajustes manuales; los de migración/compensación quedan null).
   motivo       String?
   fecha        DateTime
+  // Si viene de la entrega de un pedido de suscripción (ya cobrado por adelantado, así
+  // que no hay venta que descuente el stock) — referencia suave, sin FK, para poder
+  // revertirlo si el pedido se desmarca como entregado o se elimina.
+  pedidoId     String?
   creadoPorId  String
   creadoPor    User       @relation("FinInventoryAdjustmentCreadoPor", fields: [creadoPorId], references: [id])
   createdAt    DateTime   @default(now())
+
+  @@index([pedidoId])
 }
 
 model Proveedor {
@@ -836,6 +842,9 @@ model FinSale {
   notas            String?
   finTransactionId String?         @unique
   finTransaction   FinTransaction? @relation(fields: [finTransactionId], references: [id])
+  // Pedido (módulo Pedidos) del que salió esta venta, si se creó con el botón "Crear
+  // venta" — referencia suave, sin FK: la venta sigue siendo válida aunque se borre el pedido.
+  pedidoId         String?
   creadoPorId      String
   creadoPor        User            @relation("FinSaleCreadoPor", fields: [creadoPorId], references: [id])
   createdAt        DateTime        @default(now())
@@ -844,6 +853,7 @@ model FinSale {
   cuentaPorCobrar FinCuentaPorCobrar?
 
   @@index([company, fecha])
+  @@index([pedidoId])
 }
 
 model FinSaleItem {

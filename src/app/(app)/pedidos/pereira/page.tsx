@@ -2,6 +2,9 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { addDays, formatDateOnly, formatDateLongEs, todayColombia } from "@/lib/date";
 import DeliveredToggle from "@/components/DeliveredToggle";
+import PedidoVentaAcciones from "@/components/PedidoVentaAcciones";
+import { auth } from "@/auth";
+import { infoVentaPedidos } from "@/lib/pedidos/inventario";
 
 const ZONA_LABEL: Record<string, string> = {
   PEREIRA: "Pereira",
@@ -27,6 +30,10 @@ export default async function PereiraPage() {
     include: { items: { include: { producto: true } } },
     orderBy: [{ fechaEntrega: "asc" }, { zona: "asc" }, { cliente: "asc" }],
   });
+
+  const session = await auth();
+  const puedeVender = session?.user?.role === "ADMIN" || !!session?.user?.puedeVerFinanzas;
+  const infoVentas = puedeVender ? await infoVentaPedidos(orders) : new Map();
 
   const grouped = new Map<string, typeof orders>();
   for (const o of orders) {
@@ -77,7 +84,10 @@ export default async function PereiraPage() {
                     )}
                     {o.notas && <p className="text-xs text-tierra-400">{o.notas}</p>}
                   </div>
-                  <DeliveredToggle orderId={o.id} entregado={o.entregado} />
+                  <div className="flex items-center gap-3">
+                    <PedidoVentaAcciones orderId={o.id} entregado={o.entregado} info={infoVentas.get(o.id)} />
+                    <DeliveredToggle orderId={o.id} entregado={o.entregado} />
+                  </div>
                 </li>
               ))}
             </ul>

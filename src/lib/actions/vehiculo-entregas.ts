@@ -6,6 +6,7 @@ import { todayColombia } from "@/lib/date";
 import { dateOnlyToUTC } from "@/lib/date";
 import { requireVehiculoAccess, requireOwnSalida } from "@/lib/vehiculo/access";
 import { putPrivateVehiculoBlob } from "@/lib/vehiculo/blob";
+import { sincronizarInventarioPorEntrega } from "@/lib/pedidos/inventario";
 
 /** Pedidos del día — nunca precios (Order/OrderItem/Producto no tienen columna de
  * precio, así que no hay riesgo de filtrarlos por construcción), y nunca pedidos de
@@ -88,6 +89,7 @@ export async function marcarPedidoEntregadoConductor(orderId: string, salidaId: 
     where: { id: orderId },
     data: { entregado: true, entregadoAt: new Date(), vehiculoSalidaId: salidaId, entregaArchivoId: archivo.id },
   });
+  await sincronizarInventarioPorEntrega(orderId, true, session.user.id);
 
   revalidatePath(`/vehiculo/${salidaId}`);
   revalidatePath("/pedidos");

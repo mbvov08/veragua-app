@@ -70,10 +70,14 @@ export async function registrarVenta(formData: FormData) {
   const estado = String(formData.get("estado") ?? "pagada");
   const metodoPago = String(formData.get("metodoPago") ?? "").trim() || null;
   const notas = String(formData.get("notas") ?? "").trim() || null;
+  const pedidoId = String(formData.get("pedidoId") ?? "") || null;
   const items = parseSaleItems(formData);
 
   if (!fechaStr) throw new Error("La fecha es obligatoria.");
   if (estado !== "pagada" && estado !== "pendiente") throw new Error("Estado inválido.");
+  if (pedidoId && (await prisma.finSale.count({ where: { pedidoId, company } })) > 0) {
+    throw new Error("Este pedido ya tiene una venta registrada en esta empresa.");
+  }
   if (items.length === 0) throw new Error("Agrega al menos un producto a la venta.");
   if (estado === "pendiente" && !clienteNombre) {
     throw new Error("Una venta fiada necesita un cliente.");
@@ -121,6 +125,7 @@ export async function registrarVenta(formData: FormData) {
         total,
         notas,
         finTransactionId,
+        pedidoId,
         creadoPorId: session.user.id,
         items: { create: items.map((it) => ({ productoId: it.productoId, cantidad: it.cantidad, precioUnitario: it.precioUnitario })) },
       },
@@ -143,6 +148,7 @@ export async function registrarVenta(formData: FormData) {
   }, { maxWait: 10000, timeout: 20000 });
 
   revalidateVentas();
+  revalidatePath("/pedidos");
   revalidatePath("/finanzas");
   revalidatePath("/finanzas/movimientos");
   revalidatePath("/finanzas/pyg");

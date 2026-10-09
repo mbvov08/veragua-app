@@ -10,6 +10,8 @@ import ZonaFechaSync from "@/components/ZonaFechaSync";
 import SubmitButton from "@/components/SubmitButton";
 import ClienteAutofill from "@/components/ClienteAutofill";
 import ImportarContactoButton from "@/components/ImportarContactoButton";
+import PedidoVentaAcciones from "@/components/PedidoVentaAcciones";
+import { infoVentaPedidos } from "@/lib/pedidos/inventario";
 
 const ZONA_LABEL: Record<string, string> = {
   LOCAL: "Local",
@@ -48,6 +50,10 @@ export default async function PedidosPage({
     include: { items: { include: { producto: true } } },
     orderBy: [{ fechaEntrega: "asc" }, { zona: "asc" }],
   });
+
+  // El botón "Crear venta" solo para quien puede registrar ventas (Finanzas/Inventario).
+  const puedeVender = isAdmin || !!session?.user?.puedeVerFinanzas;
+  const infoVentas = puedeVender ? await infoVentaPedidos(orders) : new Map();
 
   const recurringRules = await prisma.recurringOrderRule.findMany({
     where: { activo: true },
@@ -230,6 +236,7 @@ export default async function PedidosPage({
                       {o.notas && <p className="text-xs text-tierra-400">{o.notas}</p>}
                     </div>
                     <div className="flex items-center gap-3">
+                      <PedidoVentaAcciones orderId={o.id} entregado={o.entregado} info={infoVentas.get(o.id)} />
                       <DeliveredToggle orderId={o.id} entregado={o.entregado} />
                       <ConfirmButton
                         action={deleteOrder.bind(null, o.id)}
