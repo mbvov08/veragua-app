@@ -12,15 +12,26 @@ export async function requireVehiculoAccess() {
   return session;
 }
 
-/** Para acciones/datos que requieren crear o cerrar actas — eso solo lo hace el staff,
- * nunca el conductor (la entrega/devolución la hace la empresa con el conductor
- * presente, no el conductor solo). */
+/** Para acciones que solo puede hacer el staff — ej. cerrar el acta de devolución, que
+ * siempre requiere que alguien de la empresa reciba el vehículo. */
 export async function requireVehiculoStaff() {
   const session = await requireVehiculoAccess();
   if (session.user.role !== "ADMIN" && session.user.role !== "EMPLEADA") {
     throw new Error("Solo el staff (gerencia/coordinación) puede hacer esto.");
   }
   return session;
+}
+
+/** Para crear el acta de entrega: el staff puede entregarle el vehículo a cualquier
+ * conductor; un CONDUCTOR solo puede auto-registrarse a sí mismo — para cuando no hay
+ * nadie de la empresa disponible para hacerlo con él. */
+export async function requireEntregaAccess(conductorIdDestino: string) {
+  const session = await requireVehiculoAccess();
+  const isStaff = session.user.role === "ADMIN" || session.user.role === "EMPLEADA";
+  if (!isStaff && (session.user.role !== "CONDUCTOR" || session.user.id !== conductorIdDestino)) {
+    throw new Error("Solo puedes crear el acta de entrega para ti mismo.");
+  }
+  return { session, autoservicio: !isStaff };
 }
 
 export async function requireVehiculoAdmin() {

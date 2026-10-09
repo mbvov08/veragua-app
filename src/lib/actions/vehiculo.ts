@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { dateOnlyToUTC } from "@/lib/date";
-import { requireVehiculoAdmin, requireVehiculoStaff } from "@/lib/vehiculo/access";
+import { requireVehiculoAdmin, requireVehiculoStaff, requireEntregaAccess } from "@/lib/vehiculo/access";
 import { putPrivateVehiculoBlob } from "@/lib/vehiculo/blob";
 import { ANGULOS, PUNTOS_EVALUACION, EQUIPAMIENTO_ITEMS, NOVEDAD_TIPOS } from "@/lib/vehiculo/constants";
 import {
@@ -78,10 +78,10 @@ export async function upsertVehiculoSettings(formData: FormData) {
 }
 
 export async function crearSalida(formData: FormData) {
-  const session = await requireVehiculoStaff();
-
   const vehiculoId = String(formData.get("vehiculoId") ?? "");
   const conductorId = String(formData.get("conductorId") ?? "");
+  const { session, autoservicio } = await requireEntregaAccess(conductorId);
+
   const tipoUso = String(formData.get("tipoUso") ?? "");
   const zona = String(formData.get("zona") ?? "") || null;
   const destino = String(formData.get("destino") ?? "").trim() || null;
@@ -91,27 +91,34 @@ export async function crearSalida(formData: FormData) {
   const evaluaciones = JSON.parse(String(formData.get("evaluacionesJson") ?? "[]")) as EvaluacionDraft[];
   const equipamiento = JSON.parse(String(formData.get("equipamientoJson") ?? "[]")) as EquipoDraft[];
   const pedidoIds = JSON.parse(String(formData.get("pedidoIdsJson") ?? "[]")) as string[];
+  const rutaProgramadaId = String(formData.get("rutaProgramadaId") ?? "") || null;
   const firmaConductorFile = formData.get("firmaConductor") as File | null;
   const firmaRepFile = formData.get("firmaRep") as File | null;
+  const firmaRepVacia = !firmaRepFile || firmaRepFile.size === 0;
 
   const fotos: FotoDraft[] = ANGULOS.map((a) => {
     const file = formData.get(`foto__${a.value}`) as File | null;
     return { angulo: a.value, blob: file && file.size > 0 ? file : null };
   });
 
-  const faltas = validarActaEntrega({
-    vehiculoId,
-    conductorId,
-    tipoUso,
-    zona: zona ?? "",
-    checkoutKm: String(checkoutKm || ""),
-    checkoutCombustible,
-    fotos,
-    evaluaciones,
-    equipamiento,
-    firmaConductorVacia: !firmaConductorFile || firmaConductorFile.size === 0,
-    firmaRepVacia: !firmaRepFile || firmaRepFile.size === 0,
-  });
+  const faltas = validarActaEntrega(
+    {
+      vehiculoId,
+      conductorId,
+      tipoUso,
+      zona: zona ?? "",
+      checkoutKm: String(checkoutKm || ""),
+      checkoutCombustible,
+      fotos,
+      evaluaciones,
+      equipamiento,
+      firmaConductorVacia: !firmaConductorFile || firmaConductorFile.size === 0,
+      firmaRepVacia,
+    },
+    // Si el conductor se está auto-registrando (nadie de la empresa presente), no se le
+    // puede exigir la firma de "la persona de la empresa" — no hay quién la ponga.
+    { requiereFirmaRep: !autoservicio }
+  );
   if (faltas.length > 0) throw new Error("Falta completar: " + faltas.join("; "));
 
   const vehiculo = await prisma.vehiculo.findUniqueOrThrow({ where: { id: vehiculoId } });
@@ -137,10 +144,14 @@ export async function crearSalida(formData: FormData) {
   const archivoFirmaConductor = await prisma.vehiculoArchivo.create({
     data: { blobPathname: blobFirmaConductor.pathname, contentType: blobFirmaConductor.contentType, subidoPorId: session.user.id },
   });
-  const blobFirmaRep = await putPrivateVehiculoBlob(`vehiculo/${crypto.randomUUID()}-firma-rep.png`, firmaRepFile!);
-  const archivoFirmaRep = await prisma.vehiculoArchivo.create({
-    data: { blobPathname: blobFirmaRep.pathname, contentType: blobFirmaRep.contentType, subidoPorId: session.user.id },
-  });
+  // Sin nadie de la empresa presente no hay segunda firma — queda sin archivo.
+  let archivoFirmaRep: { id: string } | null = null;
+  if (!firmaRepVacia) {
+    const blobFirmaRep = await putPrivateVehiculoBlob(`vehiculo/${crypto.randomUUID()}-firma-rep.png`, firmaRepFile!);
+    archivoFirmaRep = await prisma.vehiculoArchivo.create({
+      data: { blobPathname: blobFirmaRep.pathname, contentType: blobFirmaRep.contentType, subidoPorId: session.user.id },
+    });
+  }
 
   const salida = await prisma.$transaction(
     async (tx) => {
@@ -157,9 +168,11 @@ export async function crearSalida(formData: FormData) {
           checkoutPorId: session.user.id,
           checkoutKm,
           checkoutCombustible,
-          observacionesEntrega,
+          observacionesEntrega: autoservicio
+            ? [observacionesEntrega, "[Auto-registrado por el conductor, sin staff presente]"].filter(Boolean).join(" — ")
+            : observacionesEntrega,
           firmaConductorEntregaId: archivoFirmaConductor.id,
-          firmaRepEntregaId: archivoFirmaRep.id,
+          firmaRepEntregaId: archivoFirmaRep?.id ?? null,
           fotos: {
             create: ANGULOS.map((a) => ({
               momento: "ENTREGA",
@@ -185,8 +198,10 @@ export async function crearSalida(formData: FormData) {
         },
       });
 
+      const archivoIdsCreados = [...Object.values(archivoIds), archivoFirmaConductor.id];
+      if (archivoFirmaRep) archivoIdsCreados.push(archivoFirmaRep.id);
       await tx.vehiculoArchivo.updateMany({
-        where: { id: { in: [...Object.values(archivoIds), archivoFirmaConductor.id, archivoFirmaRep.id] } },
+        where: { id: { in: archivoIdsCreados } },
         data: { salidaId: nuevaSalida.id },
       });
 
@@ -200,6 +215,12 @@ export async function crearSalida(formData: FormData) {
           where: { id: { in: pedidoIds }, vehiculoSalidaId: null },
           data: { vehiculoSalidaId: nuevaSalida.id },
         });
+      }
+
+      // La ruta programada que se está "abriendo" con esta acta ya cumplió su propósito
+      // de avisar con anticipación — se borra para que deje de aparecer como pendiente.
+      if (rutaProgramadaId) {
+        await tx.vehiculoRutaProgramada.deleteMany({ where: { id: rutaProgramadaId, conductorId } });
       }
 
       return nuevaSalida;

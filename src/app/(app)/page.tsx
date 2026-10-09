@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { todayColombia, formatTimeCo, formatDateLongEs, computeWorkedHours, dayOfWeek } from "@/lib/date";
 import ClockWidget from "@/components/ClockWidget";
+import { listarProximasRutasDe } from "@/lib/actions/vehiculo-programacion";
 
 const ZONA_LABEL: Record<string, string> = {
   LOCAL: "Local",
@@ -70,7 +71,7 @@ export default async function DashboardPage() {
     );
   }
 
-  const [ordersToday, tasksPending, myEntryToday] = await Promise.all([
+  const [ordersToday, tasksPending, myEntryToday, proximasRutas] = await Promise.all([
     prisma.order.findMany({
       where: {
         OR: [{ fechaEntrega: today }, { entregado: false, fechaEntrega: { lt: today } }],
@@ -94,6 +95,7 @@ export default async function DashboardPage() {
     prisma.timeEntry.findUnique({
       where: { userId_workDate: { userId: session.user.id, workDate: today } },
     }),
+    isConductor ? listarProximasRutasDe(session.user.id) : Promise.resolve([]),
   ]);
 
   let clockStatus: "none" | "in" | "done" = "none";
@@ -135,6 +137,20 @@ export default async function DashboardPage() {
         </h1>
         <p className="text-sm text-tierra-500 capitalize">{formatDateLongEs(today)}</p>
       </div>
+
+      {isConductor && proximasRutas.length > 0 && (
+        <div className="card">
+          <h2 className="mb-2 text-sm font-semibold text-verde-800">Próximas rutas programadas</h2>
+          <ul className="divide-y divide-verde-50">
+            {proximasRutas.map((r) => (
+              <li key={r.id} className="py-2 text-sm">
+                <p className="font-medium capitalize text-tierra-800">{formatDateLongEs(r.fecha)}</p>
+                {r.notas && <p className="text-xs text-tierra-500">{r.notas}</p>}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-2">
         {!isAdmin && !isConductor && (

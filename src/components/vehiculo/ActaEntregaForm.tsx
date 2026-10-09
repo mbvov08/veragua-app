@@ -17,6 +17,7 @@ import {
 import { validarActaEntrega, type FotoDraft, type EvaluacionDraft, type EquipoDraft } from "@/lib/vehiculo/validacion";
 import { crearSalida } from "@/lib/actions/vehiculo";
 import { listarPedidosPendientesPorFecha } from "@/lib/actions/vehiculo-entregas";
+import { listarProximasRutasDe } from "@/lib/actions/vehiculo-programacion";
 
 type Vehiculo = { id: string; placa: string };
 type Conductor = { id: string; name: string };
@@ -27,6 +28,7 @@ type PedidoPendiente = {
   zona: string;
   items: { cantidad: string | null; producto: { nombre: string } }[];
 };
+type RutaProgramada = { id: string; fecha: Date; notas: string | null };
 
 function hoyISO(): string {
   const d = new Date();
@@ -46,12 +48,13 @@ type Draft = {
   equipamiento: EquipoDraft[];
   fechaRuta: string;
   pedidoIds: string[];
+  rutaProgramadaId: string;
 };
 
-function draftInicial(vehiculos: Vehiculo[]): Draft {
+function draftInicial(vehiculos: Vehiculo[], conductorFijo?: Conductor): Draft {
   return {
     vehiculoId: vehiculos[0]?.id ?? "",
-    conductorId: "",
+    conductorId: conductorFijo?.id ?? "",
     tipoUso: "",
     zona: "",
     destino: "",
@@ -62,14 +65,24 @@ function draftInicial(vehiculos: Vehiculo[]): Draft {
     equipamiento: EQUIPAMIENTO_ITEMS.map((it) => ({ item: it.value, presente: null })),
     fechaRuta: hoyISO(),
     pedidoIds: [],
+    rutaProgramadaId: "",
   };
 }
 
-export default function ActaEntregaForm({ vehiculos, conductores }: { vehiculos: Vehiculo[]; conductores: Conductor[] }) {
+export default function ActaEntregaForm({
+  vehiculos,
+  conductores,
+  autoservicio = false,
+}: {
+  vehiculos: Vehiculo[];
+  conductores: Conductor[];
+  autoservicio?: boolean;
+}) {
   const router = useRouter();
+  const conductorFijo = autoservicio ? conductores[0] : undefined;
   const { draft, guardar, borradorDisponible, retomarBorrador, descartarBorrador, limpiarTrasGuardar } = useActaDraft<Draft>(
     "vehiculo-acta-entrega",
-    draftInicial(vehiculos)
+    draftInicial(vehiculos, conductorFijo)
   );
   const [fotos, setFotos] = useState<Record<string, Blob | null>>({});
   const [procesandoCount, setProcesandoCount] = useState(0);
@@ -81,6 +94,16 @@ export default function ActaEntregaForm({ vehiculos, conductores }: { vehiculos:
   const firmaRepRef = useRef<SignaturePadHandle>(null);
   const [pedidosDisponibles, setPedidosDisponibles] = useState<PedidoPendiente[]>([]);
   const [cargandoPedidos, setCargandoPedidos] = useState(false);
+  const [rutasProgramadas, setRutasProgramadas] = useState<RutaProgramada[]>([]);
+
+  useEffect(() => {
+    // Por si quedó un borrador viejo de antes de que existiera el autoservicio, sin
+    // conductorId — se corrige solo en vez de dejar el formulario atascado.
+    if (conductorFijo && draft.conductorId !== conductorFijo.id) {
+      guardar({ ...draft, conductorId: conductorFijo.id });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conductorFijo?.id]);
 
   useEffect(() => {
     if (draft.tipoUso !== "RUTA_EMPRESA" || !draft.fechaRuta) return;
@@ -99,6 +122,21 @@ export default function ActaEntregaForm({ vehiculos, conductores }: { vehiculos:
     };
   }, [draft.tipoUso, draft.fechaRuta]);
 
+  useEffect(() => {
+    if (!draft.conductorId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setRutasProgramadas([]);
+      return;
+    }
+    let cancelado = false;
+    listarProximasRutasDe(draft.conductorId).then((rutas) => {
+      if (!cancelado) setRutasProgramadas(rutas);
+    });
+    return () => {
+      cancelado = true;
+    };
+  }, [draft.conductorId]);
+
   const fotosDraft: FotoDraft[] = useMemo(
     () => ANGULOS.map((a) => ({ angulo: a.value, blob: fotos[a.value] ?? null })),
     [fotos]
@@ -106,13 +144,16 @@ export default function ActaEntregaForm({ vehiculos, conductores }: { vehiculos:
 
   const faltas = useMemo(
     () =>
-      validarActaEntrega({
-        ...draft,
-        fotos: fotosDraft,
-        firmaConductorVacia,
-        firmaRepVacia,
-      }),
-    [draft, fotosDraft, firmaConductorVacia, firmaRepVacia]
+      validarActaEntrega(
+        {
+          ...draft,
+          fotos: fotosDraft,
+          firmaConductorVacia,
+          firmaRepVacia,
+        },
+        { requiereFirmaRep: !autoservicio }
+      ),
+    [draft, fotosDraft, firmaConductorVacia, firmaRepVacia, autoservicio]
   );
 
   function set<K extends keyof Draft>(key: K, value: Draft[K]) {
@@ -123,12 +164,15 @@ export default function ActaEntregaForm({ vehiculos, conductores }: { vehiculos:
     e.preventDefault();
     setErrorMsg(null);
 
-    const faltasFinal = validarActaEntrega({
-      ...draft,
-      fotos: fotosDraft,
-      firmaConductorVacia: firmaConductorRef.current?.isEmpty() ?? true,
-      firmaRepVacia: firmaRepRef.current?.isEmpty() ?? true,
-    });
+    const faltasFinal = validarActaEntrega(
+      {
+        ...draft,
+        fotos: fotosDraft,
+        firmaConductorVacia: firmaConductorRef.current?.isEmpty() ?? true,
+        firmaRepVacia: firmaRepRef.current?.isEmpty() ?? true,
+      },
+      { requiereFirmaRep: !autoservicio }
+    );
     // (chequeo final vía ref, fuera de render — está bien aquí, es un event handler)
     if (faltasFinal.length > 0) {
       setErrorMsg("Falta completar: " + faltasFinal.join("; "));
@@ -149,12 +193,15 @@ export default function ActaEntregaForm({ vehiculos, conductores }: { vehiculos:
       formData.set("evaluacionesJson", JSON.stringify(draft.evaluaciones));
       formData.set("equipamientoJson", JSON.stringify(draft.equipamiento));
       formData.set("pedidoIdsJson", JSON.stringify(draft.pedidoIds));
+      formData.set("rutaProgramadaId", draft.rutaProgramadaId);
       for (const a of ANGULOS) {
         const blob = fotos[a.value];
         if (blob) formData.set(`foto__${a.value}`, blob, `${a.value}.jpg`);
       }
       formData.set("firmaConductor", await firmaConductorRef.current!.toBlob(), "firma-conductor.png");
-      formData.set("firmaRep", await firmaRepRef.current!.toBlob(), "firma-rep.png");
+      if (!(firmaRepRef.current?.isEmpty() ?? true)) {
+        formData.set("firmaRep", await firmaRepRef.current!.toBlob(), "firma-rep.png");
+      }
 
       const result = await crearSalida(formData);
       limpiarTrasGuardar();
@@ -194,12 +241,16 @@ export default function ActaEntregaForm({ vehiculos, conductores }: { vehiculos:
           </div>
           <div>
             <label className="label">Conductor</label>
-            <select value={draft.conductorId} onChange={(e) => set("conductorId", e.target.value)} className="input">
-              <option value="">Selecciona...</option>
-              {conductores.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
+            {autoservicio ? (
+              <p className="input bg-verde-50/60 text-tierra-700">{conductores[0]?.name}</p>
+            ) : (
+              <select value={draft.conductorId} onChange={(e) => set("conductorId", e.target.value)} className="input">
+                <option value="">Selecciona...</option>
+                {conductores.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            )}
           </div>
           <div>
             <label className="label">Tipo de uso</label>
@@ -210,6 +261,30 @@ export default function ActaEntregaForm({ vehiculos, conductores }: { vehiculos:
               ))}
             </select>
           </div>
+          {draft.tipoUso === "RUTA_EMPRESA" && rutasProgramadas.length > 0 && (
+            <div className="sm:col-span-2">
+              <label className="label">Ruta programada que estás abriendo (opcional)</label>
+              <select
+                value={draft.rutaProgramadaId}
+                onChange={(e) => {
+                  const ruta = rutasProgramadas.find((r) => r.id === e.target.value);
+                  guardar({
+                    ...draft,
+                    rutaProgramadaId: e.target.value,
+                    destino: !draft.destino && ruta?.notas ? ruta.notas : draft.destino,
+                  });
+                }}
+                className="input"
+              >
+                <option value="">Ninguna / no estaba programada</option>
+                {rutasProgramadas.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {new Date(r.fecha).toLocaleDateString("es-CO")}{r.notas ? ` — ${r.notas}` : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           {draft.tipoUso === "RUTA_EMPRESA" && (
             <>
               <div>
@@ -387,7 +462,16 @@ export default function ActaEntregaForm({ vehiculos, conductores }: { vehiculos:
       <div className="card space-y-3">
         <h2 className="text-sm font-semibold text-verde-800">Firmas</h2>
         <SignaturePad ref={firmaConductorRef} label="Firma del conductor" onVaciaChange={setFirmaConductorVacia} />
-        <SignaturePad ref={firmaRepRef} label="Firma de la persona de la empresa" onVaciaChange={setFirmaRepVacia} />
+        <SignaturePad
+          ref={firmaRepRef}
+          label={autoservicio ? "Firma de la persona de la empresa (opcional si estás solo)" : "Firma de la persona de la empresa"}
+          onVaciaChange={setFirmaRepVacia}
+        />
+        {autoservicio && (
+          <p className="text-xs text-tierra-400">
+            Si no hay nadie de la empresa contigo para recibir el vehículo, deja esta firma en blanco.
+          </p>
+        )}
       </div>
 
       {errorMsg && (

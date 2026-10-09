@@ -1,14 +1,17 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { requireVehiculoStaff } from "@/lib/vehiculo/access";
+import { requireVehiculoAccess } from "@/lib/vehiculo/access";
 import ActaEntregaForm from "@/components/vehiculo/ActaEntregaForm";
 
 export default async function VehiculoNuevaPage() {
-  await requireVehiculoStaff();
+  const session = await requireVehiculoAccess();
+  const esConductor = session.user.role === "CONDUCTOR";
 
   const [vehiculos, conductores] = await Promise.all([
     prisma.vehiculo.findMany({ where: { activo: true, salidaAbiertaId: null }, orderBy: { placa: "asc" } }),
-    prisma.user.findMany({ where: { role: "CONDUCTOR", activo: true }, orderBy: { name: "asc" } }),
+    esConductor
+      ? Promise.resolve([{ id: session.user.id, name: session.user.name ?? session.user.username }])
+      : prisma.user.findMany({ where: { role: "CONDUCTOR", activo: true }, orderBy: { name: "asc" } }),
   ]);
 
   return (
@@ -38,6 +41,7 @@ export default async function VehiculoNuevaPage() {
         <ActaEntregaForm
           vehiculos={vehiculos.map((v) => ({ id: v.id, placa: v.placa }))}
           conductores={conductores.map((c) => ({ id: c.id, name: c.name }))}
+          autoservicio={esConductor}
         />
       )}
     </div>

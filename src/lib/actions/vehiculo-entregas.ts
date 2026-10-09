@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { todayColombia } from "@/lib/date";
 import { dateOnlyToUTC } from "@/lib/date";
-import { requireVehiculoAccess, requireOwnSalida, requireVehiculoStaff } from "@/lib/vehiculo/access";
+import { requireVehiculoAccess, requireOwnSalida } from "@/lib/vehiculo/access";
 import { putPrivateVehiculoBlob } from "@/lib/vehiculo/blob";
 
 /** Pedidos del día — nunca precios (Order/OrderItem/Producto no tienen columna de
@@ -45,7 +45,10 @@ export async function listarPedidosDelDia(salidaId: string) {
  * va a llevar esa salida. Se usa en /vehiculo/nueva, independiente de cuándo se termine
  * de guardar el acta (el borrador local ya deja seguir después). */
 export async function listarPedidosPendientesPorFecha(fechaStr: string) {
-  await requireVehiculoStaff();
+  // Acceso abierto a todo el módulo (no solo staff) — el conductor también puede llegar
+  // a necesitar elegir los pedidos de su ruta si nadie de la empresa está disponible
+  // para planearla por él (ver requireEntregaAccess en crearSalida).
+  await requireVehiculoAccess();
   if (!/^\d{4}-\d{2}-\d{2}$/.test(fechaStr)) return [];
 
   const fecha = dateOnlyToUTC(fechaStr);

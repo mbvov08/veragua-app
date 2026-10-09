@@ -41,6 +41,7 @@ function validarComun(args: {
   equipamiento: EquipoDraft[];
   firmaConductorVacia: boolean;
   firmaRepVacia: boolean;
+  requiereFirmaRep: boolean;
 }): string[] {
   const faltas: string[] = [];
 
@@ -67,12 +68,13 @@ function validarComun(args: {
   }
 
   if (args.firmaConductorVacia) faltas.push("Firma del conductor");
-  if (args.firmaRepVacia) faltas.push("Firma de la persona de la empresa");
+  if (args.requiereFirmaRep && args.firmaRepVacia) faltas.push("Firma de la persona de la empresa");
 
   return faltas;
 }
 
-export function validarActaEntrega(draft: ActaEntregaDraft): string[] {
+export function validarActaEntrega(draft: ActaEntregaDraft, opts?: { requiereFirmaRep?: boolean }): string[] {
+  const requiereFirmaRep = opts?.requiereFirmaRep ?? true;
   const faltas: string[] = [];
   if (!draft.vehiculoId) faltas.push("Vehículo");
   if (!draft.conductorId) faltas.push("Conductor");
@@ -89,6 +91,7 @@ export function validarActaEntrega(draft: ActaEntregaDraft): string[] {
       equipamiento: draft.equipamiento,
       firmaConductorVacia: draft.firmaConductorVacia,
       firmaRepVacia: draft.firmaRepVacia,
+      requiereFirmaRep,
     })
   );
 
@@ -111,6 +114,7 @@ export function validarActaDevolucion(draft: ActaDevolucionDraft, checkoutKm: nu
       equipamiento: draft.equipamiento,
       firmaConductorVacia: draft.firmaConductorVacia,
       firmaRepVacia: draft.firmaRepVacia,
+      requiereFirmaRep: true,
     })
   );
 

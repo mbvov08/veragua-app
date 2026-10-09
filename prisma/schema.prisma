@@ -67,6 +67,8 @@ model User {
   vehiculoDaniosComoConductor VehiculoDanioFinanciero[]  @relation("VehiculoDanioConductor")
   vehiculoDaniosCreados       VehiculoDanioFinanciero[]  @relation("VehiculoDanioCreadoPor")
   vehiculoParadasCompletadas  VehiculoParada[]           @relation("VehiculoParadaCompletadaPor")
+  rutasProgramadas            VehiculoRutaProgramada[]   @relation("RutaProgramadaConductor")
+  rutasProgramadasCreadas     VehiculoRutaProgramada[]   @relation("RutaProgramadaCreadaPor")
 }
 
 // Lista de referencia de productos que se venden, para agilizar la toma de pedidos.
@@ -1089,6 +1091,22 @@ model VehiculoParada {
   createdAt       DateTime       @default(now())
 
   @@index([salidaId, orden])
+}
+
+// Aviso de "este día te necesitamos" cargado con anticipación — independiente de
+// VehiculoSalida, que solo existe una vez el conductor está físicamente con el vehículo
+// entregándolo. El conductor lo ve en su inicio antes de que llegue el día.
+model VehiculoRutaProgramada {
+  id          String   @id @default(cuid())
+  conductorId String
+  conductor   User     @relation("RutaProgramadaConductor", fields: [conductorId], references: [id])
+  fecha       DateTime // normalizada a mediodía UTC, igual que el resto de fechas-sin-hora
+  notas       String?
+  creadoPorId String
+  creadoPor   User     @relation("RutaProgramadaCreadaPor", fields: [creadoPorId], references: [id])
+  createdAt   DateTime @default(now())
+
+  @@unique([conductorId, fecha])
 }
 
 // Tabla única para todo archivo privado del módulo (fotos, firmas, recibos, remisión
