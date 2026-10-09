@@ -87,6 +87,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                   { href: "/finanzas/movimientos", label: "Movimientos", icon: "movimientos" as const },
                   { href: "/finanzas/caja", label: "Cierre de Caja", icon: "caja" as const },
                   { href: "/pedidos", label: "Pedidos", icon: "pedidos" as const },
+                  { href: "/pedidos/suscripciones", label: "Suscripciones", icon: "calendario" as const },
                   { href: "/produccion", label: "Postura/Huevos", icon: "produccion" as const },
                   { href: "/melcoch", label: "Melcoch", icon: "melcoch" as const },
                   { href: "/inventario/reabastecimiento", label: "Reabastecimiento", icon: "reabastecimiento" as const },

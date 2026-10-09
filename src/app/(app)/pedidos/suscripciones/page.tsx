@@ -15,6 +15,12 @@ const ZONA_LABEL: Record<string, string> = {
   MANIZALES: "Ruta Manizales",
 };
 
+const CIUDAD_LABEL: Record<string, string> = {
+  LOCAL: "Armenia (local)",
+  PEREIRA: "Pereira",
+  MANIZALES: "Manizales",
+};
+
 export default async function SuscripcionesPage() {
   const today = todayColombia();
 
@@ -33,6 +39,27 @@ export default async function SuscripcionesPage() {
         <h1 className="text-lg font-semibold text-verde-800">Suscripciones</h1>
         <Link href="/pedidos" className="btn-outline text-sm">← Volver a Pedidos</Link>
       </div>
+
+      {(() => {
+        const activas = suscripciones.filter((s) => s.estado === "activa" && s.fechaFin >= today);
+        if (activas.length === 0) return null;
+        const porCiudad = new Map<string, number>();
+        for (const s of activas) porCiudad.set(s.recurringRule.zona, (porCiudad.get(s.recurringRule.zona) ?? 0) + 1);
+        return (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div className="card">
+              <p className="text-xs text-tierra-500">Activas</p>
+              <p className="text-xl font-semibold text-verde-700">{activas.length}</p>
+            </div>
+            {[...porCiudad.entries()].map(([zona, n]) => (
+              <div key={zona} className="card">
+                <p className="text-xs text-tierra-500">{CIUDAD_LABEL[zona] ?? zona}</p>
+                <p className="text-xl font-semibold text-tierra-800">{n}</p>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
 
       <details className="card" open={suscripciones.length === 0}>
         <summary className="cursor-pointer text-sm font-semibold text-verde-800">Nueva suscripción</summary>
@@ -115,7 +142,7 @@ export default async function SuscripcionesPage() {
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium text-tierra-800">{s.cliente.nombre}</p>
                       <p className="text-xs text-tierra-500">
-                        {ZONA_LABEL[s.recurringRule.zona]} · {DIAS_SEMANA[s.recurringRule.diaSemana]} ·{" "}
+                        {CIUDAD_LABEL[s.recurringRule.zona] ?? ZONA_LABEL[s.recurringRule.zona]} · {DIAS_SEMANA[s.recurringRule.diaSemana]} ·{" "}
                         {formatDateOnly(s.fechaInicio)} a {formatDateOnly(s.fechaFin)}
                       </p>
                     </div>
