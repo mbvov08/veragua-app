@@ -26,6 +26,7 @@ export default function TransactionTable({ transactions }: { transactions: Trans
           <tr className="border-b border-verde-100 text-left text-xs text-tierra-500">
             <th className="py-2">Fecha</th>
             <th className="py-2">Tipo</th>
+            <th className="py-2">Pagado a / Cliente</th>
             <th className="py-2">Categoría</th>
             <th className="py-2">Canal</th>
             <th className="py-2">Descripción</th>
@@ -41,6 +42,9 @@ export default function TransactionTable({ transactions }: { transactions: Trans
                 <span className={`badge ${t.tipo === "income" ? "bg-verde-100 text-verde-700" : "bg-tierra-100 text-tierra-700"}`}>
                   {t.tipo === "income" ? "Ingreso" : "Egreso"}
                 </span>
+              </td>
+              <td className="max-w-[180px] truncate py-2 font-medium text-tierra-800" title={t.contraparte ?? undefined}>
+                {t.contraparte ?? <span className="font-normal text-tierra-400">—</span>}
               </td>
               <td className="whitespace-nowrap py-2">
                 {t.categoria.codigo} · {t.categoria.nombre}
