@@ -25,10 +25,12 @@ export default function AgregarReciboForm({ salidaId }: { salidaId: string }) {
     }
   }
 
+  const fotoObligatoria = tipo !== "PAGO_CONDUCTOR";
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setErrorMsg(null);
-    if (!foto) {
+    if (fotoObligatoria && !foto) {
       setErrorMsg("Falta la foto del recibo.");
       return;
     }
@@ -38,7 +40,7 @@ export default function AgregarReciboForm({ salidaId }: { salidaId: string }) {
       formData.set("tipo", tipo);
       formData.set("valor", valor);
       formData.set("galonesOLugar", galonesOLugar);
-      formData.set("foto", foto, "recibo.jpg");
+      if (foto) formData.set("foto", foto, "recibo.jpg");
       await subirRecibo(salidaId, formData);
       setValor("");
       setGalonesOLugar("");
@@ -66,11 +68,13 @@ export default function AgregarReciboForm({ salidaId }: { salidaId: string }) {
         <input type="number" min="0" value={valor} onChange={(e) => setValor(e.target.value)} className="input w-28" required />
       </div>
       <div>
-        <label className="label">{tipo === "COMBUSTIBLE" ? "Galones (opcional)" : "Lugar (opcional)"}</label>
+        <label className="label">
+          {tipo === "COMBUSTIBLE" ? "Galones (opcional)" : tipo === "PEAJE" ? "Lugar (opcional)" : "Nota (opcional)"}
+        </label>
         <input value={galonesOLugar} onChange={(e) => setGalonesOLugar(e.target.value)} className="input w-28" />
       </div>
       <div>
-        <label className="label">Foto del recibo</label>
+        <label className="label">{fotoObligatoria ? "Foto del recibo" : "Foto del recibo (opcional)"}</label>
         <input
           type="file"
           accept="image/*"
@@ -83,7 +87,7 @@ export default function AgregarReciboForm({ salidaId }: { salidaId: string }) {
           className="input py-1 text-xs"
         />
       </div>
-      <button type="submit" disabled={enviando || procesando || !foto} className="btn-secondary">
+      <button type="submit" disabled={enviando || procesando || (fotoObligatoria && !foto)} className="btn-secondary">
         {enviando ? "Subiendo..." : procesando ? "Procesando..." : "Agregar recibo"}
       </button>
       {errorMsg && <p className="w-full text-xs text-red-600">{errorMsg}</p>}

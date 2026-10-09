@@ -57,6 +57,7 @@ export const TIPO_USO = [
 export const TIPO_RECIBO = [
   { value: "COMBUSTIBLE", label: "Tanqueo" },
   { value: "PEAJE", label: "Peaje" },
+  { value: "PAGO_CONDUCTOR", label: "Pago al conductor" },
 ] as const;
 
 export const ESTADO_DANIO = [

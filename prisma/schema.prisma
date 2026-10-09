@@ -669,10 +669,11 @@ model FinTransaction {
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
 
-  compra        FinPurchase?
-  venta         FinSale?
-  pagoCliente   FinPagoCliente?
-  pagoProveedor FinPagoProveedor?
+  compra         FinPurchase?
+  venta          FinSale?
+  pagoCliente    FinPagoCliente?
+  pagoProveedor  FinPagoProveedor?
+  vehiculoRecibo VehiculoRecibo?
 
   @@index([company, fecha])
   @@index([company, categoriaId])
@@ -1188,20 +1189,26 @@ model VehiculoNovedad {
   @@unique([salidaId, tipo])
 }
 
-// Recibos de tanqueo/peaje — se cargan incrementalmente durante el viaje, incluso por
-// el conductor desde su celular.
+// Gastos de la ruta — tanqueo, peaje, o el pago al conductor — se cargan
+// incrementalmente durante el viaje, incluso por el conductor desde su celular. Cada
+// uno crea además su propio FinTransaction (gasto) para que quede reflejado en el PyG,
+// sin tener que registrarlo dos veces — ver registrarGastoRuta().
 model VehiculoRecibo {
-  id            String          @id @default(cuid())
-  salidaId      String
-  salida        VehiculoSalida  @relation(fields: [salidaId], references: [id])
-  tipo          String // "COMBUSTIBLE" | "PEAJE"
-  valor         Int
-  galonesOLugar String?
-  archivoId     String          @unique
-  archivo       VehiculoArchivo @relation(fields: [archivoId], references: [id])
-  subidoPorId   String
-  subidoPor     User            @relation("VehiculoReciboSubidoPor", fields: [subidoPorId], references: [id])
-  createdAt     DateTime        @default(now())
+  id               String           @id @default(cuid())
+  salidaId         String
+  salida           VehiculoSalida   @relation(fields: [salidaId], references: [id])
+  tipo             String // "COMBUSTIBLE" | "PEAJE" | "PAGO_CONDUCTOR"
+  valor            Int
+  galonesOLugar    String?
+  // Solo COMBUSTIBLE/PEAJE piden foto del recibo obligatoria (se exige en el server
+  // action); PAGO_CONDUCTOR normalmente no tiene un papel físico que fotografiar.
+  archivoId        String?          @unique
+  archivo          VehiculoArchivo? @relation(fields: [archivoId], references: [id])
+  finTransactionId String?          @unique
+  finTransaction   FinTransaction?  @relation(fields: [finTransactionId], references: [id])
+  subidoPorId      String
+  subidoPor        User             @relation("VehiculoReciboSubidoPor", fields: [subidoPorId], references: [id])
+  createdAt        DateTime         @default(now())
 
   @@index([salidaId])
 }

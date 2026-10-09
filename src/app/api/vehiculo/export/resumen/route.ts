@@ -35,6 +35,7 @@ export async function GET(req: NextRequest) {
     { header: "Días alquiler", key: "dias", width: 14 },
     { header: "Monto a cobrar", key: "montoACobrar", width: 16 },
     { header: "Gastos combustible/peajes", key: "gastos", width: 22 },
+    { header: "Pago a conductor registrado", key: "pagoConductor", width: 22 },
     { header: "Daños pendientes", key: "danosPendiente", width: 16 },
     { header: "Daños descontados", key: "danosDescontado", width: 16 },
     { header: "Daños pagados", key: "danosPagado", width: 16 },
@@ -49,12 +50,13 @@ export async function GET(req: NextRequest) {
       dias: f.diasAlquiler,
       montoACobrar: f.montoACobrar,
       gastos: f.gastosCombustiblePeajes,
+      pagoConductor: f.pagoConductorRegistrado,
       danosPendiente: f.danosPendiente,
       danosDescontado: f.danosDescontado,
       danosPagado: f.danosPagado,
     });
   }
-  for (const key of ["montoAPagar", "montoACobrar", "gastos", "danosPendiente", "danosDescontado", "danosPagado"]) {
+  for (const key of ["montoAPagar", "montoACobrar", "gastos", "pagoConductor", "danosPendiente", "danosDescontado", "danosPagado"]) {
     sheet.getColumn(key).numFmt = "#,##0";
   }
 

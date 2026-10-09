@@ -60,6 +60,7 @@ export default async function VehiculoResumenPage({
                 <th className="py-2 pr-2">Días alquiler</th>
                 <th className="py-2 pr-2">A cobrar</th>
                 <th className="py-2 pr-2">Combustible/Peajes</th>
+                <th className="py-2 pr-2">Pago registrado</th>
                 <th className="py-2 pr-2">Daños pendientes</th>
                 <th className="py-2 pr-2">Descontados</th>
                 <th className="py-2 pr-2">Pagados</th>
@@ -74,6 +75,7 @@ export default async function VehiculoResumenPage({
                   <td className="py-2 pr-2">{f.diasAlquiler}</td>
                   <td className="py-2 pr-2">${f.montoACobrar.toLocaleString("es-CO")}</td>
                   <td className="py-2 pr-2">${f.gastosCombustiblePeajes.toLocaleString("es-CO")}</td>
+                  <td className="py-2 pr-2">${f.pagoConductorRegistrado.toLocaleString("es-CO")}</td>
                   <td className="py-2 pr-2 text-red-600">${f.danosPendiente.toLocaleString("es-CO")}</td>
                   <td className="py-2 pr-2">${f.danosDescontado.toLocaleString("es-CO")}</td>
                   <td className="py-2 pr-2">${f.danosPagado.toLocaleString("es-CO")}</td>

@@ -8,6 +8,10 @@ export interface ResumenConductorRow {
   diasAlquiler: number;
   montoACobrar: number;
   gastosCombustiblePeajes: number;
+  // Pagos al conductor registrados a mano por ruta (ver VehiculoRecibo tipo
+  // PAGO_CONDUCTOR) — independiente de montoAPagar, que es la tarifa configurada ×
+  // rutas. No se suman entre sí: este es lo que realmente se registró como pagado.
+  pagoConductorRegistrado: number;
   danosPendiente: number;
   danosDescontado: number;
   danosPagado: number;
@@ -50,6 +54,7 @@ export async function computeResumenMensual(year: number, monthIndex: number): P
         diasAlquiler: 0,
         montoACobrar: 0,
         gastosCombustiblePeajes: 0,
+        pagoConductorRegistrado: 0,
         danosPendiente: 0,
         danosDescontado: 0,
         danosPagado: 0,
@@ -64,7 +69,12 @@ export async function computeResumenMensual(year: number, monthIndex: number): P
     if (s.tipoUso === "RUTA_EMPRESA") {
       row.rutasCompletadas += 1;
       row.montoAPagar += valorPorRuta;
-      row.gastosCombustiblePeajes += s.recibos.reduce((sum, r) => sum + r.valor, 0);
+      row.gastosCombustiblePeajes += s.recibos
+        .filter((r) => r.tipo === "COMBUSTIBLE" || r.tipo === "PEAJE")
+        .reduce((sum, r) => sum + r.valor, 0);
+      row.pagoConductorRegistrado += s.recibos
+        .filter((r) => r.tipo === "PAGO_CONDUCTOR")
+        .reduce((sum, r) => sum + r.valor, 0);
     } else {
       const dias = diasEntre(s.checkoutAt, s.checkinAt!);
       row.diasAlquiler += dias;

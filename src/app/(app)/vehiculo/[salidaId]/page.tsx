@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireVehiculoAccess, requireOwnSalida } from "@/lib/vehiculo/access";
 import { formatDateShortEs, formatTimeCo } from "@/lib/date";
-import { ANGULOS, PUNTOS_EVALUACION, EQUIPAMIENTO_ITEMS, NOVEDAD_TIPOS } from "@/lib/vehiculo/constants";
+import { ANGULOS, PUNTOS_EVALUACION, EQUIPAMIENTO_ITEMS, NOVEDAD_TIPOS, TIPO_RECIBO, labelDe } from "@/lib/vehiculo/constants";
 import { comparePuntos } from "@/lib/vehiculo/comparacion";
 import { actualizarNotasAdminSalida, registrarDanioFinanciero, actualizarEstadoDanio } from "@/lib/actions/vehiculo";
 import { listarPedidosDelDia, toggleParadaCompletada } from "@/lib/actions/vehiculo-entregas";
@@ -221,11 +221,16 @@ export default async function VehiculoSalidaDetallePage({ params }: { params: Pr
           <div className="space-y-1">
             {salidaCompleta.recibos.map((r) => (
               <p key={r.id} className="text-sm text-tierra-700">
-                {r.tipo === "COMBUSTIBLE" ? "Tanqueo" : "Peaje"}: ${r.valor.toLocaleString("es-CO")}{" "}
-                {r.galonesOLugar && `(${r.galonesOLugar})`} —{" "}
-                <a href={`/api/vehiculo/archivo/${r.archivo.id}`} target="_blank" rel="noreferrer" className="text-verde-700 underline">
-                  ver recibo
-                </a>
+                {labelDe(TIPO_RECIBO, r.tipo)}: ${r.valor.toLocaleString("es-CO")}{" "}
+                {r.galonesOLugar && `(${r.galonesOLugar})`}
+                {r.archivo && (
+                  <>
+                    {" "}—{" "}
+                    <a href={`/api/vehiculo/archivo/${r.archivo.id}`} target="_blank" rel="noreferrer" className="text-verde-700 underline">
+                      ver recibo
+                    </a>
+                  </>
+                )}
               </p>
             ))}
           </div>
