@@ -237,11 +237,13 @@ export async function editarCliente(clienteId: string, formData: FormData) {
   const telefono = String(formData.get("telefono") ?? "").trim() || null;
   const direccion = String(formData.get("direccion") ?? "").trim();
   const zona = String(formData.get("zona") ?? "LOCAL");
+  const empresa = String(formData.get("empresa") ?? "").trim() || null;
+  const nit = String(formData.get("nit") ?? "").trim() || null;
   if (!nombre) throw new Error("El nombre del cliente es obligatorio.");
 
   const existing = await prisma.cliente.findUnique({ where: { nombre } });
   if (existing && existing.id !== clienteId) throw new Error("Ya existe otro cliente con ese nombre.");
 
-  await prisma.cliente.update({ where: { id: clienteId }, data: { nombre, telefono, direccion, zona } });
+  await prisma.cliente.update({ where: { id: clienteId }, data: { nombre, telefono, direccion, zona, empresa, nit } });
   revalidateVentas();
 }

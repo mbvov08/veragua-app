@@ -95,6 +95,14 @@ export default async function ClientesPage() {
                       <option value="MANIZALES">Ruta Manizales</option>
                     </select>
                   </div>
+                  <div>
+                    <label className="label">Negocio / razón social (cuenta de cobro)</label>
+                    <input name="empresa" defaultValue={c.empresa ?? ""} className="input" />
+                  </div>
+                  <div>
+                    <label className="label">NIT o cédula (cuenta de cobro)</label>
+                    <input name="nit" defaultValue={c.nit ?? ""} className="input" />
+                  </div>
                   <div className="sm:col-span-2">
                     <SubmitButton className="btn-secondary">Guardar cambios</SubmitButton>
                   </div>

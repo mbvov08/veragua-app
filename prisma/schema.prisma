@@ -201,6 +201,9 @@ model Cliente {
   direccion String
   telefono  String?
   zona      String
+  // Datos para la cuenta de cobro (opcionales): razón social/negocio y NIT o cédula.
+  empresa   String?
+  nit       String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -1251,4 +1254,16 @@ model VehiculoSettings {
   valorPorRuta        Int      @default(0)
   canonDiarioAlquiler Int      @default(0)
   updatedAt           DateTime @updatedAt
+}
+
+// Cada cuenta de cobro descargada recibe un consecutivo (N.º 001, 002...). Descargar de
+// nuevo las mismas ventas del mismo cliente reutiliza el número en vez de gastar otro.
+model CuentaCobroEmitida {
+  id        String   @id @default(cuid())
+  numero    Int      @unique @default(autoincrement())
+  clienteId String
+  clave     String // ids de las ventas incluidas, ordenados
+  createdAt DateTime @default(now())
+
+  @@unique([clienteId, clave])
 }
