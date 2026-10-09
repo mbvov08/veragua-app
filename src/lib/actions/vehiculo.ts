@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { dateOnlyToUTC } from "@/lib/date";
-import { requireVehiculoAdmin, requireVehiculoStaff, requireEntregaAccess } from "@/lib/vehiculo/access";
+import { requireVehiculoAdmin, requireEntregaAccess, requireDevolucionAccess } from "@/lib/vehiculo/access";
 import { putPrivateVehiculoBlob } from "@/lib/vehiculo/blob";
 import { ANGULOS, PUNTOS_EVALUACION, EQUIPAMIENTO_ITEMS, NOVEDAD_TIPOS } from "@/lib/vehiculo/constants";
 import {
@@ -233,9 +233,7 @@ export async function crearSalida(formData: FormData) {
 }
 
 export async function cerrarSalida(salidaId: string, formData: FormData) {
-  const session = await requireVehiculoStaff();
-
-  const salidaActual = await prisma.vehiculoSalida.findUniqueOrThrow({ where: { id: salidaId } });
+  const { session, salida: salidaActual, autoservicio } = await requireDevolucionAccess(salidaId);
   if (salidaActual.checkinAt) throw new Error("Esta salida ya fue cerrada.");
 
   const checkinKm = Number(formData.get("checkinKm"));
@@ -246,6 +244,7 @@ export async function cerrarSalida(salidaId: string, formData: FormData) {
   const novedades = JSON.parse(String(formData.get("novedadesJson") ?? "[]")) as NovedadDraft[];
   const firmaConductorFile = formData.get("firmaConductor") as File | null;
   const firmaRepFile = formData.get("firmaRep") as File | null;
+  const firmaRepVacia = !firmaRepFile || firmaRepFile.size === 0;
 
   const fotos: FotoDraft[] = ANGULOS.map((a) => {
     const file = formData.get(`foto__${a.value}`) as File | null;
@@ -261,9 +260,10 @@ export async function cerrarSalida(salidaId: string, formData: FormData) {
       equipamiento,
       novedades,
       firmaConductorVacia: !firmaConductorFile || firmaConductorFile.size === 0,
-      firmaRepVacia: !firmaRepFile || firmaRepFile.size === 0,
+      firmaRepVacia,
     },
-    salidaActual.checkoutKm
+    salidaActual.checkoutKm,
+    { requiereFirmaRep: !autoservicio }
   );
   if (faltas.length > 0) throw new Error("Falta completar: " + faltas.join("; "));
 
@@ -279,10 +279,13 @@ export async function cerrarSalida(salidaId: string, formData: FormData) {
   const archivoFirmaConductor = await prisma.vehiculoArchivo.create({
     data: { blobPathname: blobFirmaConductor.pathname, contentType: blobFirmaConductor.contentType, subidoPorId: session.user.id, salidaId },
   });
-  const blobFirmaRep = await putPrivateVehiculoBlob(`vehiculo/${crypto.randomUUID()}-firma-rep-dev.png`, firmaRepFile!);
-  const archivoFirmaRep = await prisma.vehiculoArchivo.create({
-    data: { blobPathname: blobFirmaRep.pathname, contentType: blobFirmaRep.contentType, subidoPorId: session.user.id, salidaId },
-  });
+  let archivoFirmaRep: { id: string } | null = null;
+  if (!firmaRepVacia) {
+    const blobFirmaRep = await putPrivateVehiculoBlob(`vehiculo/${crypto.randomUUID()}-firma-rep-dev.png`, firmaRepFile!);
+    archivoFirmaRep = await prisma.vehiculoArchivo.create({
+      data: { blobPathname: blobFirmaRep.pathname, contentType: blobFirmaRep.contentType, subidoPorId: session.user.id, salidaId },
+    });
+  }
 
   await prisma.$transaction(
     async (tx) => {
@@ -299,9 +302,11 @@ export async function cerrarSalida(salidaId: string, formData: FormData) {
           checkinPorId: session.user.id,
           checkinKm,
           checkinCombustible,
-          observacionesDevolucion,
+          observacionesDevolucion: autoservicio
+            ? [observacionesDevolucion, "[Auto-registrado por el conductor, sin staff presente]"].filter(Boolean).join(" — ")
+            : observacionesDevolucion,
           firmaConductorDevolucionId: archivoFirmaConductor.id,
-          firmaRepDevolucionId: archivoFirmaRep.id,
+          firmaRepDevolucionId: archivoFirmaRep?.id ?? null,
           lockedAt: new Date(),
           fotos: {
             create: ANGULOS.map((a) => ({

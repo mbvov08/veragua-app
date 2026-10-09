@@ -1,11 +1,11 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { requireVehiculoStaff } from "@/lib/vehiculo/access";
+import { requireDevolucionAccess } from "@/lib/vehiculo/access";
 import ActaDevolucionForm from "@/components/vehiculo/ActaDevolucionForm";
 
 export default async function VehiculoDevolucionPage({ params }: { params: Promise<{ salidaId: string }> }) {
-  await requireVehiculoStaff();
   const { salidaId } = await params;
+  const { autoservicio } = await requireDevolucionAccess(salidaId);
 
   const salida = await prisma.vehiculoSalida.findUnique({
     where: { id: salidaId },
@@ -35,6 +35,7 @@ export default async function VehiculoDevolucionPage({ params }: { params: Promi
         entregaFotos={entregaFotos}
         entregaEvaluaciones={entregaEvaluaciones}
         entregaEquipamiento={entregaEquipamiento}
+        autoservicio={autoservicio}
       />
     </div>
   );

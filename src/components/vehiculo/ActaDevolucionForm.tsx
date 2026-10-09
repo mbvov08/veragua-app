@@ -50,6 +50,7 @@ export default function ActaDevolucionForm({
   entregaFotos,
   entregaEvaluaciones,
   entregaEquipamiento,
+  autoservicio = false,
 }: {
   salidaId: string;
   checkoutKm: number;
@@ -57,6 +58,7 @@ export default function ActaDevolucionForm({
   entregaFotos: Record<string, string>;
   entregaEvaluaciones: Record<string, string>;
   entregaEquipamiento: Record<string, boolean>;
+  autoservicio?: boolean;
 }) {
   const router = useRouter();
   const { draft, guardar, borradorDisponible, retomarBorrador, descartarBorrador, limpiarTrasGuardar } = useActaDraft<Draft>(
@@ -81,9 +83,10 @@ export default function ActaDevolucionForm({
     () =>
       validarActaDevolucion(
         { ...draft, fotos: fotosDraft, firmaConductorVacia, firmaRepVacia },
-        checkoutKm
+        checkoutKm,
+        { requiereFirmaRep: !autoservicio }
       ),
-    [draft, fotosDraft, firmaConductorVacia, firmaRepVacia, checkoutKm]
+    [draft, fotosDraft, firmaConductorVacia, firmaRepVacia, checkoutKm, autoservicio]
   );
 
   function set<K extends keyof Draft>(key: K, value: Draft[K]) {
@@ -101,7 +104,8 @@ export default function ActaDevolucionForm({
         firmaConductorVacia: firmaConductorRef.current?.isEmpty() ?? true,
         firmaRepVacia: firmaRepRef.current?.isEmpty() ?? true,
       },
-      checkoutKm
+      checkoutKm,
+      { requiereFirmaRep: !autoservicio }
     );
     if (faltasFinal.length > 0) {
       setErrorMsg("Falta completar: " + faltasFinal.join("; "));
@@ -122,7 +126,9 @@ export default function ActaDevolucionForm({
         if (blob) formData.set(`foto__${a.value}`, blob, `${a.value}.jpg`);
       }
       formData.set("firmaConductor", await firmaConductorRef.current!.toBlob(), "firma-conductor.png");
-      formData.set("firmaRep", await firmaRepRef.current!.toBlob(), "firma-rep.png");
+      if (!(firmaRepRef.current?.isEmpty() ?? true)) {
+        formData.set("firmaRep", await firmaRepRef.current!.toBlob(), "firma-rep.png");
+      }
 
       await cerrarSalida(salidaId, formData);
       limpiarTrasGuardar();
@@ -271,7 +277,16 @@ export default function ActaDevolucionForm({
       <div className="card space-y-3">
         <h2 className="text-sm font-semibold text-verde-800">Firmas</h2>
         <SignaturePad ref={firmaConductorRef} label="Firma del conductor" onVaciaChange={setFirmaConductorVacia} />
-        <SignaturePad ref={firmaRepRef} label="Firma de la persona de la empresa" onVaciaChange={setFirmaRepVacia} />
+        <SignaturePad
+          ref={firmaRepRef}
+          label={autoservicio ? "Firma de la persona de la empresa (opcional si estás solo)" : "Firma de la persona de la empresa"}
+          onVaciaChange={setFirmaRepVacia}
+        />
+        {autoservicio && (
+          <p className="text-xs text-tierra-400">
+            Si no hay nadie de la empresa contigo para recibir el vehículo, deja esta firma en blanco.
+          </p>
+        )}
       </div>
 
       {errorMsg && (

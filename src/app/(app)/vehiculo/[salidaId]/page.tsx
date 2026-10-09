@@ -78,7 +78,7 @@ export default async function VehiculoSalidaDetallePage({ params }: { params: Pr
         </div>
       </div>
 
-      {isStaff && !salidaCompleta.checkinAt && (
+      {puedeAutoservicio && (
         <Link href={`/vehiculo/${salidaId}/devolucion`} className="btn-primary inline-block">
           Acta de devolución
         </Link>

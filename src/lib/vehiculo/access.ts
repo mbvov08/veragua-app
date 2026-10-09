@@ -12,8 +12,9 @@ export async function requireVehiculoAccess() {
   return session;
 }
 
-/** Para acciones que solo puede hacer el staff — ej. cerrar el acta de devolución, que
- * siempre requiere que alguien de la empresa reciba el vehículo. */
+/** Para acciones que solo puede hacer el staff (ajustes de flota, daños financieros,
+ * etc.) — entrega y devolución tienen su propio control, ver requireEntregaAccess y
+ * requireDevolucionAccess, que sí permiten autoservicio del conductor. */
 export async function requireVehiculoStaff() {
   const session = await requireVehiculoAccess();
   if (session.user.role !== "ADMIN" && session.user.role !== "EMPLEADA") {
@@ -50,4 +51,17 @@ export async function requireOwnSalida(session: Awaited<ReturnType<typeof requir
     throw new Error("No tienes acceso a esta salida.");
   }
   return salida;
+}
+
+/** Para cerrar el acta de devolución: igual que requireEntregaAccess pero sobre una
+ * salida ya existente — el staff puede cerrar cualquiera, un CONDUCTOR solo la suya
+ * propia (para cuando tampoco hay nadie de la empresa para recibirle el vehículo). */
+export async function requireDevolucionAccess(salidaId: string) {
+  const session = await requireVehiculoAccess();
+  const salida = await prisma.vehiculoSalida.findUniqueOrThrow({ where: { id: salidaId } });
+  const isStaff = session.user.role === "ADMIN" || session.user.role === "EMPLEADA";
+  if (!isStaff && (session.user.role !== "CONDUCTOR" || salida.conductorId !== session.user.id)) {
+    throw new Error("Solo puedes cerrar el acta de devolución de tu propia salida.");
+  }
+  return { session, salida, autoservicio: !isStaff };
 }

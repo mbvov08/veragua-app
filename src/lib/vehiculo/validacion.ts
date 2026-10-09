@@ -98,7 +98,12 @@ export function validarActaEntrega(draft: ActaEntregaDraft, opts?: { requiereFir
   return faltas;
 }
 
-export function validarActaDevolucion(draft: ActaDevolucionDraft, checkoutKm: number): string[] {
+export function validarActaDevolucion(
+  draft: ActaDevolucionDraft,
+  checkoutKm: number,
+  opts?: { requiereFirmaRep?: boolean }
+): string[] {
+  const requiereFirmaRep = opts?.requiereFirmaRep ?? true;
   const faltas: string[] = [];
 
   if (draft.checkinKm && Number(draft.checkinKm) < checkoutKm) {
@@ -114,7 +119,7 @@ export function validarActaDevolucion(draft: ActaDevolucionDraft, checkoutKm: nu
       equipamiento: draft.equipamiento,
       firmaConductorVacia: draft.firmaConductorVacia,
       firmaRepVacia: draft.firmaRepVacia,
-      requiereFirmaRep: true,
+      requiereFirmaRep,
     })
   );
 
