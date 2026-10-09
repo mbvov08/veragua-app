@@ -36,7 +36,7 @@ export default async function LoginPage({
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
           <h1>
-            <Image src="/logo-veragua.png" alt="Veragua — Alimentos de origen" width={520} height={550} priority unoptimized className="mx-auto h-auto w-56" />
+            <Image src="/logo-veragua.png" alt="Veragua — Alimentos de origen" width={520} height={473} priority unoptimized className="mx-auto h-auto w-56" />
           </h1>
           <p className="mt-2 text-sm text-tierra-600">Operaciones internas</p>
         </div>
