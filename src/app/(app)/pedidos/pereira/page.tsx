@@ -18,6 +18,7 @@ export default async function PereiraPage() {
   const orders = await prisma.order.findMany({
     where: {
       zona: { in: ["PEREIRA", "MANIZALES"] },
+      entregaTercero: null,
       OR: [
         { entregado: false, fechaEntrega: { lte: horizon } },
         { entregado: true, fechaEntrega: { gte: today, lte: horizon } },

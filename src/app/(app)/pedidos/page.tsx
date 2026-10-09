@@ -40,6 +40,10 @@ export default async function PedidosPage({
       ...(estadoParam === "" ? { entregado: false } : {}),
       ...(estadoParam === "entregado" ? { entregado: true } : {}),
       // estadoParam === "todos" => sin filtro de entregado
+      // Los que entrega un tercero (ej. Hato Azul con la suscripción de Antonia Ángel)
+      // no deben aparecer aquí — no son algo que nosotros despachemos. Quedan visibles
+      // en Calendario y como recordatorio para confirmar que sí se entregaron.
+      entregaTercero: null,
     },
     include: { items: { include: { producto: true } } },
     orderBy: [{ fechaEntrega: "asc" }, { zona: "asc" }],
