@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { redirect } from "next/navigation";
 import { signIn } from "@/auth";
 import { AuthError } from "next-auth";
@@ -34,11 +35,10 @@ export default async function LoginPage({
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
-          <h1 className="font-serif text-4xl tracking-wide text-verde-900" style={{ letterSpacing: "0.05em" }}>
-            veragua
+          <h1>
+            <Image src="/logo-veragua.png" alt="Veragua — Alimentos de origen" width={520} height={550} priority unoptimized className="mx-auto h-auto w-56" />
           </h1>
-          <div className="mx-auto mt-2 mb-3 h-px w-10 bg-dorado-400" />
-          <p className="text-sm text-tierra-600">Operaciones internas</p>
+          <p className="mt-2 text-sm text-tierra-600">Operaciones internas</p>
         </div>
 
         <form action={loginAction} className="card space-y-4">

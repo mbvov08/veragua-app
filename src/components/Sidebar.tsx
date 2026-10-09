@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -36,10 +37,8 @@ export default function Sidebar({
 
   const navContent = (
     <div className="flex h-full flex-col">
-      <div className="px-4 pb-4 pt-5">
-        <span className="font-serif text-xl text-verde-900" style={{ letterSpacing: "0.05em" }}>
-          veragua
-        </span>
+      <div className="px-4 pb-3 pt-4">
+        <Image src="/logo-veragua.png" alt="Veragua — Alimentos de origen" width={520} height={550} priority unoptimized className="mx-auto h-auto w-40" />
       </div>
       <div className="mx-3 mb-3 flex items-center gap-2 rounded-lg bg-verde-50 px-3 py-2">
         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-verde-600 text-sm font-semibold text-white">
