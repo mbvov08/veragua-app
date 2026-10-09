@@ -80,7 +80,7 @@ export default async function VentasPage({
       <details className="card" open={productos.length > 0 || !!pedido}>
         <summary className="cursor-pointer text-sm font-semibold text-verde-800">Nueva venta</summary>
         {productos.length === 0 ? (
-          <p className="mt-3 text-sm text-tierra-500">Primero crea productos en la pestaña Productos.</p>
+          <p className="mt-3 text-sm text-tierra-500">Primero crea productos en la pestaña Inventario.</p>
         ) : (
           <NuevaVentaForm
             company={company}

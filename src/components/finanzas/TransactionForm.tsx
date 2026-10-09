@@ -65,6 +65,7 @@ export default function TransactionForm({ companies, kind, transaction }: Transa
   return (
     <form key={isEdit ? "edit" : resetKey} action={action} className="grid gap-3 sm:grid-cols-2">
       <input type="hidden" name="tipo" value={tipo} />
+      {kind === "gasto" && !isEdit && <EstadoPagoToggle />}
 
       <div className="sm:col-span-2">
         <label className="label">Empresa</label>
@@ -191,7 +192,7 @@ export default function TransactionForm({ companies, kind, transaction }: Transa
         </div>
       )}
       <div>
-        <label className="label">{kind === "venta" ? "Cliente" : "Cliente / Proveedor"}</label>
+        <label className="label">{kind === "venta" ? "Cliente" : kind === "gasto" ? "Proveedor (obligatorio si es deuda)" : "Cliente / Proveedor"}</label>
         <input name="contraparte" defaultValue={transaction?.contraparte ?? ""} className="input" />
       </div>
 

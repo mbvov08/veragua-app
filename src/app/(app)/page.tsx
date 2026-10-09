@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { todayColombia, formatTimeCo, formatDateLongEs, computeWorkedHours, dayOfWeek } from "@/lib/date";
 import ClockWidget from "@/components/ClockWidget";
 import { listarProximasRutasDe } from "@/lib/actions/vehiculo-programacion";
+import { formatCOP } from "@/lib/finanzas/format";
 
 const ZONA_LABEL: Record<string, string> = {
   LOCAL: "Local",
@@ -98,6 +99,22 @@ export default async function DashboardPage() {
     isConductor ? listarProximasRutasDe(session.user.id) : Promise.resolve([]),
   ]);
 
+  // Ventas y gastos del mes en curso (ambas empresas) — solo para quien ve Finanzas.
+  let totalesMes: { ventas: number; gastos: number } | null = null;
+  if (isAdmin || session.user.puedeVerFinanzas) {
+    const inicioMes = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), 1, 12));
+    const finMes = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 1, 0, 12));
+    const grupos = await prisma.finTransaction.groupBy({
+      by: ["tipo"],
+      where: { anulado: false, fecha: { gte: inicioMes, lte: finMes } },
+      _sum: { monto: true },
+    });
+    totalesMes = {
+      ventas: grupos.find((g) => g.tipo === "income")?._sum.monto ?? 0,
+      gastos: grupos.find((g) => g.tipo === "expense")?._sum.monto ?? 0,
+    };
+  }
+
   let clockStatus: "none" | "in" | "done" = "none";
   let clockInLabel, clockOutLabel, workedLabel;
   if (myEntryToday) {
@@ -137,6 +154,19 @@ export default async function DashboardPage() {
         </h1>
         <p className="text-sm text-tierra-500 capitalize">{formatDateLongEs(today)}</p>
       </div>
+
+      {totalesMes && (
+        <div className="grid grid-cols-2 gap-4">
+          <div className="card">
+            <p className="text-xs text-tierra-500">Ventas del mes</p>
+            <p className="text-xl font-semibold text-verde-700">{formatCOP(totalesMes.ventas)}</p>
+          </div>
+          <div className="card">
+            <p className="text-xs text-tierra-500">Gastos del mes</p>
+            <p className="text-xl font-semibold text-tierra-800">{formatCOP(totalesMes.gastos)}</p>
+          </div>
+        </div>
+      )}
 
       {isConductor && proximasRutas.length > 0 && (
         <div className="card">

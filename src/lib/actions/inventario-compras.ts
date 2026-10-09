@@ -197,9 +197,17 @@ export async function registrarPagoProveedor(formData: FormData) {
     });
 
     const aplicaciones = await repartirPagoProveedor(tx, pago.id, proveedorId, monto);
+    // Si lo que se pagó fue una deuda de un gasto (arriendo, servicio...), el pago queda en
+    // la categoría de ese gasto y no como costo de mercancía. Si mezcla varias, gana la que
+    // más monto cubrió.
+    const porCategoria = new Map<string, number>();
+    for (const a of aplicaciones) {
+      if (a.categoriaId) porCategoria.set(a.categoriaId, (porCategoria.get(a.categoriaId) ?? 0) + a.montoAplicado);
+    }
+    const dominante = [...porCategoria.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
     await tx.finTransaction.update({
       where: { id: transaction.id },
-      data: { descripcion: describirAbono(aplicaciones, monto) },
+      data: { descripcion: describirAbono(aplicaciones, monto), ...(dominante ? { categoriaId: dominante } : {}) },
     });
   }, { maxWait: 10000, timeout: 20000 });
 

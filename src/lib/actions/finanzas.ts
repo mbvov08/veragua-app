@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { dateOnlyToUTC } from "@/lib/date";
 import { COMPANIES, type Company } from "@/lib/finanzas/queries";
 import { parseSaleItems, findDefaultCategory, registrarComisionBoldSiAplica } from "@/lib/inventario/shared";
-import { aplicarCreditoDisponibleCliente } from "@/lib/inventario/credito";
+import { aplicarCreditoDisponibleCliente, aplicarCreditoDisponibleProveedor } from "@/lib/inventario/credito";
 
 export async function requireFinanzas() {
   const session = await auth();
@@ -146,6 +146,33 @@ export async function createTransaction(formData: FormData) {
 
   if (!(monto > 0)) throw new Error("El monto debe ser mayor a cero.");
   if (!categoriaId) throw new Error("Selecciona una categoría.");
+
+  // Gasto como deuda: todavía no salió plata, así que no toca el PyG — queda en Cuentas
+  // por Pagar y el gasto se reconoce cuando se registre el pago (en su misma categoría).
+  if (tipo === "expense" && String(formData.get("estado") ?? "pagada") === "pendiente") {
+    if (!contraparte) throw new Error("Una deuda necesita el proveedor al que se le debe.");
+    if (esCompartido) throw new Error("Un gasto compartido no se puede registrar como deuda.");
+    await prisma.$transaction(async (tx) => {
+      const proveedor = await tx.proveedor.upsert({ where: { nombre: contraparte }, update: {}, create: { nombre: contraparte } });
+      const cuenta = await tx.finCuentaPorPagar.create({
+        data: {
+          company,
+          proveedorId: proveedor.id,
+          fecha: dateOnlyToUTC(fechaStr),
+          montoTotal: monto,
+          saldo: monto,
+          notas: descripcion,
+          categoriaId,
+          creadoPorId: session.user.id,
+        },
+      });
+      await aplicarCreditoDisponibleProveedor(tx, cuenta.id, proveedor.id);
+    });
+    revalidateFinanzas();
+    revalidatePath("/inventario/cuentas-por-pagar");
+    revalidatePath("/inventario/proveedores");
+    return;
+  }
 
   if (esCompartido) {
     const categoria = await prisma.finCategory.findUniqueOrThrow({ where: { id: categoriaId } });
