@@ -9,10 +9,10 @@ import { putPrivateVehiculoBlob } from "@/lib/vehiculo/blob";
 
 /** Pedidos del día — nunca precios (Order/OrderItem/Producto no tienen columna de
  * precio, así que no hay riesgo de filtrarlos por construcción), y nunca pedidos de
- * otro día. No se filtra por zona: una misma ruta puede tocar varias zonas en un solo
- * viaje (ej. Manizales → Alcalá → Local → Pereira), así que se muestran todos los
- * pedidos de hoy que no estén ya tomados por otra salida — el conductor/staff ve la
- * zona de cada uno para saber en qué parada entregarlo. */
+ * otro día. Solo los que quedaron explícitamente asignados a ESTA salida (al planear
+ * la ruta, o agregados después por staff) — mostrar también los pedidos de hoy sin
+ * asignar hacía que cualquier pedido suelto del día (de otro cliente, ya entregado,
+ * o de otra ruta) apareciera en la pantalla del conductor sin corresponderle. */
 export async function listarPedidosDelDia(salidaId: string) {
   const session = await requireVehiculoAccess();
   const salida = await requireOwnSalida(session, salidaId);
@@ -23,7 +23,7 @@ export async function listarPedidosDelDia(salidaId: string) {
     where: {
       fechaEntrega: hoy,
       entregaTercero: null,
-      OR: [{ vehiculoSalidaId: null }, { vehiculoSalidaId: salidaId }],
+      vehiculoSalidaId: salidaId,
     },
     select: {
       id: true,

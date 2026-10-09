@@ -192,8 +192,9 @@ export async function crearSalida(formData: FormData) {
 
       await tx.vehiculo.update({ where: { id: vehiculoId }, data: { salidaAbiertaId: nuevaSalida.id } });
 
-      // Pedidos elegidos al planear la ruta (no necesariamente todos los de hoy — puede
-      // haber más que lleguen después, esos los sigue viendo listarPedidosDelDia).
+      // Pedidos elegidos al planear la ruta. Si llega un pedido nuevo después de crear la
+      // salida, no aparece solo — hay que asignarlo a mano (no hay todavía una acción para
+      // agregar pedidos a una salida ya abierta).
       if (pedidoIds.length > 0) {
         await tx.order.updateMany({
           where: { id: { in: pedidoIds }, vehiculoSalidaId: null },
