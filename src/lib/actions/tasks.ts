@@ -88,6 +88,11 @@ export async function updateTaskStatus(taskId: string, estado: string) {
   if (!session?.user) throw new Error("No autenticado");
 
   await prisma.task.update({ where: { id: taskId }, data: { estado } });
+  // Al completar un proyecto se completan sus fases: si no, las fases quedaban pendientes
+  // sueltas en el inicio aunque el proyecto ya estuviera terminado.
+  if (estado === "COMPLETADO") {
+    await prisma.task.updateMany({ where: { proyectoId: taskId, estado: { not: "COMPLETADO" } }, data: { estado: "COMPLETADO" } });
+  }
 
   revalidatePath("/tareas");
   revalidatePath("/calendario");
