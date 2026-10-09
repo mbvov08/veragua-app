@@ -197,18 +197,34 @@ export async function registrarPagoProveedor(formData: FormData) {
     });
 
     const aplicaciones = await repartirPagoProveedor(tx, pago.id, proveedorId, monto);
-    // Si lo que se pagó fue una deuda de un gasto (arriendo, servicio...), el pago queda en
-    // la categoría de ese gasto y no como costo de mercancía. Si mezcla varias, gana la que
-    // más monto cubrió.
+    // Cada deuda se paga en la categoría de su gasto (arriendo, pérdida de inventario...) y
+    // las compras de mercancía en 6135. Si un mismo pago cubre varias categorías, se parte
+    // en un gasto por categoría: el más grande queda ligado al pago y los otros lo referencian.
     const porCategoria = new Map<string, number>();
     for (const a of aplicaciones) {
-      if (a.categoriaId) porCategoria.set(a.categoriaId, (porCategoria.get(a.categoriaId) ?? 0) + a.montoAplicado);
+      const clave = a.categoriaId ?? categoria.id;
+      porCategoria.set(clave, (porCategoria.get(clave) ?? 0) + a.montoAplicado);
     }
-    const dominante = [...porCategoria.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
+    const aplicado = aplicaciones.reduce((s, a) => s + a.montoAplicado, 0);
+    if (monto > aplicado) porCategoria.set(categoria.id, (porCategoria.get(categoria.id) ?? 0) + (monto - aplicado));
+    const grupos = [...porCategoria.entries()].sort((a, b) => b[1] - a[1]);
+    const descripcion = describirAbono(aplicaciones, monto);
     await tx.finTransaction.update({
       where: { id: transaction.id },
-      data: { descripcion: describirAbono(aplicaciones, monto), ...(dominante ? { categoriaId: dominante } : {}) },
+      data: { descripcion, monto: grupos[0][1], categoriaId: grupos[0][0] },
     });
+    if (grupos.length > 1) {
+      const nombres = new Map((await tx.finCategory.findMany({ where: { id: { in: grupos.map((g) => g[0]) } } })).map((c) => [c.id, c.nombre]));
+      for (const [categoriaId, montoGrupo] of grupos.slice(1)) {
+        await tx.finTransaction.create({
+          data: {
+            company, tipo: "expense", fecha, monto: montoGrupo, categoriaId, contraparte: proveedor.nombre, metodoPago,
+            descripcion: `${descripcion} · ${nombres.get(categoriaId) ?? "otra categoría"}`,
+            fuente: "manual", extraDePagoId: pago.id, creadoPorId: session.user.id,
+          },
+        });
+      }
+    }
   }, { maxWait: 10000, timeout: 20000 });
 
   revalidateProveedores();

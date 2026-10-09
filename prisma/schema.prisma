@@ -663,6 +663,9 @@ model FinTransaction {
   // administrativa). Se guarda con company="VERAGUA" como ancla, pero el PyG de cada
   // empresa reparte el monto según el % de ventas de ESE mes — ver getPnlRows().
   esCompartido  Boolean         @default(false)
+  // Un pago a proveedor que cubre deudas de varias categorías se parte en varios gastos;
+  // el principal es el que se liga al pago y los demás apuntan a él con esto (se anulan juntos).
+  extraDePagoId String?
   anulado       Boolean         @default(false)
   anuladoAt     DateTime?
   anuladoPorId  String?
