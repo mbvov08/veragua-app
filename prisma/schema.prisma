@@ -542,6 +542,10 @@ model MelcochProduccionDiaria {
   mezclas         Float
   cajasNormales   Int      @default(0)
   cajasFamiliares Int      @default(0)
+  // Las familiares se hacen en moldes distintos, no se cortan de una sola mezcla en
+  // varias formas — por eso hay que saber cuál molde se usó para sumarle el stock al
+  // producto correcto de Inventario ("CIRCULAR" | "CORAZON" | "CUADRADO").
+  formaFamiliar   String?
   observaciones   String?
   creadoPorId     String
   creadoPor       User     @relation("MelcochProduccionCreadaPor", fields: [creadoPorId], references: [id])

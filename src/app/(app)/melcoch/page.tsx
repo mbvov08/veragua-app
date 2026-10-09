@@ -8,6 +8,12 @@ import {
   realizarConteoFisico,
 } from "@/lib/actions/melcoch";
 
+const FORMA_LABEL: Record<string, string> = {
+  CIRCULAR: "Circular",
+  CORAZON: "Corazón",
+  CUADRADO: "Cuadrado",
+};
+
 export default async function MelcochPage() {
   const session = await auth();
   if (!session?.user || (session.user.role !== "ADMIN" && session.user.role !== "EMPLEADA")) {
@@ -39,7 +45,7 @@ export default async function MelcochPage() {
         <p className="mt-2 text-xs text-tierra-500">
           De una mezcla completa salen, a elección, 6 cajas normales (245g) o 2 familiares.
         </p>
-        <form action={registrarProduccionMelcoch} className="mt-4 grid gap-3 sm:grid-cols-5">
+        <form action={registrarProduccionMelcoch} className="mt-4 grid gap-3 sm:grid-cols-6">
           <div>
             <label className="label">Fecha</label>
             <input type="date" name="fecha" required className="input" defaultValue={formatDateOnly(today)} />
@@ -57,10 +63,19 @@ export default async function MelcochPage() {
             <input type="number" min={0} name="cajasFamiliares" className="input" defaultValue={0} />
           </div>
           <div>
+            <label className="label">Forma del molde familiar</label>
+            <select name="formaFamiliar" className="input" defaultValue="">
+              <option value="">Si no hiciste familiares, deja así</option>
+              <option value="CIRCULAR">Circular</option>
+              <option value="CORAZON">Corazón</option>
+              <option value="CUADRADO">Cuadrado</option>
+            </select>
+          </div>
+          <div>
             <label className="label">Observaciones</label>
             <input type="text" name="observaciones" className="input" />
           </div>
-          <div className="sm:col-span-5">
+          <div className="sm:col-span-6">
             <button type="submit" className="btn-primary">Guardar</button>
           </div>
         </form>
@@ -109,6 +124,7 @@ export default async function MelcochPage() {
               <th className="py-2 pr-2">Mezclas</th>
               <th className="py-2 pr-2">Cajas normales</th>
               <th className="py-2 pr-2">Cajas familiares</th>
+              <th className="py-2 pr-2">Forma</th>
               <th className="py-2 pr-2">Observaciones</th>
             </tr>
           </thead>
@@ -119,11 +135,12 @@ export default async function MelcochPage() {
                 <td className="py-2 pr-2">{p.mezclas}</td>
                 <td className="py-2 pr-2">{p.cajasNormales}</td>
                 <td className="py-2 pr-2">{p.cajasFamiliares}</td>
+                <td className="py-2 pr-2 text-tierra-500">{FORMA_LABEL[p.formaFamiliar ?? ""] ?? "—"}</td>
                 <td className="py-2 pr-2 text-tierra-500">{p.observaciones}</td>
               </tr>
             ))}
             {producciones.length === 0 && (
-              <tr><td colSpan={5} className="py-6 text-center text-tierra-500">Sin registros.</td></tr>
+              <tr><td colSpan={6} className="py-6 text-center text-tierra-500">Sin registros.</td></tr>
             )}
           </tbody>
         </table>
