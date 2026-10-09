@@ -23,7 +23,7 @@ export default async function CuentasPorPagarPage({
     prisma.proveedor.findMany({ orderBy: { nombre: "asc" } }),
     prisma.finCuentaPorPagar.findMany({
       where: { company: { in: selection.targets }, saldo: { gt: 0 } },
-      include: { proveedor: true },
+      include: { proveedor: true, purchase: { include: { items: { include: { producto: true } } } } },
       orderBy: { fecha: "asc" },
     }),
   ]);
@@ -93,7 +93,67 @@ export default async function CuentasPorPagarPage({
                       <Icon name="chevron-right" className="h-4 w-4 shrink-0 text-tierra-400 transition-transform group-open:rotate-90" />
                     </summary>
 
+                    <div className="mt-2 space-y-2">
+                      <p className="text-xs font-semibold text-tierra-600">Facturas pendientes</p>
+                      {cuentas.filter((c) => c.proveedorId === p.id).map((c) => (
+                        <details key={c.id} className="group/f rounded-lg border border-verde-100 bg-white">
+                          <summary className="flex cursor-pointer list-none flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2 text-sm">
+                            <span className="font-medium text-tierra-800">{formatDateOnly(c.fecha)}</span>
+                            <span className="text-tierra-500">
+                              {c.purchase?.numeroFactura ? `Factura ${c.purchase.numeroFactura}` : c.purchase ? "Compra" : "Saldo / gasto"}
+                            </span>
+                            {c.perdidaMonto ? <span className="badge bg-red-100 text-red-700">incluye pérdida {formatCOP(c.perdidaMonto)}</span> : null}
+                            <span className="ml-auto text-xs text-tierra-500">Total {formatCOP(c.montoTotal)}</span>
+                            <span className="font-semibold text-red-600">Debes {formatCOP(c.saldo)}</span>
+                          </summary>
+                          <div className="space-y-3 border-t border-verde-50 px-3 py-3">
+                            {c.purchase && c.purchase.items.length > 0 ? (
+                              <table className="w-full text-xs">
+                                <thead>
+                                  <tr className="text-left text-tierra-500">
+                                    <th className="py-1">Producto</th>
+                                    <th className="py-1 text-right">Cant.</th>
+                                    <th className="py-1 text-right">Costo</th>
+                                    <th className="py-1 text-right">Subtotal</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {c.purchase.items.map((it) => (
+                                    <tr key={it.id} className="border-t border-verde-50">
+                                      <td className="py-1">{it.producto.nombre}</td>
+                                      <td className="py-1 text-right">{it.cantidad}</td>
+                                      <td className="py-1 text-right">{formatCOP(it.costoUnitario)}</td>
+                                      <td className="py-1 text-right">{formatCOP(it.cantidad * it.costoUnitario)}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            ) : (
+                              <p className="text-xs text-tierra-500">Esta cuenta no tiene productos detallados.</p>
+                            )}
+                            {(c.notas || c.purchase?.notas) && <p className="text-xs text-tierra-500">{c.notas ?? c.purchase?.notas}</p>}
+                            <form action={registrarPagoProveedor} className="flex flex-wrap items-end gap-2">
+                              <input type="hidden" name="proveedorId" value={p.id} />
+                              <input type="hidden" name="company" value={c.company} />
+                              <input type="hidden" name="cuentaId" value={c.id} />
+                              <div>
+                                <label className="label">Monto a pagar de esta factura</label>
+                                <input type="number" name="monto" min="1" max={c.saldo} step="1" defaultValue={c.saldo} required className="input w-32" />
+                              </div>
+                              <div>
+                                <label className="label">Fecha</label>
+                                <input type="date" name="fecha" required defaultValue={formatDateOnly(todayColombia())} className="input" />
+                              </div>
+                              <MetodoPagoPicker metodos={["Efectivo", "Transferencia"]} />
+                              <SubmitButton className="btn-secondary">Pagar esta factura</SubmitButton>
+                            </form>
+                          </div>
+                        </details>
+                      ))}
+                    </div>
+
                     <div className="mt-2 rounded-lg border border-verde-100 bg-verde-50/40 p-3">
+                      <p className="mb-2 text-xs text-tierra-500">O un pago general (se aplica a las facturas más antiguas primero):</p>
                       <form action={registrarPagoProveedor} className="flex flex-wrap items-end gap-2">
                         <input type="hidden" name="proveedorId" value={p.id} />
                         {companias.length > 1 ? (

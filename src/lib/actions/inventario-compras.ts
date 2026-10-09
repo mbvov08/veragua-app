@@ -158,12 +158,20 @@ export async function registrarPagoProveedor(formData: FormData) {
   const fechaStr = String(formData.get("fecha") ?? "");
   const metodoPago = String(formData.get("metodoPago") ?? "").trim() || null;
   const notas = String(formData.get("notas") ?? "").trim() || null;
+  // Si viene una factura puntual, el pago se aplica solo a ella (y no puede pasarse de su saldo).
+  const cuentaId = String(formData.get("cuentaId") ?? "") || undefined;
 
   if (!proveedorId) throw new Error("Selecciona un proveedor.");
   if (!fechaStr) throw new Error("La fecha es obligatoria.");
   if (!(monto > 0)) throw new Error("El monto debe ser mayor a cero.");
 
   const fecha = dateOnlyToUTC(fechaStr);
+
+  if (cuentaId) {
+    const cuenta = await prisma.finCuentaPorPagar.findUniqueOrThrow({ where: { id: cuentaId } });
+    if (cuenta.proveedorId !== proveedorId) throw new Error("Esa factura no es de este proveedor.");
+    if (monto > cuenta.saldo) throw new Error(`El pago no puede ser mayor al saldo de la factura (${cuenta.saldo}).`);
+  }
 
   await prisma.$transaction(async (tx) => {
     const categoria = await findDefaultCategory(company, "6135");
@@ -196,7 +204,7 @@ export async function registrarPagoProveedor(formData: FormData) {
       },
     });
 
-    const aplicaciones = await repartirPagoProveedor(tx, pago.id, proveedorId, monto);
+    const aplicaciones = await repartirPagoProveedor(tx, pago.id, proveedorId, monto, cuentaId);
     // Cada deuda se paga en la categoría de su gasto (arriendo, pérdida de inventario...) y
     // las compras de mercancía en 6135. Si un mismo pago cubre varias categorías, se parte
     // en un gasto por categoría: el más grande queda ligado al pago y los otros lo referencian.

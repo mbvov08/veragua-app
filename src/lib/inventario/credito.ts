@@ -50,9 +50,9 @@ export async function repartirPagoCliente(tx: Tx, pagoId: string, clienteId: str
   return aplicaciones;
 }
 
-export async function repartirPagoProveedor(tx: Tx, pagoId: string, proveedorId: string, monto: number): Promise<AplicacionPago[]> {
+export async function repartirPagoProveedor(tx: Tx, pagoId: string, proveedorId: string, monto: number, cuentaId?: string): Promise<AplicacionPago[]> {
   const cuentasAbiertas = await tx.finCuentaPorPagar.findMany({
-    where: { proveedorId, saldo: { gt: 0 } },
+    where: { proveedorId, saldo: { gt: 0 }, ...(cuentaId ? { id: cuentaId } : {}) },
     include: { purchase: { include: { items: { include: { producto: true } } } } },
     orderBy: { fecha: "asc" },
   });
