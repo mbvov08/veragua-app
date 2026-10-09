@@ -100,7 +100,15 @@ export default async function CuentasPorPagarPage({
                           <summary className="flex cursor-pointer list-none flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2 text-sm">
                             <span className="font-medium text-tierra-800">{formatDateOnly(c.fecha)}</span>
                             <span className="text-tierra-500">
-                              {c.purchase?.numeroFactura ? `Factura ${c.purchase.numeroFactura}` : c.purchase ? "Compra" : "Saldo / gasto"}
+                              {c.purchase?.numeroFactura
+                                ? `Factura ${c.purchase.numeroFactura}`
+                                : c.purchase
+                                  ? "Compra"
+                                  : c.notas?.startsWith("Saldo inicial")
+                                    ? "Saldo inicial (Treinta)"
+                                    : c.notas
+                                      ? c.notas.slice(0, 45)
+                                      : "Deuda"}
                             </span>
                             {c.perdidaMonto ? <span className="badge bg-red-100 text-red-700">incluye pérdida {formatCOP(c.perdidaMonto)}</span> : null}
                             <span className="ml-auto text-xs text-tierra-500">Total {formatCOP(c.montoTotal)}</span>
