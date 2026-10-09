@@ -146,6 +146,7 @@ export async function createTransaction(formData: FormData) {
 
   if (!(monto > 0)) throw new Error("El monto debe ser mayor a cero.");
   if (!categoriaId) throw new Error("Selecciona una categoría.");
+  if (tipo === "expense" && !contraparte) throw new Error("Indica a quién se le paga.");
 
   // Gasto como deuda: todavía no salió plata, así que no toca el PyG — queda en Cuentas
   // por Pagar y el gasto se reconoce cuando se registre el pago (en su misma categoría).

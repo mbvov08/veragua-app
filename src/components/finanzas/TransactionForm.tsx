@@ -23,6 +23,7 @@ interface TransactionFormProps {
   companies: CompanyFormData[];
   kind: TransactionKind;
   transaction?: FinTransaction;
+  sugerenciasContraparte?: string[];
 }
 
 const KIND_LABELS: Record<TransactionKind, string> = {
@@ -31,7 +32,7 @@ const KIND_LABELS: Record<TransactionKind, string> = {
   otro: "Otro movimiento",
 };
 
-export default function TransactionForm({ companies, kind, transaction }: TransactionFormProps) {
+export default function TransactionForm({ companies, kind, transaction, sugerenciasContraparte = [] }: TransactionFormProps) {
   const isEdit = Boolean(transaction);
   const [company, setCompany] = useState<Company>(transaction?.company as Company ?? companies[0]?.company);
   const fixedType = kind === "venta" ? "income" : kind === "gasto" ? "expense" : null;
@@ -192,8 +193,20 @@ export default function TransactionForm({ companies, kind, transaction }: Transa
         </div>
       )}
       <div>
-        <label className="label">{kind === "venta" ? "Cliente" : kind === "gasto" ? "Proveedor (obligatorio si es deuda)" : "Cliente / Proveedor"}</label>
-        <input name="contraparte" defaultValue={transaction?.contraparte ?? ""} className="input" />
+        <label className="label">{kind === "venta" ? "Cliente" : kind === "gasto" ? "A quién se le paga" : "Cliente / Proveedor"}</label>
+        <input
+          name="contraparte"
+          list="contrapartes-sugeridas"
+          required={kind === "gasto" && !isEdit}
+          placeholder={kind === "gasto" ? "Persona o negocio al que le pagas" : undefined}
+          defaultValue={transaction?.contraparte ?? ""}
+          className="input"
+        />
+        <datalist id="contrapartes-sugeridas">
+          {sugerenciasContraparte.map((n) => (
+            <option key={n} value={n} />
+          ))}
+        </datalist>
       </div>
 
       <div className="sm:col-span-2">
