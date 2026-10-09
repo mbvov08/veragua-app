@@ -202,8 +202,12 @@ export async function registrarPagoProveedor(formData: FormData) {
     // en un gasto por categoría: el más grande queda ligado al pago y los otros lo referencian.
     const porCategoria = new Map<string, number>();
     for (const a of aplicaciones) {
+      const perdida = a.montoAplicado * (a.perdidaFraccion ?? 0);
+      if (perdida > 0) {
+        porCategoria.set("perdida-inventario", (porCategoria.get("perdida-inventario") ?? 0) + perdida);
+      }
       const clave = a.categoriaId ?? categoria.id;
-      porCategoria.set(clave, (porCategoria.get(clave) ?? 0) + a.montoAplicado);
+      porCategoria.set(clave, (porCategoria.get(clave) ?? 0) + a.montoAplicado - perdida);
     }
     const aplicado = aplicaciones.reduce((s, a) => s + a.montoAplicado, 0);
     if (monto > aplicado) porCategoria.set(categoria.id, (porCategoria.get(categoria.id) ?? 0) + (monto - aplicado));

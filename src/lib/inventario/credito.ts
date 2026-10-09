@@ -9,6 +9,8 @@ export type AplicacionPago = {
   montoTotalCuenta: number;
   descripcionCuenta: string;
   categoriaId?: string | null;
+  /** Fracción (0–1) del monto aplicado que corresponde a mercancía perdida. */
+  perdidaFraccion?: number;
 };
 
 /**
@@ -72,7 +74,7 @@ export async function repartirPagoProveedor(tx: Tx, pagoId: string, proveedorId:
       cuenta.purchase && cuenta.purchase.items.length > 0
         ? cuenta.purchase.items.map((it) => `${it.cantidad} ${it.producto.nombre}`).join(", ")
         : cuenta.notas ?? "saldo pendiente";
-    aplicaciones.push({ cuentaId: cuenta.id, montoAplicado: aplicar, montoTotalCuenta: cuenta.montoTotal, descripcionCuenta, categoriaId: cuenta.categoriaId });
+    aplicaciones.push({ cuentaId: cuenta.id, montoAplicado: aplicar, montoTotalCuenta: cuenta.montoTotal, descripcionCuenta, categoriaId: cuenta.categoriaId, perdidaFraccion: cuenta.perdidaMonto ? cuenta.perdidaMonto / cuenta.montoTotal : 0 });
     restante -= aplicar;
   }
   return aplicaciones;

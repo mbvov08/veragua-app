@@ -939,6 +939,9 @@ model FinCuentaPorPagar {
   // Categoría del gasto que originó la deuda (null en compras: se pagan como 6135) — el
   // pago la usa para quedar clasificado igual que el gasto, no como costo de mercancía.
   categoriaId      String?
+  // Parte de la factura que corresponde a mercancía perdida (dañada estando ya en nuestras
+  // manos): se debe completa, pero al pagarla esa parte va a "Pérdida de inventario".
+  perdidaMonto     Float?
   creadoPorId      String
   creadoPor        User         @relation("FinCxPCreadoPor", fields: [creadoPorId], references: [id])
   createdAt        DateTime     @default(now())
