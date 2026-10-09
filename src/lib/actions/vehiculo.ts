@@ -117,7 +117,7 @@ export async function crearSalida(formData: FormData) {
     },
     // Si el conductor se está auto-registrando (nadie de la empresa presente), no se le
     // puede exigir la firma de "la persona de la empresa" — no hay quién la ponga.
-    { requiereFirmaRep: !autoservicio }
+    { requiereFirmaRep: false }
   );
   if (faltas.length > 0) throw new Error("Falta completar: " + faltas.join("; "));
 
@@ -239,8 +239,6 @@ export async function cerrarSalida(salidaId: string, formData: FormData) {
   const checkinKm = Number(formData.get("checkinKm"));
   const checkinCombustible = String(formData.get("checkinCombustible") ?? "");
   const observacionesDevolucion = String(formData.get("observacionesDevolucion") ?? "").trim() || null;
-  const evaluaciones = JSON.parse(String(formData.get("evaluacionesJson") ?? "[]")) as EvaluacionDraft[];
-  const equipamiento = JSON.parse(String(formData.get("equipamientoJson") ?? "[]")) as EquipoDraft[];
   const novedades = JSON.parse(String(formData.get("novedadesJson") ?? "[]")) as NovedadDraft[];
   const firmaConductorFile = formData.get("firmaConductor") as File | null;
   const firmaRepFile = formData.get("firmaRep") as File | null;
@@ -256,14 +254,12 @@ export async function cerrarSalida(salidaId: string, formData: FormData) {
       checkinKm: String(checkinKm || ""),
       checkinCombustible,
       fotos,
-      evaluaciones,
-      equipamiento,
       novedades,
       firmaConductorVacia: !firmaConductorFile || firmaConductorFile.size === 0,
       firmaRepVacia,
     },
     salidaActual.checkoutKm,
-    { requiereFirmaRep: !autoservicio }
+    { requiereFirmaRep: false }
   );
   if (faltas.length > 0) throw new Error("Falta completar: " + faltas.join("; "));
 
@@ -314,18 +310,6 @@ export async function cerrarSalida(salidaId: string, formData: FormData) {
               angulo: a.value,
               archivoId: archivoIds[`foto_${a.value}`],
             })),
-          },
-          evaluaciones: {
-            create: PUNTOS_EVALUACION.map((p) => {
-              const ev = evaluaciones.find((e) => e.punto === p.value)!;
-              return { momento: "DEVOLUCION", punto: p.value, estado: ev.estado, nota: ev.nota.trim() || null };
-            }),
-          },
-          equipamiento: {
-            create: EQUIPAMIENTO_ITEMS.map((it) => {
-              const eq = equipamiento.find((e) => e.item === it.value)!;
-              return { momento: "DEVOLUCION", item: it.value, presente: Boolean(eq.presente) };
-            }),
           },
           novedades: {
             create: NOVEDAD_TIPOS.map((n) => {

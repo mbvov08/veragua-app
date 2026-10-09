@@ -169,9 +169,9 @@ export default function ActaEntregaForm({
           firmaConductorVacia,
           firmaRepVacia,
         },
-        { requiereFirmaRep: !autoservicio }
+        { requiereFirmaRep: false }
       ),
-    [draft, fotosDraft, firmaConductorVacia, firmaRepVacia, autoservicio]
+    [draft, fotosDraft, firmaConductorVacia, firmaRepVacia]
   );
 
   function set<K extends keyof Draft>(key: K, value: Draft[K]) {
@@ -199,7 +199,7 @@ export default function ActaEntregaForm({
         firmaConductorVacia: firmaConductorRef.current?.isEmpty() ?? true,
         firmaRepVacia: firmaRepRef.current?.isEmpty() ?? true,
       },
-      { requiereFirmaRep: !autoservicio }
+      { requiereFirmaRep: false }
     );
     // (chequeo final vía ref, fuera de render — está bien aquí, es un event handler)
     if (faltasFinal.length > 0) {
@@ -489,14 +489,12 @@ export default function ActaEntregaForm({
         <SignaturePad ref={firmaConductorRef} label="Firma del conductor" onVaciaChange={setFirmaConductorVacia} />
         <SignaturePad
           ref={firmaRepRef}
-          label={autoservicio ? "Firma de la persona de la empresa (opcional si estás solo)" : "Firma de la persona de la empresa"}
+          label="Firma de la persona de la empresa (opcional)"
           onVaciaChange={setFirmaRepVacia}
         />
-        {autoservicio && (
-          <p className="text-xs text-tierra-400">
-            Si no hay nadie de la empresa contigo para recibir el vehículo, deja esta firma en blanco.
-          </p>
-        )}
+        <p className="text-xs text-tierra-400">
+          Si nadie de la empresa te entrega el vehículo, deja esta firma en blanco: queda solo la tuya.
+        </p>
       </div>
 
       {errorMsg && (

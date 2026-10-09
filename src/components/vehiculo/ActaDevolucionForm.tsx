@@ -4,22 +4,16 @@ import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useActaDraft } from "@/components/vehiculo/useActaDraft";
 import PhotoCaptureField from "@/components/vehiculo/PhotoCaptureField";
-import EvaluacionPuntoField from "@/components/vehiculo/EvaluacionPuntoField";
-import EquipoChecklistField from "@/components/vehiculo/EquipoChecklistField";
 import NovedadChecklistField from "@/components/vehiculo/NovedadChecklistField";
 import SignaturePad, { type SignaturePadHandle } from "@/components/vehiculo/SignaturePad";
 import {
   ANGULOS,
-  PUNTOS_EVALUACION,
-  EQUIPAMIENTO_ITEMS,
   NOVEDAD_TIPOS,
   COMBUSTIBLE_NIVELES,
 } from "@/lib/vehiculo/constants";
 import {
   validarActaDevolucion,
   type FotoDraft,
-  type EvaluacionDraft,
-  type EquipoDraft,
   type NovedadDraft,
 } from "@/lib/vehiculo/validacion";
 import { cerrarSalida } from "@/lib/actions/vehiculo";
@@ -28,8 +22,6 @@ type Draft = {
   checkinKm: string;
   checkinCombustible: string;
   observacionesDevolucion: string;
-  evaluaciones: EvaluacionDraft[];
-  equipamiento: EquipoDraft[];
   novedades: NovedadDraft[];
 };
 
@@ -38,8 +30,6 @@ function draftInicial(): Draft {
     checkinKm: "",
     checkinCombustible: "",
     observacionesDevolucion: "",
-    evaluaciones: PUNTOS_EVALUACION.map((p) => ({ punto: p.value, estado: "", nota: "" })),
-    equipamiento: EQUIPAMIENTO_ITEMS.map((it) => ({ item: it.value, presente: null })),
     novedades: NOVEDAD_TIPOS.map((n) => ({ tipo: n.value, marcado: false, detalle: "" })),
   };
 }
@@ -48,17 +38,11 @@ export default function ActaDevolucionForm({
   salidaId,
   checkoutKm,
   entregaFotos,
-  entregaEvaluaciones,
-  entregaEquipamiento,
-  autoservicio = false,
 }: {
   salidaId: string;
   checkoutKm: number;
   /** angulo -> id del VehiculoArchivo de la foto de entrega, para comparar lado a lado. */
   entregaFotos: Record<string, string>;
-  entregaEvaluaciones: Record<string, string>;
-  entregaEquipamiento: Record<string, boolean>;
-  autoservicio?: boolean;
 }) {
   const router = useRouter();
   const { draft, guardar, borradorDisponible, retomarBorrador, descartarBorrador, limpiarTrasGuardar } = useActaDraft<Draft>(
@@ -84,9 +68,9 @@ export default function ActaDevolucionForm({
       validarActaDevolucion(
         { ...draft, fotos: fotosDraft, firmaConductorVacia, firmaRepVacia },
         checkoutKm,
-        { requiereFirmaRep: !autoservicio }
+        { requiereFirmaRep: false }
       ),
-    [draft, fotosDraft, firmaConductorVacia, firmaRepVacia, checkoutKm, autoservicio]
+    [draft, fotosDraft, firmaConductorVacia, firmaRepVacia, checkoutKm]
   );
 
   function set<K extends keyof Draft>(key: K, value: Draft[K]) {
@@ -105,7 +89,7 @@ export default function ActaDevolucionForm({
         firmaRepVacia: firmaRepRef.current?.isEmpty() ?? true,
       },
       checkoutKm,
-      { requiereFirmaRep: !autoservicio }
+      { requiereFirmaRep: false }
     );
     if (faltasFinal.length > 0) {
       setErrorMsg("Falta completar: " + faltasFinal.join("; "));
@@ -118,8 +102,6 @@ export default function ActaDevolucionForm({
       formData.set("checkinKm", draft.checkinKm);
       formData.set("checkinCombustible", draft.checkinCombustible);
       formData.set("observacionesDevolucion", draft.observacionesDevolucion);
-      formData.set("evaluacionesJson", JSON.stringify(draft.evaluaciones));
-      formData.set("equipamientoJson", JSON.stringify(draft.equipamiento));
       formData.set("novedadesJson", JSON.stringify(draft.novedades));
       for (const a of ANGULOS) {
         const blob = fotos[a.value];
@@ -197,52 +179,6 @@ export default function ActaDevolucionForm({
       </div>
 
       <div className="card space-y-2">
-        <h2 className="text-sm font-semibold text-verde-800">Evaluación del vehículo</h2>
-        <div className="grid gap-2 sm:grid-cols-2">
-          {PUNTOS_EVALUACION.map((p) => {
-            const ev = draft.evaluaciones.find((e) => e.punto === p.value)!;
-            return (
-              <EvaluacionPuntoField
-                key={p.value}
-                label={p.label}
-                value={ev}
-                comparar={entregaEvaluaciones[p.value]}
-                onChange={(next) =>
-                  set(
-                    "evaluaciones",
-                    draft.evaluaciones.map((e) => (e.punto === p.value ? next : e))
-                  )
-                }
-              />
-            );
-          })}
-        </div>
-      </div>
-
-      <div className="card space-y-2">
-        <h2 className="text-sm font-semibold text-verde-800">Documentos y dotación</h2>
-        <div className="grid gap-1.5 sm:grid-cols-2">
-          {EQUIPAMIENTO_ITEMS.map((it) => {
-            const eq = draft.equipamiento.find((e) => e.item === it.value)!;
-            return (
-              <EquipoChecklistField
-                key={it.value}
-                label={it.label}
-                value={eq}
-                comparar={entregaEquipamiento[it.value]}
-                onChange={(next) =>
-                  set(
-                    "equipamiento",
-                    draft.equipamiento.map((e) => (e.item === it.value ? next : e))
-                  )
-                }
-              />
-            );
-          })}
-        </div>
-      </div>
-
-      <div className="card space-y-2">
         <h2 className="text-sm font-semibold text-verde-800">Novedades</h2>
         <div className="grid gap-2 sm:grid-cols-2">
           {NOVEDAD_TIPOS.map((n) => {
@@ -279,14 +215,12 @@ export default function ActaDevolucionForm({
         <SignaturePad ref={firmaConductorRef} label="Firma del conductor" onVaciaChange={setFirmaConductorVacia} />
         <SignaturePad
           ref={firmaRepRef}
-          label={autoservicio ? "Firma de la persona de la empresa (opcional si estás solo)" : "Firma de la persona de la empresa"}
+          label="Firma de la persona de la empresa (opcional)"
           onVaciaChange={setFirmaRepVacia}
         />
-        {autoservicio && (
-          <p className="text-xs text-tierra-400">
-            Si no hay nadie de la empresa contigo para recibir el vehículo, deja esta firma en blanco.
-          </p>
-        )}
+        <p className="text-xs text-tierra-400">
+          Si nadie de la empresa te recibe el vehículo, deja esta firma en blanco: queda solo la tuya.
+        </p>
       </div>
 
       {errorMsg && (

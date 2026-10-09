@@ -26,8 +26,6 @@ export interface ActaDevolucionDraft {
   checkinKm: string;
   checkinCombustible: string;
   fotos: FotoDraft[];
-  evaluaciones: EvaluacionDraft[];
-  equipamiento: EquipoDraft[];
   novedades: NovedadDraft[];
   firmaConductorVacia: boolean;
   firmaRepVacia: boolean;
@@ -37,8 +35,9 @@ function validarComun(args: {
   km: string;
   combustible: string;
   fotos: FotoDraft[];
-  evaluaciones: EvaluacionDraft[];
-  equipamiento: EquipoDraft[];
+  // La devolución no repite evaluación ni dotación (ya quedaron en la entrega).
+  evaluaciones?: EvaluacionDraft[];
+  equipamiento?: EquipoDraft[];
   firmaConductorVacia: boolean;
   firmaRepVacia: boolean;
   requiereFirmaRep: boolean;
@@ -53,8 +52,8 @@ function validarComun(args: {
     if (!foto?.blob) faltas.push(`Foto: ${a.label}`);
   }
 
-  for (const p of PUNTOS_EVALUACION) {
-    const ev = args.evaluaciones.find((e) => e.punto === p.value);
+  for (const p of args.evaluaciones ? PUNTOS_EVALUACION : []) {
+    const ev = args.evaluaciones!.find((e) => e.punto === p.value);
     if (!ev?.estado) {
       faltas.push(`Evaluación: ${p.label}`);
     } else if (ev.estado !== "BUENO" && !ev.nota.trim()) {
@@ -62,8 +61,8 @@ function validarComun(args: {
     }
   }
 
-  for (const it of EQUIPAMIENTO_ITEMS) {
-    const eq = args.equipamiento.find((e) => e.item === it.value);
+  for (const it of args.equipamiento ? EQUIPAMIENTO_ITEMS : []) {
+    const eq = args.equipamiento!.find((e) => e.item === it.value);
     if (eq?.presente === null || eq?.presente === undefined) faltas.push(`Dotación: ${it.label} (sí/no)`);
   }
 
@@ -74,7 +73,7 @@ function validarComun(args: {
 }
 
 export function validarActaEntrega(draft: ActaEntregaDraft, opts?: { requiereFirmaRep?: boolean }): string[] {
-  const requiereFirmaRep = opts?.requiereFirmaRep ?? true;
+  const requiereFirmaRep = opts?.requiereFirmaRep ?? false;
   const faltas: string[] = [];
   if (!draft.vehiculoId) faltas.push("Vehículo");
   if (!draft.conductorId) faltas.push("Conductor");
@@ -103,7 +102,7 @@ export function validarActaDevolucion(
   checkoutKm: number,
   opts?: { requiereFirmaRep?: boolean }
 ): string[] {
-  const requiereFirmaRep = opts?.requiereFirmaRep ?? true;
+  const requiereFirmaRep = opts?.requiereFirmaRep ?? false;
   const faltas: string[] = [];
 
   if (draft.checkinKm && Number(draft.checkinKm) < checkoutKm) {
@@ -115,8 +114,6 @@ export function validarActaDevolucion(
       km: draft.checkinKm,
       combustible: draft.checkinCombustible,
       fotos: draft.fotos,
-      evaluaciones: draft.evaluaciones,
-      equipamiento: draft.equipamiento,
       firmaConductorVacia: draft.firmaConductorVacia,
       firmaRepVacia: draft.firmaRepVacia,
       requiereFirmaRep,
