@@ -197,7 +197,7 @@ export default async function CuentasPorCobrarPage({
                       <Icon name="download" className="h-3.5 w-3.5" />
                       Descargar historial
                     </a>
-                    <form action={`/api/inventario/export/cuenta-cobro`} method="get" className="flex flex-wrap items-center gap-2">
+                    <form action={`/inventario/cuenta-cobro`} method="get" className="flex flex-wrap items-center gap-2">
                       <input type="hidden" name="clienteId" value={c.id} />
                       <span className="text-tierra-500">Cuenta de cobro desde</span>
                       <input type="date" name="start" required className="input w-36 py-1" />

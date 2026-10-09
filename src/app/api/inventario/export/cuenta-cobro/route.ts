@@ -48,7 +48,7 @@ export async function GET(req: NextRequest) {
   // El logo se pide al propio sitio (los archivos de /public no siempre viajan con la función).
   let logo: Buffer | null = null;
   try {
-    const r = await fetch(new URL("/logo-veragua-completo.png", req.nextUrl.origin));
+    const r = await fetch(new URL("/logo-veragua.png", req.nextUrl.origin));
     if (r.ok) logo = Buffer.from(await r.arrayBuffer());
   } catch {
     logo = null;
@@ -76,7 +76,7 @@ export async function GET(req: NextRequest) {
   return new NextResponse(new Uint8Array(buffer), {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `inline; filename="cuenta-cobro-${cliente.nombre.replace(/\s+/g, "-").toLowerCase()}.pdf"`,
+      "Content-Disposition": `${searchParams.get("descargar") ? "attachment" : "inline"}; filename="cuenta-cobro-${cliente.nombre.replace(/\s+/g, "-").toLowerCase()}.pdf"`,
     },
   });
 }

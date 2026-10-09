@@ -101,7 +101,7 @@ export function drawCuentaCobro(doc: PDFKit.PDFDocument, data: CuentaCobroData, 
   let logoBottom = 100;
   if (logo) {
     doc.image(logo, left, 40, { width: logoW });
-    logoBottom = 40 + logoW * (550 / 520);
+    logoBottom = 40 + logoW * (473 / 520);
   } else {
     doc.font("Times-Roman").fontSize(30).fillColor(BRAND.verdeHeader).text("veragua", left, 60);
   }
