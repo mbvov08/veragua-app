@@ -3,9 +3,14 @@ import { prisma } from "@/lib/prisma";
 import { requireVehiculoAccess } from "@/lib/vehiculo/access";
 import ActaEntregaForm from "@/components/vehiculo/ActaEntregaForm";
 
-export default async function VehiculoNuevaPage() {
+export default async function VehiculoNuevaPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ rutaProgramadaId?: string }>;
+}) {
   const session = await requireVehiculoAccess();
   const esConductor = session.user.role === "CONDUCTOR";
+  const { rutaProgramadaId } = await searchParams;
 
   const [vehiculos, conductores] = await Promise.all([
     prisma.vehiculo.findMany({ where: { activo: true, salidaAbiertaId: null }, orderBy: { placa: "asc" } }),
@@ -42,6 +47,7 @@ export default async function VehiculoNuevaPage() {
           vehiculos={vehiculos.map((v) => ({ id: v.id, placa: v.placa }))}
           conductores={conductores.map((c) => ({ id: c.id, name: c.name }))}
           autoservicio={esConductor}
+          rutaProgramadaIdInicial={rutaProgramadaId}
         />
       )}
     </div>

@@ -73,10 +73,14 @@ export default function ActaEntregaForm({
   vehiculos,
   conductores,
   autoservicio = false,
+  rutaProgramadaIdInicial,
 }: {
   vehiculos: Vehiculo[];
   conductores: Conductor[];
   autoservicio?: boolean;
+  /** Llegó por ?rutaProgramadaId=... desde el botón "Comenzar ruta" del inicio — se
+   * aplica sola en cuanto se cargan las rutas programadas del conductor. */
+  rutaProgramadaIdInicial?: string;
 }) {
   const router = useRouter();
   const conductorFijo = autoservicio ? conductores[0] : undefined;
@@ -92,6 +96,7 @@ export default function ActaEntregaForm({
   const [firmaRepVacia, setFirmaRepVacia] = useState(true);
   const firmaConductorRef = useRef<SignaturePadHandle>(null);
   const firmaRepRef = useRef<SignaturePadHandle>(null);
+  const rutaInicialAplicadaRef = useRef(false);
   const [pedidosDisponibles, setPedidosDisponibles] = useState<PedidoPendiente[]>([]);
   const [cargandoPedidos, setCargandoPedidos] = useState(false);
   const [rutasProgramadas, setRutasProgramadas] = useState<RutaProgramada[]>([]);
@@ -130,12 +135,25 @@ export default function ActaEntregaForm({
     }
     let cancelado = false;
     listarProximasRutasDe(draft.conductorId).then((rutas) => {
-      if (!cancelado) setRutasProgramadas(rutas);
+      if (cancelado) return;
+      setRutasProgramadas(rutas);
+      // Vino del botón "Comenzar ruta" del inicio — se aplica una sola vez en cuanto
+      // sabemos que esa ruta programada es real (y del conductor correcto).
+      if (rutaProgramadaIdInicial && !rutaInicialAplicadaRef.current) {
+        const ruta = rutas.find((r) => r.id === rutaProgramadaIdInicial);
+        if (ruta) {
+          rutaInicialAplicadaRef.current = true;
+          aplicarRutaProgramada(ruta);
+        }
+      }
     });
     return () => {
       cancelado = true;
     };
-  }, [draft.conductorId]);
+    // aplicarRutaProgramada depende de `draft`, que cambia en cada tecla — no se
+    // incluye para no re-disparar la carga de rutas en cada edición del formulario.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draft.conductorId, rutaProgramadaIdInicial]);
 
   const fotosDraft: FotoDraft[] = useMemo(
     () => ANGULOS.map((a) => ({ angulo: a.value, blob: fotos[a.value] ?? null })),
@@ -158,6 +176,16 @@ export default function ActaEntregaForm({
 
   function set<K extends keyof Draft>(key: K, value: Draft[K]) {
     guardar({ ...draft, [key]: value });
+  }
+
+  function aplicarRutaProgramada(ruta: RutaProgramada) {
+    guardar({
+      ...draft,
+      tipoUso: "RUTA_EMPRESA",
+      rutaProgramadaId: ruta.id,
+      fechaRuta: new Date(ruta.fecha).toISOString().slice(0, 10),
+      destino: !draft.destino && ruta.notas ? ruta.notas : draft.destino,
+    });
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -268,11 +296,8 @@ export default function ActaEntregaForm({
                 value={draft.rutaProgramadaId}
                 onChange={(e) => {
                   const ruta = rutasProgramadas.find((r) => r.id === e.target.value);
-                  guardar({
-                    ...draft,
-                    rutaProgramadaId: e.target.value,
-                    destino: !draft.destino && ruta?.notas ? ruta.notas : draft.destino,
-                  });
+                  if (ruta) aplicarRutaProgramada(ruta);
+                  else set("rutaProgramadaId", "");
                 }}
                 className="input"
               >

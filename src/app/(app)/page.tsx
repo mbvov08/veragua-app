@@ -143,9 +143,14 @@ export default async function DashboardPage() {
           <h2 className="mb-2 text-sm font-semibold text-verde-800">Próximas rutas programadas</h2>
           <ul className="divide-y divide-verde-50">
             {proximasRutas.map((r) => (
-              <li key={r.id} className="py-2 text-sm">
-                <p className="font-medium capitalize text-tierra-800">{formatDateLongEs(r.fecha)}</p>
-                {r.notas && <p className="text-xs text-tierra-500">{r.notas}</p>}
+              <li key={r.id} className="flex items-center justify-between gap-2 py-2 text-sm">
+                <div>
+                  <p className="font-medium capitalize text-tierra-800">{formatDateLongEs(r.fecha)}</p>
+                  {r.notas && <p className="text-xs text-tierra-500">{r.notas}</p>}
+                </div>
+                <Link href={`/vehiculo/nueva?rutaProgramadaId=${r.id}`} className="btn-primary shrink-0 text-xs">
+                  Comenzar ruta
+                </Link>
               </li>
             ))}
           </ul>
