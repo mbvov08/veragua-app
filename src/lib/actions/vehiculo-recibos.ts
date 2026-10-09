@@ -35,11 +35,8 @@ export async function subirRecibo(salidaId: string, formData: FormData) {
 
   if (!["COMBUSTIBLE", "PEAJE", "PAGO_CONDUCTOR"].includes(tipo)) throw new Error("Tipo de recibo inválido.");
   if (!(valor > 0)) throw new Error("El valor debe ser mayor a cero.");
-  // El pago al conductor normalmente no tiene un papel físico que fotografiar; tanqueo
-  // y peaje sí lo exigen, para tener el soporte del gasto.
-  if (tipo !== "PAGO_CONDUCTOR" && (!file || file.size === 0)) {
-    throw new Error("La foto del recibo es obligatoria.");
-  }
+  // La foto es siempre opcional — a veces se pierde el papel o no se alcanza a
+  // fotografiar, y eso no debe bloquear dejar el gasto registrado.
 
   let archivoId: string | null = null;
   if (file && file.size > 0) {

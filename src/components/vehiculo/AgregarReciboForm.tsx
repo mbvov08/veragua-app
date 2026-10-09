@@ -25,15 +25,9 @@ export default function AgregarReciboForm({ salidaId }: { salidaId: string }) {
     }
   }
 
-  const fotoObligatoria = tipo !== "PAGO_CONDUCTOR";
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setErrorMsg(null);
-    if (fotoObligatoria && !foto) {
-      setErrorMsg("Falta la foto del recibo.");
-      return;
-    }
     setEnviando(true);
     try {
       const formData = new FormData();
@@ -74,7 +68,7 @@ export default function AgregarReciboForm({ salidaId }: { salidaId: string }) {
         <input value={galonesOLugar} onChange={(e) => setGalonesOLugar(e.target.value)} className="input w-28" />
       </div>
       <div>
-        <label className="label">{fotoObligatoria ? "Foto del recibo" : "Foto del recibo (opcional)"}</label>
+        <label className="label">Foto del recibo (opcional)</label>
         <input
           type="file"
           accept="image/*"
@@ -87,7 +81,7 @@ export default function AgregarReciboForm({ salidaId }: { salidaId: string }) {
           className="input py-1 text-xs"
         />
       </div>
-      <button type="submit" disabled={enviando || procesando || (fotoObligatoria && !foto)} className="btn-secondary">
+      <button type="submit" disabled={enviando || procesando} className="btn-secondary">
         {enviando ? "Subiendo..." : procesando ? "Procesando..." : "Agregar recibo"}
       </button>
       {errorMsg && <p className="w-full text-xs text-red-600">{errorMsg}</p>}
