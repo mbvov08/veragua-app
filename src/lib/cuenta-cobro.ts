@@ -80,6 +80,15 @@ export type CuentaCobroData = {
   desde: Date;
   hasta: Date;
   filas: { fecha: Date; producto: string; cantidad: number; precio: number }[];
+  /** Para reutilizar el mismo diseño en otros documentos (ej. comprobante de venta). */
+  titulo?: string;
+  subtitulo?: string; // por defecto "N.º 001"
+  rotuloEmisor?: string; // por defecto "DEBE A"
+  negocio?: string;
+  intro?: string; // por defecto "La suma de ... según el detalle que se relaciona:"
+  resumenPagos?: { abonos: number; saldo: number };
+  notas?: string[]; // por defecto las de IVA
+  mostrarFormaPago?: boolean; // por defecto true
 };
 
 const CREMA = "#f9f7f2";
@@ -105,8 +114,8 @@ export function drawCuentaCobro(doc: PDFKit.PDFDocument, data: CuentaCobroData, 
   } else {
     doc.font("Times-Roman").fontSize(30).fillColor(BRAND.verdeHeader).text("veragua", left, 60);
   }
-  doc.font("Times-Roman").fontSize(27).fillColor(BRAND.verdeOscuro).text("CUENTA DE COBRO", left, 65, { width, align: "right" });
-  doc.font("Helvetica-Bold").fontSize(15).fillColor(BRAND.dorado).text(`N.º ${String(data.numero).padStart(3, "0")}`, left, 102, { width, align: "right" });
+  doc.font("Times-Roman").fontSize(27).fillColor(BRAND.verdeOscuro).text(data.titulo ?? "CUENTA DE COBRO", left, 65, { width, align: "right" });
+  doc.font("Helvetica-Bold").fontSize(15).fillColor(BRAND.dorado).text(data.subtitulo ?? `N.º ${String(data.numero).padStart(3, "0")}`, left, 102, { width, align: "right" });
   doc.font("Helvetica").fontSize(10.5).fillColor(BRAND.grisTexto).text(`${EMISOR.ciudad}, ${fechaLarga(data.fechaEmision)}`, left, 128, { width, align: "right" });
 
   const linea = (y: number) => doc.moveTo(left, y).lineTo(right, y).lineWidth(1).strokeColor(BRAND.dorado).stroke();
@@ -134,7 +143,7 @@ export function drawCuentaCobro(doc: PDFKit.PDFDocument, data: CuentaCobroData, 
     ...(c.direccion ? [c.direccion] : []),
     ...(c.telefono ? [`Tel. ${c.telefono}`] : []),
   ]);
-  const yDer = bloque(left + width / 2 + 10, "DEBE A", EMISOR.nombre, [EMISOR.negocio, `NIT ${EMISOR.nit}`, EMISOR.direccion, EMISOR.email]);
+  const yDer = bloque(left + width / 2 + 10, data.rotuloEmisor ?? "DEBE A", EMISOR.nombre, [data.negocio ?? EMISOR.negocio, `NIT ${EMISOR.nit}`, EMISOR.direccion, EMISOR.email]);
   y = Math.max(yIzq, yDer) + 10;
   linea(y);
 
@@ -142,9 +151,13 @@ export function drawCuentaCobro(doc: PDFKit.PDFDocument, data: CuentaCobroData, 
   const total = data.filas.reduce((s, f) => s + f.cantidad * f.precio, 0);
   y += 16;
   doc.font("Helvetica").fontSize(11).fillColor(BRAND.verdeOscuro);
-  doc.text("La suma de ", left, y, { width, continued: true });
-  doc.font("Helvetica-Bold").text(`${numeroALetras(total).toUpperCase()} PESOS M/CTE (${formatCOP(total)})`, { continued: true });
-  doc.font("Helvetica").text(` por la venta de productos ${data.desde.getTime() === data.hasta.getTime() ? "" : "del periodo "}${descripcionPeriodo(data.desde, data.hasta)}, según el detalle que se relaciona:`);
+  if (data.intro) {
+    doc.text(data.intro, left, y, { width });
+  } else {
+    doc.text("La suma de ", left, y, { width, continued: true });
+    doc.font("Helvetica-Bold").text(`${numeroALetras(total).toUpperCase()} PESOS M/CTE (${formatCOP(total)})`, { continued: true });
+    doc.font("Helvetica").text(` por la venta de productos ${data.desde.getTime() === data.hasta.getTime() ? "" : "del periodo "}${descripcionPeriodo(data.desde, data.hasta)}, según el detalle que se relaciona:`);
+  }
   y = doc.y + 14;
 
   // Tabla
@@ -184,14 +197,24 @@ export function drawCuentaCobro(doc: PDFKit.PDFDocument, data: CuentaCobroData, 
   doc.text("TOTAL", col.precio, y + 10, { width: 65, align: "right" });
   doc.text(formatCOP(total), col.valor, y + 10, { width: right - col.valor - 12, align: "right" });
   y += 40;
+  if (data.resumenPagos) {
+    doc.font("Helvetica").fontSize(10.5).fillColor(BRAND.grisTexto);
+    doc.text("Abonos", col.precio - 20, y - 16, { width: 85, align: "right" });
+    doc.text(formatCOP(data.resumenPagos.abonos), col.valor, y - 16, { width: right - col.valor - 12, align: "right" });
+    doc.font("Helvetica-Bold").fillColor(data.resumenPagos.saldo > 0 ? "#b45309" : BRAND.verdeOscuro);
+    doc.text("Saldo por pagar", col.precio - 40, y + 2, { width: 105, align: "right" });
+    doc.text(formatCOP(data.resumenPagos.saldo), col.valor, y + 2, { width: right - col.valor - 12, align: "right" });
+    y += 34;
+  }
 
   // Notas
   const exentoIva = data.filas.every((f) => /huevo/i.test(f.producto));
-  const notas = [
+  const notas = data.notas ?? [
     ...(exentoIva ? ["Producto exento de IVA (huevos frescos, art. 477 del Estatuto Tributario)."] : []),
     "Declaro que no soy responsable de IVA y no estoy obligada a expedir factura electrónica. Se adjunta copia del RUT.",
   ];
-  const altoPago = 40 + EMISOR.cuentas.length * 24 + notas.length * 16;
+  const mostrarPago = data.mostrarFormaPago ?? true;
+  const altoPago = (mostrarPago ? 40 + EMISOR.cuentas.length * 24 : 0) + notas.length * 16;
   if (y + altoPago > doc.page.height - 50) {
     doc.addPage();
     y = 50;
@@ -201,6 +224,8 @@ export function drawCuentaCobro(doc: PDFKit.PDFDocument, data: CuentaCobroData, 
     doc.text(`•  ${n}`, left, y, { width });
     y = doc.y + 3;
   }
+
+  if (!mostrarPago) return;
 
   // Forma de pago
   y += 12;

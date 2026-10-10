@@ -145,7 +145,7 @@ export default async function CuentasPorCobrarPage({
                           <span className="font-medium text-red-600">{formatCOP(f.saldo)}</span>
                           {f.ventaId && (
                             <a
-                              href={`/api/inventario/export/comprobante/${f.ventaId}`}
+                              href={`/inventario/comprobante/${f.ventaId}`}
                               target="_blank"
                               rel="noreferrer"
                               className="chip-edit"

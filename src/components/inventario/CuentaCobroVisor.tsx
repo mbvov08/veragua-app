@@ -8,11 +8,13 @@ export default function CuentaCobroVisor({
   titulo,
   nombreArchivo,
   volverHref,
+  volverTexto = "← Volver a Cuentas por Cobrar",
 }: {
   pdfUrl: string;
   titulo: string;
   nombreArchivo: string;
   volverHref: string;
+  volverTexto?: string;
 }) {
   const [compartiendo, setCompartiendo] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -41,7 +43,7 @@ export default function CuentaCobroVisor({
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <Link href={volverHref} className="text-sm text-verde-700 underline">← Volver a Cuentas por Cobrar</Link>
+          <Link href={volverHref} className="text-sm text-verde-700 underline">{volverTexto}</Link>
           <h1 className="mt-1 text-lg font-semibold text-verde-800">{titulo}</h1>
         </div>
         <div className="flex flex-wrap gap-2">

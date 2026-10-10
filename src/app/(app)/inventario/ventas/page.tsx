@@ -123,7 +123,7 @@ export default async function VentasPage({
                   </span>
                 </td>
                 <td className="py-2 pr-2 text-right">
-                  <a href={`/api/inventario/export/comprobante/${v.id}`} className="chip-edit">
+                  <a href={`/inventario/comprobante/${v.id}`} className="chip-edit">
                     Comprobante
                   </a>
                 </td>
