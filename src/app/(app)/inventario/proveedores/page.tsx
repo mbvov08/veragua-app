@@ -143,7 +143,7 @@ export default async function ProveedoresPage({
         )}
       </div>
 
-      <details className="card" open={productos.length > 0 && proveedoresInsumos.length > 0}>
+      <details id="registrar-compra" className="card scroll-mt-4" open={productos.length > 0 && proveedoresInsumos.length > 0}>
         <summary className="cursor-pointer text-sm font-semibold text-verde-800">Registrar compra</summary>
         {proveedoresInsumos.length === 0 || productos.length === 0 ? (
           <p className="mt-3 text-sm text-tierra-500">Necesitas al menos un proveedor de insumos y un producto creados.</p>

@@ -98,6 +98,12 @@ export default async function MovimientosPage({ searchParams }: { searchParams: 
             <Link href="/finanzas/nuevo" className="btn-primary text-sm">Nuevo movimiento</Link>
           )}
           <Link
+            href={`/inventario/proveedores${selection.company ? `?company=${selection.company}` : ""}#registrar-compra`}
+            className="btn-secondary text-sm"
+          >
+            Registrar compra
+          </Link>
+          <Link
             href={`/api/finanzas/export/movimientos?company=${params.company ?? ""}`}
             className="btn-outline text-sm"
           >
