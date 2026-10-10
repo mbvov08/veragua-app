@@ -7,6 +7,7 @@ import ClienteAutofill from "@/components/ClienteAutofill";
 import ImportarContactoButton from "@/components/ImportarContactoButton";
 import SubmitButton from "@/components/SubmitButton";
 import ConfirmButton from "@/components/ConfirmButton";
+import CalculadoraSuscripcion from "@/components/inventario/CalculadoraSuscripcion";
 import { crearSuscripcion, renovarSuscripcion, cancelarSuscripcion } from "@/lib/actions/suscripciones";
 
 const ZONA_LABEL: Record<string, string> = {
@@ -24,13 +25,14 @@ const CIUDAD_LABEL: Record<string, string> = {
 export default async function SuscripcionesPage() {
   const today = todayColombia();
 
-  const [clientes, productos, suscripciones] = await Promise.all([
+  const [clientes, productos, suscripciones, productosPrecio] = await Promise.all([
     prisma.cliente.findMany({ orderBy: { nombre: "asc" } }),
     prisma.producto.findMany({ orderBy: [{ categoria: "asc" }, { nombre: "asc" }] }),
     prisma.suscripcion.findMany({
       include: { cliente: true, recurringRule: { include: { items: { include: { producto: true } } } } },
       orderBy: { fechaFin: "desc" },
     }),
+    prisma.finProduct.findMany({ where: { activo: true }, include: { categoria: true }, orderBy: { nombre: "asc" } }),
   ]);
 
   return (
@@ -60,6 +62,15 @@ export default async function SuscripcionesPage() {
           </div>
         );
       })()}
+
+      <details className="card">
+        <summary className="cursor-pointer text-sm font-semibold text-verde-800">Calculadora de suscripción (para cotizar y enviar al cliente)</summary>
+        <CalculadoraSuscripcion
+          productos={productosPrecio
+            .filter((p) => !/^domicilio/i.test(p.nombre))
+            .map((p) => ({ id: p.id, nombre: p.nombre, precio: p.precio, categoria: p.categoria.nombre }))}
+        />
+      </details>
 
       <details className="card" open={suscripciones.length === 0}>
         <summary className="cursor-pointer text-sm font-semibold text-verde-800">Nueva suscripción</summary>
