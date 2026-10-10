@@ -253,7 +253,11 @@ export default async function ProductosPage({
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium text-tierra-800">{nombreGrupo}</p>
-                      <p className="text-xs text-tierra-500">{variantes.length} variante{variantes.length === 1 ? "" : "s"}</p>
+                      <p className="text-xs text-tierra-500">
+                        {variantes
+                          .map((v) => `${v.nombreVariante ?? v.nombre}: ${v.esServicio ? "—" : v.armado ? `se arman ${v.stock}` : v.stock}`)
+                          .join(" · ")}
+                      </p>
                     </div>
                     <span className="text-sm font-semibold text-tierra-800">
                       {todosServicio ? "Sin inventario" : `Stock: ${stockTotal}`}
