@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { dateOnlyToUTC } from "@/lib/date";
 import { COMPANIES, type Company } from "@/lib/finanzas/queries";
 import { parseSaleItems, findDefaultCategory, registrarComisionBoldSiAplica } from "@/lib/inventario/shared";
+import { canalDelLocalSiAplica } from "@/lib/finanzas/canal-local";
 import { aplicarCreditoDisponibleCliente, aplicarCreditoDisponibleProveedor } from "@/lib/inventario/credito";
 
 export async function requireFinanzas() {
@@ -182,6 +183,10 @@ export async function createTransaction(formData: FormData) {
     }
   }
 
+  // Arriendo, servicios públicos y aseo del local van directo al canal "Ventas del local".
+  const canalLocal =
+    tipo === "expense" && !canalId && !esCompartido ? await canalDelLocalSiAplica(prisma, company, categoriaId) : null;
+
   await prisma.finTransaction.create({
     data: {
       // Un gasto compartido se ancla a VERAGUA sin importar qué empresa se seleccionó en
@@ -191,7 +196,7 @@ export async function createTransaction(formData: FormData) {
       fecha: dateOnlyToUTC(fechaStr),
       monto,
       categoriaId,
-      canalId: esCompartido ? null : canalId,
+      canalId: esCompartido ? null : canalId ?? canalLocal,
       metodoPago,
       descripcion,
       contraparte,

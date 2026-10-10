@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { dateOnlyToUTC } from "@/lib/date";
 import { requireFinanzas } from "@/lib/actions/finanzas";
+import { canalDelLocalSiAplica } from "@/lib/finanzas/canal-local";
 import { parseCompany, parsePurchaseItems, findDefaultCategory } from "@/lib/inventario/shared";
 import { repartirPagoProveedor, aplicarCreditoDisponibleProveedor, type AplicacionPago } from "@/lib/inventario/credito";
 
@@ -223,7 +224,7 @@ export async function registrarPagoProveedor(formData: FormData) {
     const descripcion = describirAbono(aplicaciones, monto);
     await tx.finTransaction.update({
       where: { id: transaction.id },
-      data: { descripcion, monto: grupos[0][1], categoriaId: grupos[0][0] },
+      data: { descripcion, monto: grupos[0][1], categoriaId: grupos[0][0], canalId: await canalDelLocalSiAplica(tx, company, grupos[0][0]) },
     });
     if (grupos.length > 1) {
       const nombres = new Map((await tx.finCategory.findMany({ where: { id: { in: grupos.map((g) => g[0]) } } })).map((c) => [c.id, c.nombre]));
@@ -231,6 +232,7 @@ export async function registrarPagoProveedor(formData: FormData) {
         await tx.finTransaction.create({
           data: {
             company, tipo: "expense", fecha, monto: montoGrupo, categoriaId, contraparte: proveedor.nombre, metodoPago,
+            canalId: await canalDelLocalSiAplica(tx, company, categoriaId),
             descripcion: `${descripcion} · ${nombres.get(categoriaId) ?? "otra categoría"}`,
             fuente: "manual", extraDePagoId: pago.id, creadoPorId: session.user.id,
           },
