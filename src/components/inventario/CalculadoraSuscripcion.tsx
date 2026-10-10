@@ -1,6 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import EstadoPagoToggle from "@/components/finanzas/EstadoPagoToggle";
+import { DIAS_SEMANA } from "@/lib/date";
+import { crearSuscripcionDesdeCalculadora } from "@/lib/actions/suscripciones";
 
 type Producto = { id: string; nombre: string; precio: number; categoria: string };
 type Linea = { productoId: string; nombre: string; porSemana: string; precio: string };
@@ -18,7 +22,11 @@ export default function CalculadoraSuscripcion({ productos }: { productos: Produ
   const [domicilio, setDomicilio] = useState("6000");
   const [descuento, setDescuento] = useState("10");
   const [cliente, setCliente] = useState("");
+  const router = useRouter();
   const [compartiendo, setCompartiendo] = useState(false);
+  const [creando, setCreando] = useState(false);
+  const [enviando, setEnviando] = useState(false);
+  const [mensaje, setMensaje] = useState<{ ok: boolean; texto: string } | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const logoRef = useRef<HTMLImageElement | null>(null);
   const [logoListo, setLogoListo] = useState(false);
@@ -173,6 +181,22 @@ export default function CalculadoraSuscripcion({ productos }: { productos: Produ
       setCompartiendo(false);
     }
   }
+  async function crear(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setMensaje(null);
+    setEnviando(true);
+    try {
+      await crearSuscripcionDesdeCalculadora(new FormData(e.currentTarget));
+      setMensaje({ ok: true, texto: "Suscripción creada. Ya aparece en la lista de abajo y sus pedidos semanales en Pedidos." });
+      setCreando(false);
+      setLineas([]);
+      router.refresh();
+    } catch (err) {
+      setMensaje({ ok: false, texto: err instanceof Error ? err.message : "No se pudo crear la suscripción." });
+    } finally {
+      setEnviando(false);
+    }
+  }
   function descargarBlob(blob: Blob) {
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
@@ -238,6 +262,8 @@ export default function CalculadoraSuscripcion({ productos }: { productos: Produ
         </div>
       )}
 
+      {mensaje && <p className={`text-sm ${mensaje.ok ? "text-verde-700" : "text-red-600"}`}>{mensaje.texto}</p>}
+
       {calculo.filas.length === 0 ? (
         <p className="text-sm text-tierra-500">Agrega productos y la cantidad por semana para ver el valor de la suscripción.</p>
       ) : (
@@ -257,6 +283,74 @@ export default function CalculadoraSuscripcion({ productos }: { productos: Produ
               Descargar imagen
             </button>
           </div>
+          <button type="button" onClick={() => setCreando((v) => !v)} className="btn-secondary w-full sm:w-auto">
+            {creando ? "Cancelar" : "El cliente aprobó — Crear suscripción"}
+          </button>
+          {creando && (
+            <form onSubmit={crear} className="grid gap-3 rounded-xl border border-verde-200 bg-verde-50/40 p-4 sm:grid-cols-2">
+              <input type="hidden" name="itemsJson" value={JSON.stringify(calculo.filas.map((f) => ({ nombre: f.nombre, cantidad: f.porSemana })))} />
+              <input type="hidden" name="entregas" value={nSemanas} />
+              <input type="hidden" name="domicilio" value={precioDom} />
+              <input type="hidden" name="monto" value={Math.round(calculo.conDescuento)} />
+              <input type="hidden" name="resumen" value={calculo.filas.map((f) => `${f.mensual} ${f.nombre}`).join(", ")} />
+              <p className="text-sm font-semibold text-verde-800 sm:col-span-2">
+                Datos del cliente — valor de la suscripción {cop(calculo.conDescuento)} · {nSemanas} entregas
+              </p>
+              <div>
+                <label className="label">Nombre</label>
+                <input name="cliente" required value={cliente} onChange={(e) => setCliente(e.target.value)} className="input" />
+              </div>
+              <div>
+                <label className="label">Teléfono</label>
+                <input name="telefono" className="input" />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="label">Dirección</label>
+                <input name="direccion" required className="input" />
+              </div>
+              <div>
+                <label className="label">Ciudad / zona</label>
+                <select name="zona" defaultValue="LOCAL" className="input">
+                  <option value="LOCAL">Armenia (local)</option>
+                  <option value="PEREIRA">Pereira</option>
+                  <option value="MANIZALES">Manizales</option>
+                </select>
+              </div>
+              <div>
+                <label className="label">Día de entrega</label>
+                <select name="diaSemana" defaultValue="2" className="input">
+                  {DIAS_SEMANA.map((d, i) => (
+                    <option key={d} value={i}>{d}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="label">Fecha de inicio</label>
+                <input type="date" name="fechaInicio" required defaultValue={new Date(Date.now() - 5 * 3600 * 1000).toISOString().slice(0, 10)} className="input" />
+              </div>
+              <div>
+                <label className="label">Método de pago</label>
+                <select name="metodoPago" defaultValue="" className="input">
+                  <option value="">Sin definir</option>
+                  <option value="Efectivo">Efectivo</option>
+                  <option value="Transferencia">Transferencia</option>
+                </select>
+              </div>
+              <div className="sm:col-span-2">
+                <label className="label">Observaciones (salen en cada pedido)</label>
+                <textarea name="observaciones" rows={2} placeholder="Ej: huevos súper frescos" className="input" />
+              </div>
+              <EstadoPagoToggle />
+              <p className="text-xs text-tierra-500 sm:col-span-2">
+                <strong>Pagado</strong> registra el ingreso hoy en Finanzas. <strong>Deuda</strong> la deja en Cuentas por Cobrar y el ingreso entra cuando se registre el pago.
+              </p>
+              <div className="sm:col-span-2">
+                <button type="submit" disabled={enviando} className="btn-primary">
+                  {enviando ? "Creando..." : "Crear suscripción"}
+                </button>
+              </div>
+            </form>
+          )}
           <canvas ref={canvasRef} className="w-full max-w-md rounded-xl border border-verde-100 shadow-sm" />
         </div>
       )}
