@@ -92,7 +92,8 @@ export async function computeProductStocks(company: Company): Promise<ProductSto
       activo: p.activo,
       comparaConGalpon: p.comparaConGalpon,
       unidadesGalpon: p.unidadesGalpon,
-      stock: armables.has(p.id) ? Math.floor(armables.get(p.id)!) : base.get(p.id) ?? 0,
+      // Un producto armado no puede tener stock negativo: si faltan cubetas de las que se arma, son 0.
+      stock: armables.has(p.id) ? Math.max(0, Math.floor(armables.get(p.id)!)) : base.get(p.id) ?? 0,
       grupo: p.grupo,
       nombreVariante: p.nombreVariante,
       esServicio: p.esServicio,
@@ -108,7 +109,7 @@ export async function computeSingleProductStock(productoId: string): Promise<num
   if (propias.length > 0) {
     // Producto armado: cuántos se pueden armar con el stock de sus componentes.
     const posibles = await Promise.all(propias.map(async (c) => (await computeSingleProductStock(c.componenteId)) / c.cantidad));
-    return Math.floor(Math.min(...posibles));
+    return Math.max(0, Math.floor(Math.min(...posibles)));
   }
   const consumo = [...(await consumoPorComposicion(usadoEn)).values()].reduce((s, v) => s + v, 0);
   const [compra, venta, ajuste] = await Promise.all([
