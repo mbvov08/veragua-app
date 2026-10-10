@@ -44,7 +44,7 @@ export async function repartirPagoCliente(tx: Tx, pagoId: string, clienteId: str
       cuenta.venta && cuenta.venta.items.length > 0
         ? cuenta.venta.items.map((it) => `${it.cantidad} ${it.producto.nombre}`).join(", ")
         : cuenta.notas ?? "saldo pendiente";
-    aplicaciones.push({ cuentaId: cuenta.id, montoAplicado: aplicar, montoTotalCuenta: cuenta.montoTotal, descripcionCuenta });
+    aplicaciones.push({ cuentaId: cuenta.id, montoAplicado: aplicar, montoTotalCuenta: cuenta.montoTotal, descripcionCuenta, categoriaId: cuenta.categoriaId });
     restante -= aplicar;
   }
   return aplicaciones;

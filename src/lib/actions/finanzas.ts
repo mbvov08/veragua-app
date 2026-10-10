@@ -261,6 +261,10 @@ export async function voidTransaction(transactionId: string) {
         await tx.finCuentaPorCobrar.update({ where: { id: ap.cuentaId }, data: { saldo: cuenta.saldo + ap.montoAplicado } });
       }
       await tx.finPagoClienteAplicacion.deleteMany({ where: { pagoId: transaction.pagoCliente.id } });
+      await tx.finTransaction.updateMany({
+        where: { extraDePagoId: transaction.pagoCliente.id, anulado: false },
+        data: { anulado: true, anuladoAt: new Date(), anuladoPorId: session.user.id },
+      });
     }
 
     if (transaction.pagoProveedor) {

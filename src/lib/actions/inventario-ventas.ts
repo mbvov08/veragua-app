@@ -203,10 +203,30 @@ export async function registrarPagoCliente(formData: FormData) {
     });
 
     const aplicaciones = await repartirPagoCliente(tx, pago.id, clienteId, monto);
+    // Cada cuenta se cobra en su categoría de ingreso (ventas = 4135, suscripciones = 4136...).
+    // Si un mismo pago cubre varias, se parte en un ingreso por categoría: el más grande queda
+    // ligado al pago y los otros lo referencian (se anulan juntos).
+    const porCategoria = new Map<string, number>();
+    for (const a of aplicaciones) {
+      const clave = a.categoriaId ?? categoria.id;
+      porCategoria.set(clave, (porCategoria.get(clave) ?? 0) + a.montoAplicado);
+    }
+    const aplicado = aplicaciones.reduce((s, a) => s + a.montoAplicado, 0);
+    if (monto > aplicado) porCategoria.set(categoria.id, (porCategoria.get(categoria.id) ?? 0) + (monto - aplicado));
+    const grupos = [...porCategoria.entries()].sort((a, b) => b[1] - a[1]);
+    const descripcion = describirAbono(aplicaciones, monto);
     await tx.finTransaction.update({
       where: { id: transaction.id },
-      data: { descripcion: describirAbono(aplicaciones, monto) },
+      data: { descripcion, monto: grupos[0][1], categoriaId: grupos[0][0] },
     });
+    for (const [categoriaId, montoGrupo] of grupos.slice(1)) {
+      await tx.finTransaction.create({
+        data: {
+          company, tipo: "income", fecha, monto: montoGrupo, categoriaId, contraparte: cliente.nombre, metodoPago,
+          descripcion, fuente: "manual", extraDePagoId: pago.id, creadoPorId: session.user.id,
+        },
+      });
+    }
   }, { maxWait: 10000, timeout: 20000 });
 
   revalidateVentas();

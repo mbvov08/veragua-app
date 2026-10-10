@@ -885,6 +885,9 @@ model FinCuentaPorCobrar {
   saldo            Float
   fechaVencimiento DateTime?
   notas            String?
+  // Categoría de ingreso con la que se registra el pago de esta cuenta (null = 4135 "Venta de
+  // productos"; ej. las suscripciones cobradas después usan 4136).
+  categoriaId      String?
   creadoPorId      String
   creadoPor        User      @relation("FinCxCCreadoPor", fields: [creadoPorId], references: [id])
   createdAt        DateTime  @default(now())
