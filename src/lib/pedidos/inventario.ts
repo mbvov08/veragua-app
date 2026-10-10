@@ -115,15 +115,31 @@ export async function sincronizarInventarioPorEntrega(orderId: string, entregado
   if (!(await esPedidoDeSuscripcion(order.recurringRuleId))) return;
 
   const { resueltos } = await resolverItemsPedido(order.items);
+  const recetas = await prisma.finProductoComponente.findMany({ where: { productoId: { in: resueltos.map((r) => r.finProductId) } } });
+  // Un producto armado (ej. Huevos Mixtos x30) descuenta de sus componentes, no de sí mismo.
+  const descuentos = new Map<string, { cantidad: number; origen: string }>();
   for (const it of resueltos) {
-    const teoricoAntes = await computeSingleProductStock(it.finProductId);
+    const receta = recetas.filter((r) => r.productoId === it.finProductId);
+    if (receta.length === 0) {
+      const previo = descuentos.get(it.finProductId);
+      descuentos.set(it.finProductId, { cantidad: (previo?.cantidad ?? 0) + it.cantidad, origen: it.nombre });
+      continue;
+    }
+    for (const r of receta) {
+      if (order.fechaEntrega < r.desde) continue;
+      const previo = descuentos.get(r.componenteId);
+      descuentos.set(r.componenteId, { cantidad: (previo?.cantidad ?? 0) + it.cantidad * r.cantidad, origen: it.nombre });
+    }
+  }
+  for (const [productoId, d] of descuentos) {
+    const teoricoAntes = await computeSingleProductStock(productoId);
     await prisma.finInventoryAdjustment.create({
       data: {
-        productoId: it.finProductId,
+        productoId,
         teoricoAntes,
-        contado: teoricoAntes - it.cantidad,
-        diferencia: -it.cantidad,
-        motivo: `Entrega de suscripción — ${order.cliente}`,
+        contado: teoricoAntes - d.cantidad,
+        diferencia: -d.cantidad,
+        motivo: `Entrega de suscripción — ${order.cliente}${recetas.length ? ` (${d.origen})` : ""}`,
         fecha: order.fechaEntrega,
         pedidoId: orderId,
         creadoPorId: userId,

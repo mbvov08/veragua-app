@@ -753,6 +753,8 @@ model FinProduct {
   ventasItems  FinSaleItem[]
   ajustes      FinInventoryAdjustment[]
   proveedores  FinProductoProveedor[]
+  componentes  FinProductoComponente[]  @relation("ComponenteDe")
+  usadoEn      FinProductoComponente[]  @relation("ComponenteUsado")
   pronosticos  FinDemandForecast[]
 
   @@index([company, categoriaId])
@@ -1275,4 +1277,20 @@ model CuentaCobroEmitida {
   createdAt DateTime @default(now())
 
   @@unique([clienteId, clave])
+}
+
+// Producto armado con otros (ej. Huevos Mixtos x30 = media cubeta marrón + media cubeta azul):
+// al venderlo o entregarlo se descuenta el stock de sus componentes, y su propio stock es
+// cuántos se pueden armar con lo que hay. Solo cuenta desde `desde` (antes de esa fecha los
+// conteos físicos ya reflejaban lo que se usó para armarlos).
+model FinProductoComponente {
+  id           String     @id @default(cuid())
+  productoId   String
+  producto     FinProduct @relation("ComponenteDe", fields: [productoId], references: [id])
+  componenteId String
+  componente   FinProduct @relation("ComponenteUsado", fields: [componenteId], references: [id])
+  cantidad     Float // unidades del componente por cada unidad del producto armado
+  desde        DateTime
+
+  @@unique([productoId, componenteId])
 }
