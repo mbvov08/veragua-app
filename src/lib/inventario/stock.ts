@@ -16,6 +16,8 @@ export type ProductStock = {
   grupo: string | null;
   nombreVariante: string | null;
   esServicio: boolean;
+  /** Se arma con otros productos (ej. mixtos, cajas Hato Azul): su "stock" es cuántos se pueden armar. */
+  armado: boolean;
 };
 
 type Composicion = { productoId: string; componenteId: string; cantidad: number; desde: Date };
@@ -97,6 +99,7 @@ export async function computeProductStocks(company: Company): Promise<ProductSto
       grupo: p.grupo,
       nombreVariante: p.nombreVariante,
       esServicio: p.esServicio,
+      armado: armables.has(p.id),
     };
   });
 }

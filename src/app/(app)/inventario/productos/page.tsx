@@ -183,7 +183,7 @@ export default async function ProductosPage({
             </div>
             <p className="text-xs text-tierra-500 sm:col-span-2">
               Si dos o más productos comparten el mismo Grupo, se muestran juntos en una sola
-              tarjeta desplegable (ej. "Gelato Premium" con sus sabores como variantes).
+              tarjeta desplegable (ej. &quot;Gelato Premium&quot; con sus sabores como variantes).
             </p>
             <div className="flex items-center gap-2 sm:col-span-2">
               <input type="checkbox" name="esServicio" id="esServicio-nuevo" className="h-4 w-4" />
@@ -244,7 +244,7 @@ export default async function ProductosPage({
           <div className="divide-y divide-verde-50">
             {[...grupos.entries()].map(([nombreGrupo, variantes]) => {
               const todosServicio = variantes.every((v) => v.esServicio);
-              const stockTotal = variantes.reduce((s, v) => s + (v.esServicio ? 0 : v.stock), 0);
+              const stockTotal = variantes.reduce((s, v) => s + (v.esServicio || v.armado ? 0 : v.stock), 0);
               return (
                 <details key={nombreGrupo} className="group py-1">
                   <summary className="flex cursor-pointer list-none items-center gap-3 rounded-lg px-1 py-2 hover:bg-verde-50/60">
@@ -267,7 +267,7 @@ export default async function ProductosPage({
                         <div className="min-w-0">
                           <p className="text-sm font-medium text-tierra-800">{s.nombreVariante ?? s.nombre}</p>
                           <p className="text-xs text-tierra-500">
-                            {formatCOP(s.precio)} · {s.esServicio ? "Sin inventario" : `Stock: ${s.stock}`}
+                            {formatCOP(s.precio)} · {s.esServicio ? "Sin inventario" : s.armado ? `Se arma con cubetas · hoy se pueden armar ${s.stock}` : `Stock: ${s.stock}`}
                             {!s.activo && " · Inactivo"}
                           </p>
                           <ProductEditForm s={s} categorias={categorias} />
@@ -313,7 +313,7 @@ export default async function ProductosPage({
                 </td>
                 <td className="py-2 pr-2 text-tierra-500">{s.categoriaNombre}</td>
                 <td className="py-2 pr-2">{formatCOP(s.precio)}</td>
-                <td className="py-2 pr-2">{s.esServicio ? "—" : s.stock}</td>
+                <td className="py-2 pr-2">{s.esServicio ? "—" : s.armado ? <span className="text-xs text-tierra-500" title="Se arma con cubetas de 30: cuántos se pueden armar hoy">se arman {s.stock}</span> : s.stock}</td>
                 <td className="py-2 pr-2 text-right">
                   <ProductActions s={s} />
                 </td>
