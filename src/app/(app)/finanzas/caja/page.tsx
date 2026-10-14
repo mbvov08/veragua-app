@@ -75,6 +75,11 @@ export default async function CajaPage() {
             <label className="label">Efectivo contado</label>
             <input type="number" name="saldoContado" min="0" step="1" required className="input" />
           </div>
+          <div>
+            <label className="label">Base que queda en caja</label>
+            <input type="number" name="baseSiguiente" min="0" step="1" placeholder="Vacío = todo lo contado" className="input" />
+            <p className="mt-1 text-xs text-tierra-400">Efectivo que dejas como base para mañana; es el saldo de partida del próximo cierre.</p>
+          </div>
           <div className="sm:col-span-2">
             <label className="label">Observaciones</label>
             <textarea name="observaciones" rows={2} className="input" />
@@ -97,6 +102,8 @@ export default async function CajaPage() {
                 <th className="py-2 pr-2 text-right">Esperado</th>
                 <th className="py-2 pr-2 text-right">Contado</th>
                 <th className="py-2 pr-2 text-right">Diferencia</th>
+                <th className="py-2 pr-2 text-right">Base</th>
+                <th className="py-2 pr-2 text-right">Retirado</th>
                 <th className="py-2 pr-2">Quién</th>
               </tr>
             </thead>
@@ -109,6 +116,8 @@ export default async function CajaPage() {
                   <td className={`py-2 pr-2 text-right font-medium ${c.diferencia < 0 ? "text-red-600" : c.diferencia > 0 ? "text-verde-700" : "text-tierra-500"}`}>
                     {c.diferencia > 0 ? "+" : ""}{formatCOP(c.diferencia)}
                   </td>
+                  <td className="py-2 pr-2 text-right">{formatCOP(c.baseSiguiente ?? c.saldoContado)}</td>
+                  <td className="py-2 pr-2 text-right">{formatCOP(c.baseSiguiente === null ? 0 : c.saldoContado - c.baseSiguiente)}</td>
                   <td className="py-2 pr-2 text-tierra-500">{c.creadoPor.name ?? c.creadoPor.username}</td>
                 </tr>
               ))}

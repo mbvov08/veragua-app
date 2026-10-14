@@ -24,7 +24,7 @@ export interface SaldoEsperadoCaja {
  * menos los gastos pagados en efectivo desde entonces. */
 export async function getSaldoEsperadoCaja(): Promise<SaldoEsperadoCaja> {
   const ultimo = await prisma.cajaCierre.findFirst({ orderBy: { fecha: "desc" } });
-  const saldoAnterior = ultimo ? ultimo.saldoContado : await getBaseInicial();
+  const saldoAnterior = ultimo ? (ultimo.baseSiguiente ?? ultimo.saldoContado) : await getBaseInicial();
   // Sin cierre previo no tiene sentido sumar efectivo "desde siempre" (arrastraría años de
   // movimientos históricos que ya no están físicamente en la caja) — se asume que la base
   // inicial representa lo que hay hoy, y solo se suman los movimientos de HOY en adelante.
@@ -58,10 +58,14 @@ export async function registrarCierreCaja(formData: FormData) {
 
   const fechaStr = String(formData.get("fecha") ?? "");
   const saldoContado = Number(formData.get("saldoContado"));
+  const baseStr = String(formData.get("baseSiguiente") ?? "").trim();
+  const baseSiguiente = baseStr === "" ? null : Number(baseStr);
   const observaciones = String(formData.get("observaciones") ?? "").trim() || null;
 
   if (!fechaStr) throw new Error("La fecha es obligatoria.");
   if (Number.isNaN(saldoContado) || saldoContado < 0) throw new Error("El saldo contado es inválido.");
+  if (baseSiguiente !== null && (Number.isNaN(baseSiguiente) || baseSiguiente < 0)) throw new Error("La base de caja es inválida.");
+  if (baseSiguiente !== null && baseSiguiente > saldoContado) throw new Error("La base no puede ser mayor al efectivo contado.");
 
   const esperado = await getSaldoEsperadoCaja();
 
@@ -75,6 +79,7 @@ export async function registrarCierreCaja(formData: FormData) {
       saldoEsperado: esperado.saldoEsperado,
       saldoContado,
       diferencia: saldoContado - esperado.saldoEsperado,
+      baseSiguiente,
       observaciones,
       creadoPorId: session.user.id,
     },

@@ -522,6 +522,7 @@ model CajaCierre {
   saldoEsperado    Float // saldoAnterior + ingresosEfectivo - egresosEfectivo
   saldoContado     Float // lo que se contó físicamente
   diferencia       Float // saldoContado - saldoEsperado
+  baseSiguiente    Float? // efectivo que se deja en caja como base del día siguiente (null = todo lo contado)
   observaciones    String?
   creadoPorId      String
   creadoPor        User     @relation("CajaCierreCreadoPor", fields: [creadoPorId], references: [id])
