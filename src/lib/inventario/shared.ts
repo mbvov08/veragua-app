@@ -60,6 +60,9 @@ export const MOTIVOS_AJUSTE_INVENTARIO = [
   "Otro",
 ] as const;
 
+/** Salidas de inventario sin ingreso (no son venta ni conteo): se descuentan del stock. */
+export const TIPOS_SALIDA_SIN_VENTA = ["Muestra comercial", "Regalo", "Cortesía / consumo interno"] as const;
+
 export type SaleItemInput = { productoId: string; cantidad: number; precioUnitario: number };
 export type PurchaseItemInput = { productoId: string; cantidad: number; costoUnitario: number };
 

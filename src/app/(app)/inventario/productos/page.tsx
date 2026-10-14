@@ -11,11 +11,12 @@ import {
   vincularConGalpon,
   desvincularDeGalpon,
   registrarAjusteInventario,
+  registrarSalidaSinVenta,
 } from "@/lib/actions/inventario-productos";
 import { formatDateOnly, todayColombia } from "@/lib/date";
 import ConfirmButton from "@/components/ConfirmButton";
 import { Icon } from "@/components/icons";
-import { MOTIVOS_AJUSTE_INVENTARIO } from "@/lib/inventario/shared";
+import { MOTIVOS_AJUSTE_INVENTARIO, TIPOS_SALIDA_SIN_VENTA } from "@/lib/inventario/shared";
 import type { FinProductCategory } from "@prisma/client";
 
 function ProductEditForm({ s, categorias }: { s: ProductStock; categorias: FinProductCategory[] }) {
@@ -228,6 +229,44 @@ export default async function ProductosPage({
           </div>
           <div className="flex items-end">
             <button type="submit" className="btn-primary w-full">Registrar</button>
+          </div>
+        </form>
+      </details>
+
+      <details className="card">
+        <summary className="cursor-pointer text-sm font-semibold text-verde-800">Regalo o muestra comercial (sin ingreso)</summary>
+        <form action={registrarSalidaSinVenta} className="mt-4 grid gap-3 sm:grid-cols-5">
+          <div>
+            <label className="label">Producto</label>
+            <select name="productoId" required className="input">
+              {stocks.filter((s) => !s.esServicio).map((s) => (
+                <option key={s.id} value={s.id}>{s.nombre} (hay: {s.stock})</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="label">Cantidad que sale</label>
+            <input type="number" step="1" min="1" name="cantidad" required className="input" />
+          </div>
+          <div>
+            <label className="label">Tipo</label>
+            <select name="tipo" required className="input">
+              {TIPOS_SALIDA_SIN_VENTA.map((t) => (
+                <option key={t} value={t}>{t}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="label">A quién / para qué</label>
+            <input type="text" name="detalle" placeholder="Ej. muestras a restaurantes" className="input" />
+          </div>
+          <div>
+            <label className="label">Fecha</label>
+            <input type="date" name="fecha" required defaultValue={formatDateOnly(todayColombia())} className="input" />
+          </div>
+          <div className="sm:col-span-5">
+            <button type="submit" className="btn-primary">Registrar salida</button>
+            <span className="ml-3 text-xs text-tierra-400">Descuenta del inventario; no crea venta ni ingreso.</span>
           </div>
         </form>
       </details>

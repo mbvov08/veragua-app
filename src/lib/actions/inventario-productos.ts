@@ -5,7 +5,7 @@ import { put } from "@vercel/blob";
 import { prisma } from "@/lib/prisma";
 import { dateOnlyToUTC } from "@/lib/date";
 import { requireFinanzas } from "@/lib/actions/finanzas";
-import { parseCompany } from "@/lib/inventario/shared";
+import { parseCompany, TIPOS_SALIDA_SIN_VENTA } from "@/lib/inventario/shared";
 import { computeSingleProductStock } from "@/lib/inventario/stock";
 
 function revalidateInventario() {
@@ -155,6 +155,38 @@ export async function registrarAjusteInventario(formData: FormData) {
       contado,
       diferencia,
       motivo,
+      fecha: dateOnlyToUTC(fechaStr),
+      creadoPorId: session.user.id,
+    },
+  });
+
+  revalidateInventario();
+}
+
+/** Regalos, muestras comerciales y cortesías: bajan el stock pero no generan ingreso. Se
+ * guardan como ajuste (diferencia negativa) con el tipo y el destinatario en el motivo. */
+export async function registrarSalidaSinVenta(formData: FormData) {
+  const session = await requireFinanzas();
+
+  const productoId = String(formData.get("productoId") ?? "");
+  const cantidad = Number(formData.get("cantidad"));
+  const tipo = String(formData.get("tipo") ?? "");
+  const detalle = String(formData.get("detalle") ?? "").trim();
+  const fechaStr = String(formData.get("fecha") ?? "");
+
+  if (!productoId) throw new Error("Selecciona un producto.");
+  if (!fechaStr) throw new Error("La fecha es obligatoria.");
+  if (!(cantidad > 0)) throw new Error("La cantidad debe ser mayor a cero.");
+  if (!(TIPOS_SALIDA_SIN_VENTA as readonly string[]).includes(tipo)) throw new Error("Selecciona el tipo de salida.");
+
+  const teoricoAntes = await computeSingleProductStock(productoId);
+  await prisma.finInventoryAdjustment.create({
+    data: {
+      productoId,
+      teoricoAntes,
+      contado: teoricoAntes - cantidad,
+      diferencia: -cantidad,
+      motivo: detalle ? `${tipo} — ${detalle}` : tipo,
       fecha: dateOnlyToUTC(fechaStr),
       creadoPorId: session.user.id,
     },
