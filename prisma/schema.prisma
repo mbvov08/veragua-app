@@ -204,6 +204,8 @@ model Cliente {
   // Datos para la cuenta de cobro (opcionales): razón social/negocio y NIT o cédula.
   empresa   String?
   nit       String?
+  // Distribuidor: sus ventas van solas al canal "Distribución" si no se elige otro.
+  esDistribuidor Boolean @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

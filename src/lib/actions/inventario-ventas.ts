@@ -65,7 +65,7 @@ export async function registrarVenta(formData: FormData) {
 
   const company = parseCompany(formData.get("company"));
   const clienteNombre = String(formData.get("clienteNombre") ?? "").trim();
-  const canalId = String(formData.get("canalId") ?? "") || null;
+  let canalId = String(formData.get("canalId") ?? "") || null;
   const fechaStr = String(formData.get("fecha") ?? "");
   const estado = String(formData.get("estado") ?? "pagada");
   const metodoPago = String(formData.get("metodoPago") ?? "").trim() || null;
@@ -85,6 +85,14 @@ export async function registrarVenta(formData: FormData) {
 
   const fecha = dateOnlyToUTC(fechaStr);
   const total = items.reduce((sum, it) => sum + it.cantidad * it.precioUnitario, 0);
+
+  // Sin canal elegido y cliente distribuidor → canal "Distribución" de la empresa.
+  if (!canalId && clienteNombre) {
+    const dist = await prisma.cliente.findUnique({ where: { nombre: clienteNombre }, select: { esDistribuidor: true } });
+    if (dist?.esDistribuidor) {
+      canalId = (await prisma.finChannel.findFirst({ where: { company, nombre: "Distribución" }, select: { id: true } }))?.id ?? null;
+    }
+  }
 
   await prisma.$transaction(async (tx) => {
     let clienteId: string | null = null;
@@ -259,11 +267,12 @@ export async function editarCliente(clienteId: string, formData: FormData) {
   const zona = String(formData.get("zona") ?? "LOCAL");
   const empresa = String(formData.get("empresa") ?? "").trim() || null;
   const nit = String(formData.get("nit") ?? "").trim() || null;
+  const esDistribuidor = formData.get("esDistribuidor") === "on";
   if (!nombre) throw new Error("El nombre del cliente es obligatorio.");
 
   const existing = await prisma.cliente.findUnique({ where: { nombre } });
   if (existing && existing.id !== clienteId) throw new Error("Ya existe otro cliente con ese nombre.");
 
-  await prisma.cliente.update({ where: { id: clienteId }, data: { nombre, telefono, direccion, zona, empresa, nit } });
+  await prisma.cliente.update({ where: { id: clienteId }, data: { nombre, telefono, direccion, zona, empresa, nit, esDistribuidor } });
   revalidateVentas();
 }

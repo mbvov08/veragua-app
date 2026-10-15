@@ -103,6 +103,12 @@ export default async function ClientesPage() {
                     <label className="label">NIT o cédula (cuenta de cobro)</label>
                     <input name="nit" defaultValue={c.nit ?? ""} className="input" />
                   </div>
+                  <div className="flex items-center gap-2 sm:col-span-2">
+                    <input type="checkbox" name="esDistribuidor" id={`dist-${c.id}`} defaultChecked={c.esDistribuidor} className="h-4 w-4" />
+                    <label htmlFor={`dist-${c.id}`} className="text-sm text-tierra-700">
+                      Es distribuidor — sus ventas van solas al canal Distribución
+                    </label>
+                  </div>
                   <div className="sm:col-span-2">
                     <SubmitButton className="btn-secondary">Guardar cambios</SubmitButton>
                   </div>
