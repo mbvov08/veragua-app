@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { dateOnlyToUTC } from "@/lib/date";
 import { COMPANIES, type Company } from "@/lib/finanzas/queries";
 import { parseSaleItems, findDefaultCategory, registrarComisionBoldSiAplica } from "@/lib/inventario/shared";
+import { canalPorDefectoVenta } from "@/lib/finanzas/canal-venta";
 import { canalDelLocalSiAplica } from "@/lib/finanzas/canal-local";
 import { aplicarCreditoDisponibleCliente, aplicarCreditoDisponibleProveedor } from "@/lib/inventario/credito";
 
@@ -130,7 +131,7 @@ export async function createTransaction(formData: FormData) {
   const fechaStr = String(formData.get("fecha") ?? "");
   const monto = Number(formData.get("monto"));
   const categoriaId = String(formData.get("categoriaId") ?? "");
-  const canalId = String(formData.get("canalId") ?? "") || null;
+  let canalId = String(formData.get("canalId") ?? "") || null;
   const metodoPago = String(formData.get("metodoPago") ?? "").trim() || null;
   const descripcion = String(formData.get("descripcion") ?? "").trim() || null;
   const contraparte = String(formData.get("contraparte") ?? "").trim() || null;
@@ -141,6 +142,7 @@ export async function createTransaction(formData: FormData) {
 
   const items = parseSaleItems(formData);
   if (tipo === "income" && items.length > 0) {
+    if (!canalId) canalId = await canalPorDefectoVenta(company, contraparte);
     await createTransactionConProductos(session, formData, company, canalId, dateOnlyToUTC(fechaStr), contraparte);
     return;
   }

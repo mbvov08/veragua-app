@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { dateOnlyToUTC } from "@/lib/date";
 import { requireFinanzas } from "@/lib/actions/finanzas";
 import { parseCompany, parseSaleItems, findDefaultCategory, registrarComisionBoldSiAplica } from "@/lib/inventario/shared";
+import { canalPorDefectoVenta } from "@/lib/finanzas/canal-venta";
 import { repartirPagoCliente, aplicarCreditoDisponibleCliente, type AplicacionPago } from "@/lib/inventario/credito";
 
 /** "100% Abono — 2 Café 500gr; 34% Abono — 1 Brownie personal", igual al estilo que
@@ -86,13 +87,8 @@ export async function registrarVenta(formData: FormData) {
   const fecha = dateOnlyToUTC(fechaStr);
   const total = items.reduce((sum, it) => sum + it.cantidad * it.precioUnitario, 0);
 
-  // Sin canal elegido y cliente distribuidor → canal "Distribución" de la empresa.
-  if (!canalId && clienteNombre) {
-    const dist = await prisma.cliente.findUnique({ where: { nombre: clienteNombre }, select: { esDistribuidor: true } });
-    if (dist?.esDistribuidor) {
-      canalId = (await prisma.finChannel.findFirst({ where: { company, nombre: "Distribución" }, select: { id: true } }))?.id ?? null;
-    }
-  }
+  // Sin canal elegido: Distribución si el cliente es distribuidor, si no WhatsApp.
+  if (!canalId) canalId = await canalPorDefectoVenta(company, clienteNombre || null);
 
   await prisma.$transaction(async (tx) => {
     let clienteId: string | null = null;

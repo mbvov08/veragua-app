@@ -92,7 +92,7 @@ export default function NuevaVentaForm({
       <div>
         <label className="label">Canal</label>
         <select name="canalId" className="input">
-          <option value="">Sin canal</option>
+          <option value="">Automático (WhatsApp; distribuidor → Distribución)</option>
           {canales.map((ch) => (
             <option key={ch.id} value={ch.id}>{ch.nombre}</option>
           ))}
