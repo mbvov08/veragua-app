@@ -8,9 +8,10 @@ import { finJornadaOrdinaria } from "@/lib/schedule";
  * sobre todo si cambian los porcentajes de ley o los horarios de recargo nocturno/dominical.
  */
 
-// Inicio del recargo nocturno. Colombia tiene una reforma laboral en curso (2025-2027) que
-// mueve este límite por fases — confirmar si ya cambió antes de asumir 9:00 p.m.
-const NOCTURNO_INICIO_HORA = 21;
+// Inicio del trabajo nocturno: 7:00 p.m. (Ley 2466 de 2025, vigente desde el 25-dic-2025; antes
+// era 9:00 p.m.). Como la jornada ordinaria termina a las 7 p.m. entre semana, todas las horas
+// extra de lunes a viernes son nocturnas; los sábados (fin 5 p.m.) las de 5 a 7 p.m. son diurnas.
+const NOCTURNO_INICIO_HORA = 19;
 
 export type PayrollBreakdown = {
   salarioBase: number;

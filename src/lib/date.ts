@@ -122,14 +122,17 @@ export function colombiaClockOnDate(workDate: Date, hour: number, minute = 0): D
   return new Date(Date.UTC(y, m, d, hour + 5, minute));
 }
 
-/** Horas trabajadas en el día (decimal), restando 1 hora de almuerzo de lunes a viernes. */
+/** Minutos de almuerzo que se descuentan de lunes a viernes (Daniela almuerza 30 min). */
+export const ALMUERZO_MINUTOS = 30;
+
+/** Horas trabajadas en el día (decimal), restando el almuerzo de lunes a viernes. */
 export function computeWorkedHours(
   clockIn: Date,
   clockOut: Date,
   dow: number
 ): number {
   const rawMs = clockOut.getTime() - clockIn.getTime();
-  const lunchMs = dow >= 1 && dow <= 5 ? 60 * 60 * 1000 : 0;
+  const lunchMs = dow >= 1 && dow <= 5 ? ALMUERZO_MINUTOS * 60 * 1000 : 0;
   const workedMs = Math.max(0, rawMs - lunchMs);
   return workedMs / (60 * 60 * 1000);
 }
