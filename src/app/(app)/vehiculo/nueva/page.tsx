@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireVehiculoAccess } from "@/lib/vehiculo/access";
-import ActaEntregaForm from "@/components/vehiculo/ActaEntregaForm";
+import IniciarRutaForm from "@/components/vehiculo/IniciarRutaForm";
 
 export default async function VehiculoNuevaPage({
   searchParams,
@@ -21,7 +21,7 @@ export default async function VehiculoNuevaPage({
 
   return (
     <div className="space-y-4">
-      <h1 className="text-lg font-semibold text-verde-800">Nueva acta de entrega</h1>
+      <h1 className="text-lg font-semibold text-verde-800">Comenzar ruta</h1>
 
       {vehiculos.length === 0 ? (
         <div className="card">
@@ -39,15 +39,15 @@ export default async function VehiculoNuevaPage({
             <Link href="/usuarios" className="text-verde-700 underline">
               créalo en Usuarios
             </Link>{" "}
-            antes de hacer la primera acta.
+            antes de comenzar la primera ruta.
           </p>
         </div>
       ) : (
-        <ActaEntregaForm
+        <IniciarRutaForm
           vehiculos={vehiculos.map((v) => ({ id: v.id, placa: v.placa }))}
-          conductores={conductores.map((c) => ({ id: c.id, name: c.name }))}
-          autoservicio={esConductor}
-          rutaProgramadaIdInicial={rutaProgramadaId}
+          conductores={conductores.map((c) => ({ id: c.id, name: c.name ?? "" }))}
+          esConductor={esConductor}
+          rutaProgramadaId={rutaProgramadaId}
         />
       )}
     </div>

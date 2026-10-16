@@ -4,16 +4,6 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { dateOnlyToUTC } from "@/lib/date";
 import { requireVehiculoAdmin, requireEntregaAccess, requireDevolucionAccess } from "@/lib/vehiculo/access";
-import { putPrivateVehiculoBlob } from "@/lib/vehiculo/blob";
-import { ANGULOS, PUNTOS_EVALUACION, EQUIPAMIENTO_ITEMS, NOVEDAD_TIPOS } from "@/lib/vehiculo/constants";
-import {
-  validarActaEntrega,
-  validarActaDevolucion,
-  type FotoDraft,
-  type EvaluacionDraft,
-  type EquipoDraft,
-  type NovedadDraft,
-} from "@/lib/vehiculo/validacion";
 
 function revalidateVehiculo() {
   revalidatePath("/vehiculo");
@@ -77,81 +67,20 @@ export async function upsertVehiculoSettings(formData: FormData) {
   revalidateVehiculo();
 }
 
+/** Comenzar la ruta: solo el kilometraje de partida. Sin fotos, firmas ni checklists, y sin
+ * armar la ruta — los pedidos que lleva los asigna el staff después, desde el detalle. */
 export async function crearSalida(formData: FormData) {
   const vehiculoId = String(formData.get("vehiculoId") ?? "");
   const conductorId = String(formData.get("conductorId") ?? "");
   const { session, autoservicio } = await requireEntregaAccess(conductorId);
 
-  const tipoUso = String(formData.get("tipoUso") ?? "");
-  const zona = String(formData.get("zona") ?? "") || null;
-  const destino = String(formData.get("destino") ?? "").trim() || null;
   const checkoutKm = Number(formData.get("checkoutKm"));
-  const checkoutCombustible = String(formData.get("checkoutCombustible") ?? "");
   const observacionesEntrega = String(formData.get("observacionesEntrega") ?? "").trim() || null;
-  const evaluaciones = JSON.parse(String(formData.get("evaluacionesJson") ?? "[]")) as EvaluacionDraft[];
-  const equipamiento = JSON.parse(String(formData.get("equipamientoJson") ?? "[]")) as EquipoDraft[];
-  const pedidoIds = JSON.parse(String(formData.get("pedidoIdsJson") ?? "[]")) as string[];
   const rutaProgramadaId = String(formData.get("rutaProgramadaId") ?? "") || null;
-  const firmaConductorFile = formData.get("firmaConductor") as File | null;
-  const firmaRepFile = formData.get("firmaRep") as File | null;
-  const firmaRepVacia = !firmaRepFile || firmaRepFile.size === 0;
 
-  const fotos: FotoDraft[] = ANGULOS.map((a) => {
-    const file = formData.get(`foto__${a.value}`) as File | null;
-    return { angulo: a.value, blob: file && file.size > 0 ? file : null };
-  });
-
-  const faltas = validarActaEntrega(
-    {
-      vehiculoId,
-      conductorId,
-      tipoUso,
-      zona: zona ?? "",
-      checkoutKm: String(checkoutKm || ""),
-      checkoutCombustible,
-      fotos,
-      evaluaciones,
-      equipamiento,
-      firmaConductorVacia: !firmaConductorFile || firmaConductorFile.size === 0,
-      firmaRepVacia,
-    },
-    // Si el conductor se está auto-registrando (nadie de la empresa presente), no se le
-    // puede exigir la firma de "la persona de la empresa" — no hay quién la ponga.
-    { requiereFirmaRep: false }
-  );
-  if (faltas.length > 0) throw new Error("Falta completar: " + faltas.join("; "));
-
-  const vehiculo = await prisma.vehiculo.findUniqueOrThrow({ where: { id: vehiculoId } });
-  if (vehiculo.salidaAbiertaId) throw new Error("Este vehículo ya tiene una salida abierta.");
-
-  // Cada línea de "Ruta / paradas" se vuelve un ítem de checklist marcable — así el
-  // conductor ve la ruta compleja (ej. dejar/recoger en paradas intermedias que no son
-  // pedidos de cliente) como algo que puede ir tachando, no solo como texto suelto.
-  const lineasParadas = (destino ?? "").split("\n").map((l) => l.trim()).filter(Boolean);
-
-  // Las subidas a Blob son lentas (red) — se hacen fuera de la transacción de BD para
-  // no dejarla abierta esperando. Si algo falla después, los archivos quedan
-  // huérfanos (sin salidaId) pero no hay inconsistencia visible para el usuario.
-  const archivoIds: Record<string, string> = {};
-  for (const f of fotos) {
-    const blob = await putPrivateVehiculoBlob(`vehiculo/${crypto.randomUUID()}-${f.angulo}.jpg`, f.blob!);
-    const archivo = await prisma.vehiculoArchivo.create({
-      data: { blobPathname: blob.pathname, contentType: blob.contentType, subidoPorId: session.user.id },
-    });
-    archivoIds[`foto_${f.angulo}`] = archivo.id;
-  }
-  const blobFirmaConductor = await putPrivateVehiculoBlob(`vehiculo/${crypto.randomUUID()}-firma-conductor.png`, firmaConductorFile!);
-  const archivoFirmaConductor = await prisma.vehiculoArchivo.create({
-    data: { blobPathname: blobFirmaConductor.pathname, contentType: blobFirmaConductor.contentType, subidoPorId: session.user.id },
-  });
-  // Sin nadie de la empresa presente no hay segunda firma — queda sin archivo.
-  let archivoFirmaRep: { id: string } | null = null;
-  if (!firmaRepVacia) {
-    const blobFirmaRep = await putPrivateVehiculoBlob(`vehiculo/${crypto.randomUUID()}-firma-rep.png`, firmaRepFile!);
-    archivoFirmaRep = await prisma.vehiculoArchivo.create({
-      data: { blobPathname: blobFirmaRep.pathname, contentType: blobFirmaRep.contentType, subidoPorId: session.user.id },
-    });
-  }
+  if (!vehiculoId) throw new Error("Selecciona el vehículo.");
+  if (!conductorId) throw new Error("Selecciona el conductor.");
+  if (!Number.isInteger(checkoutKm) || checkoutKm <= 0) throw new Error("Escribe el kilometraje de partida.");
 
   const salida = await prisma.$transaction(
     async (tx) => {
@@ -162,63 +91,18 @@ export async function crearSalida(formData: FormData) {
         data: {
           vehiculoId,
           conductorId,
-          tipoUso,
-          zona,
-          destino,
+          tipoUso: "RUTA_EMPRESA",
           checkoutPorId: session.user.id,
           checkoutKm,
-          checkoutCombustible,
           observacionesEntrega: autoservicio
             ? [observacionesEntrega, "[Auto-registrado por el conductor, sin staff presente]"].filter(Boolean).join(" — ")
             : observacionesEntrega,
-          firmaConductorEntregaId: archivoFirmaConductor.id,
-          firmaRepEntregaId: archivoFirmaRep?.id ?? null,
-          fotos: {
-            create: ANGULOS.map((a) => ({
-              momento: "ENTREGA",
-              angulo: a.value,
-              archivoId: archivoIds[`foto_${a.value}`],
-            })),
-          },
-          evaluaciones: {
-            create: PUNTOS_EVALUACION.map((p) => {
-              const ev = evaluaciones.find((e) => e.punto === p.value)!;
-              return { momento: "ENTREGA", punto: p.value, estado: ev.estado, nota: ev.nota.trim() || null };
-            }),
-          },
-          paradas: {
-            create: lineasParadas.map((titulo, i) => ({ orden: i, titulo })),
-          },
-          equipamiento: {
-            create: EQUIPAMIENTO_ITEMS.map((it) => {
-              const eq = equipamiento.find((e) => e.item === it.value)!;
-              return { momento: "ENTREGA", item: it.value, presente: Boolean(eq.presente) };
-            }),
-          },
         },
-      });
-
-      const archivoIdsCreados = [...Object.values(archivoIds), archivoFirmaConductor.id];
-      if (archivoFirmaRep) archivoIdsCreados.push(archivoFirmaRep.id);
-      await tx.vehiculoArchivo.updateMany({
-        where: { id: { in: archivoIdsCreados } },
-        data: { salidaId: nuevaSalida.id },
       });
 
       await tx.vehiculo.update({ where: { id: vehiculoId }, data: { salidaAbiertaId: nuevaSalida.id } });
 
-      // Pedidos elegidos al planear la ruta. Si llega un pedido nuevo después de crear la
-      // salida, no aparece solo — hay que asignarlo a mano (no hay todavía una acción para
-      // agregar pedidos a una salida ya abierta).
-      if (pedidoIds.length > 0) {
-        await tx.order.updateMany({
-          where: { id: { in: pedidoIds }, vehiculoSalidaId: null },
-          data: { vehiculoSalidaId: nuevaSalida.id },
-        });
-      }
-
-      // La ruta programada que se está "abriendo" con esta acta ya cumplió su propósito
-      // de avisar con anticipación — se borra para que deje de aparecer como pendiente.
+      // La ruta programada que se está "abriendo" ya cumplió su propósito de avisar.
       if (rutaProgramadaId) {
         await tx.vehiculoRutaProgramada.deleteMany({ where: { id: rutaProgramadaId, conductorId } });
       }
@@ -232,64 +116,23 @@ export async function crearSalida(formData: FormData) {
   return { id: salida.id };
 }
 
+/** Terminar la ruta: solo el kilometraje de llegada. */
 export async function cerrarSalida(salidaId: string, formData: FormData) {
   const { session, salida: salidaActual, autoservicio } = await requireDevolucionAccess(salidaId);
   if (salidaActual.checkinAt) throw new Error("Esta salida ya fue cerrada.");
 
   const checkinKm = Number(formData.get("checkinKm"));
-  const checkinCombustible = String(formData.get("checkinCombustible") ?? "");
   const observacionesDevolucion = String(formData.get("observacionesDevolucion") ?? "").trim() || null;
-  const novedades = JSON.parse(String(formData.get("novedadesJson") ?? "[]")) as NovedadDraft[];
-  const firmaConductorFile = formData.get("firmaConductor") as File | null;
-  const firmaRepFile = formData.get("firmaRep") as File | null;
-  const firmaRepVacia = !firmaRepFile || firmaRepFile.size === 0;
 
-  const fotos: FotoDraft[] = ANGULOS.map((a) => {
-    const file = formData.get(`foto__${a.value}`) as File | null;
-    return { angulo: a.value, blob: file && file.size > 0 ? file : null };
-  });
-
-  const faltas = validarActaDevolucion(
-    {
-      checkinKm: String(checkinKm || ""),
-      checkinCombustible,
-      fotos,
-      novedades,
-      firmaConductorVacia: !firmaConductorFile || firmaConductorFile.size === 0,
-      firmaRepVacia,
-    },
-    salidaActual.checkoutKm,
-    { requiereFirmaRep: false }
-  );
-  if (faltas.length > 0) throw new Error("Falta completar: " + faltas.join("; "));
-
-  const archivoIds: Record<string, string> = {};
-  for (const f of fotos) {
-    const blob = await putPrivateVehiculoBlob(`vehiculo/${crypto.randomUUID()}-${f.angulo}.jpg`, f.blob!);
-    const archivo = await prisma.vehiculoArchivo.create({
-      data: { blobPathname: blob.pathname, contentType: blob.contentType, subidoPorId: session.user.id, salidaId },
-    });
-    archivoIds[`foto_${f.angulo}`] = archivo.id;
-  }
-  const blobFirmaConductor = await putPrivateVehiculoBlob(`vehiculo/${crypto.randomUUID()}-firma-conductor-dev.png`, firmaConductorFile!);
-  const archivoFirmaConductor = await prisma.vehiculoArchivo.create({
-    data: { blobPathname: blobFirmaConductor.pathname, contentType: blobFirmaConductor.contentType, subidoPorId: session.user.id, salidaId },
-  });
-  let archivoFirmaRep: { id: string } | null = null;
-  if (!firmaRepVacia) {
-    const blobFirmaRep = await putPrivateVehiculoBlob(`vehiculo/${crypto.randomUUID()}-firma-rep-dev.png`, firmaRepFile!);
-    archivoFirmaRep = await prisma.vehiculoArchivo.create({
-      data: { blobPathname: blobFirmaRep.pathname, contentType: blobFirmaRep.contentType, subidoPorId: session.user.id, salidaId },
-    });
+  if (!Number.isInteger(checkinKm) || checkinKm <= 0) throw new Error("Escribe el kilometraje de llegada.");
+  if (checkinKm < salidaActual.checkoutKm) {
+    throw new Error(`El kilometraje de llegada no puede ser menor al de partida (${salidaActual.checkoutKm}).`);
   }
 
   await prisma.$transaction(
     async (tx) => {
       const salidaDentroTx = await tx.vehiculoSalida.findUniqueOrThrow({ where: { id: salidaId } });
       if (salidaDentroTx.checkinAt) throw new Error("Esta salida ya fue cerrada.");
-      if (checkinKm < salidaDentroTx.checkoutKm) {
-        throw new Error(`El kilometraje de devolución no puede ser menor al de entrega (${salidaDentroTx.checkoutKm}).`);
-      }
 
       await tx.vehiculoSalida.update({
         where: { id: salidaId },
@@ -297,26 +140,10 @@ export async function cerrarSalida(salidaId: string, formData: FormData) {
           checkinAt: new Date(),
           checkinPorId: session.user.id,
           checkinKm,
-          checkinCombustible,
           observacionesDevolucion: autoservicio
             ? [observacionesDevolucion, "[Auto-registrado por el conductor, sin staff presente]"].filter(Boolean).join(" — ")
             : observacionesDevolucion,
-          firmaConductorDevolucionId: archivoFirmaConductor.id,
-          firmaRepDevolucionId: archivoFirmaRep?.id ?? null,
           lockedAt: new Date(),
-          fotos: {
-            create: ANGULOS.map((a) => ({
-              momento: "DEVOLUCION",
-              angulo: a.value,
-              archivoId: archivoIds[`foto_${a.value}`],
-            })),
-          },
-          novedades: {
-            create: NOVEDAD_TIPOS.map((n) => {
-              const nov = novedades.find((x) => x.tipo === n.value)!;
-              return { tipo: n.value, marcado: Boolean(nov.marcado), detalle: nov.detalle.trim() || null };
-            }),
-          },
         },
       });
 

@@ -26,7 +26,9 @@ const LABEL_POR_TIPO: Record<string, string> = {
 export async function subirRecibo(salidaId: string, formData: FormData) {
   const session = await requireVehiculoAccess();
   const salida = await requireOwnSalida(session, salidaId);
-  if (salida.checkinAt) throw new Error("Esta salida ya está cerrada, no se pueden agregar más recibos.");
+  const esStaff = session.user.role !== "CONDUCTOR";
+  // El staff puede seguir cargando gastos de una ruta ya cerrada (peajes, pagos, facturas).
+  if (salida.checkinAt && !esStaff) throw new Error("Esta salida ya está cerrada, no se pueden agregar más recibos.");
 
   const tipo = String(formData.get("tipo") ?? "");
   const valor = Number(formData.get("valor"));
@@ -34,6 +36,10 @@ export async function subirRecibo(salidaId: string, formData: FormData) {
   const file = formData.get("foto") as File | null;
 
   if (!["COMBUSTIBLE", "PEAJE", "PAGO_CONDUCTOR"].includes(tipo)) throw new Error("Tipo de recibo inválido.");
+  // El conductor solo registra sus tanqueadas; peajes y pagos los registra el staff.
+  if (session.user.role === "CONDUCTOR" && tipo !== "COMBUSTIBLE") {
+    throw new Error("Solo puedes registrar tanqueadas; los peajes y pagos los registra la administración.");
+  }
   if (!(valor > 0)) throw new Error("El valor debe ser mayor a cero.");
   // La foto es siempre opcional — a veces se pierde el papel o no se alcanza a
   // fotografiar, y eso no debe bloquear dejar el gasto registrado.

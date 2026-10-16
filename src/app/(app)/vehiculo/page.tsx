@@ -39,7 +39,7 @@ export default async function VehiculoPage() {
         <div className="flex gap-2">
           {(isStaff || isConductor) && (
             <Link href="/vehiculo/nueva" className="btn-primary text-xs">
-              Nueva acta de entrega
+              Comenzar ruta
             </Link>
           )}
           {session.user.role === "ADMIN" && (

@@ -1064,7 +1064,7 @@ model VehiculoSalida {
   checkoutPorId           String
   checkoutPor             User             @relation("VehiculoCheckoutPor", fields: [checkoutPorId], references: [id])
   checkoutKm              Int
-  checkoutCombustible     String // "RESERVA" | "1/4" | "1/2" | "3/4" | "LLENO"
+  checkoutCombustible     String? // ya no se pide: César solo registra km de partida/llegada y tanqueadas
   observacionesEntrega    String?
   firmaConductorEntregaId String?          @unique
   firmaConductorEntrega   VehiculoArchivo? @relation("FirmaConductorEntrega", fields: [firmaConductorEntregaId], references: [id])

@@ -2,10 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { todayColombia } from "@/lib/date";
 import { dateOnlyToUTC } from "@/lib/date";
-import { requireVehiculoAccess, requireOwnSalida } from "@/lib/vehiculo/access";
-import { putPrivateVehiculoBlob } from "@/lib/vehiculo/blob";
+import { requireVehiculoAccess, requireVehiculoStaff, requireOwnSalida } from "@/lib/vehiculo/access";
 import { sincronizarInventarioPorEntrega } from "@/lib/pedidos/inventario";
 
 /** Pedidos del día — nunca precios (Order/OrderItem/Producto no tienen columna de
@@ -19,10 +17,8 @@ export async function listarPedidosDelDia(salidaId: string) {
   const salida = await requireOwnSalida(session, salidaId);
   if (salida.tipoUso !== "RUTA_EMPRESA") return [];
 
-  const hoy = todayColombia();
   return prisma.order.findMany({
     where: {
-      fechaEntrega: hoy,
       entregaTercero: null,
       vehiculoSalidaId: salidaId,
     },
@@ -66,33 +62,34 @@ export async function listarPedidosPendientesPorFecha(fechaStr: string) {
   });
 }
 
-export async function marcarPedidoEntregadoConductor(orderId: string, salidaId: string, formData: FormData) {
-  const session = await requireVehiculoAccess();
-  const salida = await requireOwnSalida(session, salidaId);
-  if (salida.checkinAt) throw new Error("Esta salida ya está cerrada.");
-
-  const order = await prisma.order.findUniqueOrThrow({ where: { id: orderId } });
-  const hoy = todayColombia();
-  if (order.fechaEntrega.getTime() !== hoy.getTime()) {
-    throw new Error("Este pedido no corresponde a la ruta de hoy.");
-  }
-
-  const file = formData.get("foto") as File | null;
-  if (!file || file.size === 0) throw new Error("La foto de la remisión firmada es obligatoria.");
-
-  const blob = await putPrivateVehiculoBlob(`vehiculo/${crypto.randomUUID()}-remision.jpg`, file);
-  const archivo = await prisma.vehiculoArchivo.create({
-    data: { blobPathname: blob.pathname, contentType: blob.contentType, subidoPorId: session.user.id, salidaId },
-  });
-
-  await prisma.order.update({
-    where: { id: orderId },
-    data: { entregado: true, entregadoAt: new Date(), vehiculoSalidaId: salidaId, entregaArchivoId: archivo.id },
-  });
-  await sincronizarInventarioPorEntrega(orderId, true, session.user.id);
-
+/** Solo el staff arma la ruta de la salida: asigna los pedidos que lleva el conductor y
+ * registra cuáles se entregaron. César no arma la ruta ni marca entregas. */
+export async function asignarPedidoASalida(salidaId: string, orderId: string) {
+  await requireVehiculoStaff();
+  await prisma.order.update({ where: { id: orderId }, data: { vehiculoSalidaId: salidaId } });
   revalidatePath(`/vehiculo/${salidaId}`);
   revalidatePath("/pedidos");
+}
+
+export async function quitarPedidoDeSalida(salidaId: string, orderId: string) {
+  await requireVehiculoStaff();
+  const order = await prisma.order.findUniqueOrThrow({ where: { id: orderId } });
+  if (order.vehiculoSalidaId !== salidaId) throw new Error("Este pedido no está en esta salida.");
+  await prisma.order.update({ where: { id: orderId }, data: { vehiculoSalidaId: null } });
+  revalidatePath(`/vehiculo/${salidaId}`);
+  revalidatePath("/pedidos");
+}
+
+export async function marcarPedidoEntregadoStaff(salidaId: string, orderId: string, entregado: boolean) {
+  const session = await requireVehiculoStaff();
+  const order = await prisma.order.findUniqueOrThrow({ where: { id: orderId } });
+  if (order.vehiculoSalidaId !== salidaId) throw new Error("Este pedido no está en esta salida.");
+  await prisma.order.update({ where: { id: orderId }, data: { entregado, entregadoAt: entregado ? new Date() : null } });
+  await sincronizarInventarioPorEntrega(orderId, entregado, session.user.id);
+  revalidatePath(`/vehiculo/${salidaId}`);
+  revalidatePath("/pedidos");
+  revalidatePath("/pedidos/pereira");
+  revalidatePath("/calendario");
 }
 
 /** El checklist de paradas (lo que no es un pedido de cliente — dejar/recoger insumos

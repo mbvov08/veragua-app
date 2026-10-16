@@ -6,7 +6,7 @@ import { compressImage } from "@/lib/vehiculo/compressImage";
 import { subirRecibo } from "@/lib/actions/vehiculo-recibos";
 import { TIPO_RECIBO } from "@/lib/vehiculo/constants";
 
-export default function AgregarReciboForm({ salidaId }: { salidaId: string }) {
+export default function AgregarReciboForm({ salidaId, soloTanqueo = false }: { salidaId: string; soloTanqueo?: boolean }) {
   const router = useRouter();
   const [tipo, setTipo] = useState("COMBUSTIBLE");
   const [valor, setValor] = useState("");
@@ -49,14 +49,16 @@ export default function AgregarReciboForm({ salidaId }: { salidaId: string }) {
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-wrap items-end gap-2 rounded-lg border border-verde-100 bg-verde-50/40 p-3">
-      <div>
-        <label className="label">Tipo</label>
-        <select value={tipo} onChange={(e) => setTipo(e.target.value)} className="input">
-          {TIPO_RECIBO.map((t) => (
-            <option key={t.value} value={t.value}>{t.label}</option>
-          ))}
-        </select>
-      </div>
+      {!soloTanqueo && (
+        <div>
+          <label className="label">Tipo</label>
+          <select value={tipo} onChange={(e) => setTipo(e.target.value)} className="input">
+            {TIPO_RECIBO.map((t) => (
+              <option key={t.value} value={t.value}>{t.label}</option>
+            ))}
+          </select>
+        </div>
+      )}
       <div>
         <label className="label">Valor</label>
         <input type="number" min="0" value={valor} onChange={(e) => setValor(e.target.value)} className="input w-28" required />
@@ -67,7 +69,7 @@ export default function AgregarReciboForm({ salidaId }: { salidaId: string }) {
         </label>
         <input value={galonesOLugar} onChange={(e) => setGalonesOLugar(e.target.value)} className="input w-28" />
       </div>
-      <div>
+      {!soloTanqueo && <div>
         <label className="label">Foto del recibo (opcional)</label>
         <input
           type="file"
@@ -80,9 +82,9 @@ export default function AgregarReciboForm({ salidaId }: { salidaId: string }) {
           }}
           className="input py-1 text-xs"
         />
-      </div>
+      </div>}
       <button type="submit" disabled={enviando || procesando} className="btn-secondary">
-        {enviando ? "Subiendo..." : procesando ? "Procesando..." : "Agregar recibo"}
+        {enviando ? "Guardando..." : procesando ? "Procesando..." : soloTanqueo ? "Registrar tanqueada" : "Agregar recibo"}
       </button>
       {errorMsg && <p className="w-full text-xs text-red-600">{errorMsg}</p>}
     </form>

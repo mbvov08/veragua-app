@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireDevolucionAccess } from "@/lib/vehiculo/access";
-import ActaDevolucionForm from "@/components/vehiculo/ActaDevolucionForm";
+import TerminarRutaForm from "@/components/vehiculo/TerminarRutaForm";
 
 export default async function VehiculoDevolucionPage({ params }: { params: Promise<{ salidaId: string }> }) {
   const { salidaId } = await params;
@@ -9,27 +9,17 @@ export default async function VehiculoDevolucionPage({ params }: { params: Promi
 
   const salida = await prisma.vehiculoSalida.findUnique({
     where: { id: salidaId },
-    include: {
-      vehiculo: true,
-      conductor: true,
-      fotos: { where: { momento: "ENTREGA" } },
-    },
+    include: { vehiculo: true, conductor: true },
   });
   if (!salida) notFound();
   if (salida.checkinAt) notFound();
 
-  const entregaFotos = Object.fromEntries(salida.fotos.map((f) => [f.angulo, f.archivoId]));
-
   return (
     <div className="space-y-4">
       <h1 className="text-lg font-semibold text-verde-800">
-        Acta de devolución — {salida.vehiculo.placa} · {salida.conductor.name}
+        Terminar ruta — {salida.vehiculo.placa} · {salida.conductor.name}
       </h1>
-      <ActaDevolucionForm
-        salidaId={salidaId}
-        checkoutKm={salida.checkoutKm}
-        entregaFotos={entregaFotos}
-      />
+      <TerminarRutaForm salidaId={salidaId} checkoutKm={salida.checkoutKm} />
     </div>
   );
 }
