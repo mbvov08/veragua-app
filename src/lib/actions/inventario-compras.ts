@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { dateOnlyToUTC } from "@/lib/date";
 import { requireFinanzas } from "@/lib/actions/finanzas";
@@ -256,4 +257,88 @@ export async function marcarCompraRecibida(purchaseId: string) {
   revalidateProveedores();
   revalidatePath("/inventario/productos");
   revalidatePath("/inventario/reabastecimiento");
+}
+
+/** Corrige una compra ya registrada (proveedor, fecha, factura, productos, costos, recibido,
+ * notas). No cambia entre pagada y pendiente: eso depende de pagos ya hechos. El gasto o la
+ * cuenta por pagar ligados se ajustan al nuevo total, y el stock se recalcula solo. */
+export async function editarCompra(purchaseId: string, formData: FormData) {
+  await requireFinanzas();
+
+  const proveedorId = String(formData.get("proveedorId") ?? "");
+  const fechaStr = String(formData.get("fecha") ?? "");
+  const numeroFactura = String(formData.get("numeroFactura") ?? "").trim() || null;
+  const metodoPago = String(formData.get("metodoPago") ?? "").trim() || null;
+  const recibido = formData.get("recibido") === "on";
+  const notas = String(formData.get("notas") ?? "").trim() || null;
+  const items = parsePurchaseItems(formData);
+
+  if (!proveedorId) throw new Error("Selecciona un proveedor.");
+  if (!fechaStr) throw new Error("La fecha es obligatoria.");
+  if (items.length === 0) throw new Error("La compra debe tener al menos un producto.");
+
+  const fecha = dateOnlyToUTC(fechaStr);
+  const total = items.reduce((sum, it) => sum + it.cantidad * it.costoUnitario, 0);
+
+  const purchase = await prisma.finPurchase.findUniqueOrThrow({
+    where: { id: purchaseId },
+    include: { cuentaPorPagar: { include: { aplicaciones: true } } },
+  });
+  const proveedor = await prisma.proveedor.findUniqueOrThrow({ where: { id: proveedorId } });
+
+  const cuenta = purchase.cuentaPorPagar;
+  const aplicado = cuenta ? cuenta.aplicaciones.reduce((s, a) => s + a.montoAplicado, 0) : 0;
+  if (cuenta) {
+    if (total < aplicado) {
+      throw new Error(`Esta compra ya tiene pagos aplicados por ${aplicado.toLocaleString("es-CO")}: el nuevo total no puede ser menor.`);
+    }
+    if (proveedorId !== purchase.proveedorId && aplicado > 0) {
+      throw new Error("Esta compra ya tiene pagos aplicados al proveedor actual, no se puede cambiar de proveedor.");
+    }
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.finPurchaseItem.deleteMany({ where: { purchaseId } });
+    await tx.finPurchase.update({
+      where: { id: purchaseId },
+      data: {
+        proveedorId,
+        fecha,
+        numeroFactura,
+        recibido,
+        fechaRecibido: recibido ? purchase.fechaRecibido ?? fecha : null,
+        total,
+        notas,
+        items: { create: items.map((it) => ({ productoId: it.productoId, cantidad: it.cantidad, costoUnitario: it.costoUnitario })) },
+      },
+    });
+
+    if (purchase.finTransactionId) {
+      await tx.finTransaction.update({
+        where: { id: purchase.finTransactionId },
+        data: {
+          fecha,
+          monto: total,
+          contraparte: proveedor.nombre,
+          metodoPago,
+          descripcion: numeroFactura ? `Compra factura ${numeroFactura}` : "Compra de inventario",
+        },
+      });
+    }
+
+    if (cuenta) {
+      await tx.finCuentaPorPagar.update({
+        where: { id: cuenta.id },
+        data: { proveedorId, fecha, montoTotal: total, saldo: total - aplicado },
+      });
+    }
+  }, { maxWait: 10000, timeout: 20000 });
+
+  revalidateProveedores();
+  revalidatePath("/inventario/productos");
+  revalidatePath("/inventario/reabastecimiento");
+  revalidatePath("/finanzas");
+  revalidatePath("/finanzas/movimientos");
+  revalidatePath("/finanzas/pyg");
+  redirect("/inventario/proveedores");
 }

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import InventarioCompanyPicker from "@/components/inventario/CompanyPicker";
 import ItemsPicker, { type Item } from "@/components/inventario/SaleItemsPicker";
 import SubmitButton from "@/components/SubmitButton";
@@ -242,6 +243,9 @@ export default async function ProveedoresPage({
                   )}
                 </td>
                 <td className="py-2 pr-2 text-right">
+                  <Link href={`/inventario/compras/${c.id}/editar`} className="chip-edit mr-1">
+                    Editar
+                  </Link>
                   <a href={`/api/inventario/export/pedido/${c.id}`} className="chip-edit">
                     {c.recibido ? "Comprobante" : "Pedido PDF"}
                   </a>
