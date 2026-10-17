@@ -33,6 +33,12 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ sli
     );
     doc.moveDown(1);
 
+    drawSectionTitle(doc, "Horas del periodo");
+    drawRow(doc, "Horas ordinarias (diurnas)", `${slip.horasOrdinarias.toFixed(2)} h`);
+    drawRow(doc, "Horas extra diurnas", `${slip.horasExtraDiu.toFixed(2)} h`);
+    drawRow(doc, "Horas extra nocturnas (desde las 7 p.m.)", `${slip.horasExtraNoc.toFixed(2)} h`);
+    doc.moveDown(0.5);
+
     drawSectionTitle(doc, "Devengado");
     drawRow(doc, "Salario base (quincena)", COP.format(slip.salarioBase / 2));
     if (slip.horasExtraDiu > 0) {

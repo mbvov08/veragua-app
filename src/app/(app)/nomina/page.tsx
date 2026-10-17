@@ -127,6 +127,7 @@ export default async function NominaPage() {
             <tr className="border-b border-verde-100 text-left text-xs text-tierra-500">
               <th className="py-2 pr-2">Periodo</th>
               <th className="py-2 pr-2">Empleado(a)</th>
+              <th className="py-2 pr-2">Horas (ord. / extra día / extra noche)</th>
               <th className="py-2 pr-2">Base quincena</th>
               <th className="py-2 pr-2">Extra</th>
               <th className="py-2 pr-2">Aux. transp.</th>
@@ -146,6 +147,9 @@ export default async function NominaPage() {
                   {s.user.employeeProfile?.cedula && (
                     <span className="block text-xs text-tierra-400">CC {s.user.employeeProfile.cedula}</span>
                   )}
+                </td>
+                <td className="py-2 pr-2 whitespace-nowrap text-xs text-tierra-600">
+                  {s.horasOrdinarias.toFixed(1)} / {s.horasExtraDiu.toFixed(1)} / {s.horasExtraNoc.toFixed(1)} h
                 </td>
                 <td className="py-2 pr-2">{COP.format(s.salarioBase / 2)}</td>
                 <td className="py-2 pr-2">
@@ -176,7 +180,7 @@ export default async function NominaPage() {
               </tr>
             ))}
             {slips.length === 0 && (
-              <tr><td colSpan={9} className="py-6 text-center text-tierra-500">Aún no se ha generado ninguna nómina.</td></tr>
+              <tr><td colSpan={10} className="py-6 text-center text-tierra-500">Aún no se ha generado ninguna nómina.</td></tr>
             )}
           </tbody>
         </table>
